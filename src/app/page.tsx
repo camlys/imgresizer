@@ -162,7 +162,7 @@ export default function Home() {
       <main className="flex-1 grid md:grid-cols-6 gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
-            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-4">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-3">
               <ControlPanel 
                 settings={settings} 
                 updateSettings={updateSettings} 
