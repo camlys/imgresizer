@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { ImageSettings } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
+import { ThemeToggle } from './theme-toggle';
+import Link from 'next/link';
 
 
 interface AppHeaderProps {
@@ -98,12 +100,12 @@ export function AppHeader({
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card">
-      <div className="flex items-center gap-3">
+      <Link href="/" className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-primary/10 text-primary">
           <Wand2 className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground font-headline tracking-tight">Image Editor</h1>
-      </div>
+        <h1 className="text-2xl font-bold text-foreground font-headline tracking-tight">Camly</h1>
+      </Link>
       <div className="flex items-center gap-2">
         <input
           type="file"
@@ -215,6 +217,7 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
+        <ThemeToggle />
       </div>
     </header>
   );
