@@ -72,6 +72,9 @@ export function CropTab({ settings, updateSettings, originalImage }: CropTabProp
           <Button variant="ghost" size="sm" onClick={resetCrop}>Reset</Button>
         </CardHeader>
         <CardContent className="space-y-4">
+           <p className="text-sm text-muted-foreground">
+            Click and drag on the main image to define a crop area, or use the controls below.
+          </p>
           <div>
             <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
             <div className="grid grid-cols-4 gap-2 mt-1">
@@ -84,19 +87,19 @@ export function CropTab({ settings, updateSettings, originalImage }: CropTabProp
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="crop-x">X</Label>
-              <Input id="crop-x" type="number" value={crop.x} onChange={e => handleCropChange('x', e.target.value)} />
+              <Input id="crop-x" type="number" value={Math.round(crop.x)} onChange={e => handleCropChange('x', e.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="crop-y">Y</Label>
-              <Input id="crop-y" type="number" value={crop.y} onChange={e => handleCropChange('y', e.target.value)} />
+              <Input id="crop-y" type="number" value={Math.round(crop.y)} onChange={e => handleCropChange('y', e.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="crop-width">Width</Label>
-              <Input id="crop-width" type="number" value={crop.width} onChange={e => handleCropChange('width', e.target.value)} />
+              <Input id="crop-width" type="number" value={Math.round(crop.width)} onChange={e => handleCropChange('width', e.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="crop-height">Height</Label>
-              <Input id="crop-height" type="number" value={crop.height} onChange={e => handleCropChange('height', e.target.value)} />
+              <Input id="crop-height" type="number" value={Math.round(crop.height)} onChange={e => handleCropChange('height', e.target.value)} />
             </div>
           </div>
         </CardContent>

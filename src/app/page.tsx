@@ -35,6 +35,7 @@ const initialSettings: ImageSettings = {
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<OriginalImage | null>(null);
   const [settings, setSettings] = useState<ImageSettings>(initialSettings);
+  const [activeTab, setActiveTab] = useState('resize');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
@@ -62,6 +63,7 @@ export default function Home() {
           height: img.height,
           crop: { x: 0, y: 0, width: img.width, height: img.height },
         });
+        setActiveTab('resize');
       };
       img.src = e.target?.result as string;
     };
@@ -111,6 +113,8 @@ export default function Home() {
                 settings={settings} 
                 updateSettings={updateSettings} 
                 originalImage={originalImage}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
               />
             </div>
             <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden">
@@ -119,6 +123,7 @@ export default function Home() {
                 originalImage={originalImage}
                 settings={settings}
                 updateSettings={updateSettings}
+                activeTab={activeTab}
               />
             </div>
           </>

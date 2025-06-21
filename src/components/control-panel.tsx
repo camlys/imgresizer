@@ -13,11 +13,13 @@ interface ControlPanelProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   originalImage: OriginalImage;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-export function ControlPanel({ settings, updateSettings, originalImage }: ControlPanelProps) {
+export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange }: ControlPanelProps) {
   return (
-    <Tabs defaultValue="resize" className="w-full p-2">
+    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full p-2">
       <TabsList className="grid w-full grid-cols-5 h-auto p-1">
         <TabsTrigger value="resize" className="flex-col h-auto gap-1 py-2">
           <Scan size={16}/>
