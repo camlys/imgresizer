@@ -75,6 +75,7 @@ export function ControlPanel({
               originalImage={originalImage}
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
+              onTabChange={onTabChange}
             />
           </TabsContent>
           <TabsContent value="text">

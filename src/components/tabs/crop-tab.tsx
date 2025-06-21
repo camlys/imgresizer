@@ -16,6 +16,7 @@ interface CropTabProps {
   originalImage: OriginalImage;
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings | null) => void;
+  onTabChange: (tab: string) => void;
 }
 
 const aspectRatios = [
@@ -25,7 +26,7 @@ const aspectRatios = [
   { name: '16:9', value: 16/9 },
 ];
 
-export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop }: CropTabProps) {
+export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
   const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
 
@@ -37,7 +38,11 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
   const resetCrop = () => {
     const newCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
     setPendingCrop(newCrop);
-    updateSettings({ crop: newCrop });
+    updateSettings({ 
+      crop: newCrop,
+      width: originalImage.width,
+      height: originalImage.height
+    });
   };
   
   const applyAspectRatio = (ratioValue: number) => {
@@ -69,12 +74,21 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     };
 
     setPendingCrop(newCrop);
-    updateSettings({ crop: newCrop });
+    updateSettings({ 
+      crop: newCrop,
+      width: newCrop.width,
+      height: newCrop.height
+    });
   };
 
   const applyChanges = () => {
       if (pendingCrop) {
-        updateSettings({ crop: pendingCrop });
+        updateSettings({ 
+          crop: pendingCrop,
+          width: pendingCrop.width,
+          height: pendingCrop.height
+        });
+        onTabChange('resize');
       }
   }
 
