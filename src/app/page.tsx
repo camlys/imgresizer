@@ -120,11 +120,6 @@ export default function Home() {
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
         isImageLoaded={!!originalImage}
-        settings={settings}
-        updateSettings={updateSettings}
-        canvasRef={canvasRef}
-        processedSize={processedSize}
-        onUpdateProcessedSize={updateProcessedSize}
       />
       <main className="flex-1 grid grid-cols-1 md:grid-cols-[380px_1fr] gap-4 p-4 overflow-hidden">
         {originalImage ? (
@@ -137,6 +132,8 @@ export default function Home() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 processedSize={processedSize}
+                canvasRef={canvasRef}
+                onUpdateProcessedSize={updateProcessedSize}
               />
             </div>
             <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden">

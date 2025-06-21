@@ -6,14 +6,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
-import { Lock, Unlock, Scan } from 'lucide-react';
+import { Lock, Unlock, Scan, Settings, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface ResizeRotateTabProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   originalImage: OriginalImage;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  onUpdateProcessedSize: () => void;
 }
 
 const DPI = 96;
@@ -35,9 +38,12 @@ const convertFromPx = (value: number, unit: Unit): number => {
   return value;
 };
 
-export function ResizeRotateTab({ settings, updateSettings, originalImage }: ResizeRotateTabProps) {
+export function ResizeRotateTab({ settings, updateSettings, originalImage, canvasRef, onUpdateProcessedSize }: ResizeRotateTabProps) {
   const [localWidth, setLocalWidth] = useState(convertFromPx(settings.width, settings.unit).toFixed(2));
   const [localHeight, setLocalHeight] = useState(convertFromPx(settings.height, settings.unit).toFixed(2));
+  const [targetSize, setTargetSize] = useState('');
+  const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
+  const [isOptimizing, setIsOptimizing] = useState(false);
   
   const aspectRatio = originalImage.width / originalImage.height;
 
@@ -77,6 +83,43 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
     updateSettings({ width: originalImage.width, height: originalImage.height });
   };
 
+  const getBlobFromCanvas = (quality: number): Promise<Blob | null> => {
+      return new Promise((resolve) => {
+          if (!canvasRef.current) {
+              resolve(null);
+              return;
+          }
+          canvasRef.current.toBlob((blob) => resolve(blob), settings.format, quality);
+      });
+  };
+
+  const handleTargetSize = async () => {
+    const numericSize = parseFloat(targetSize);
+    if (!numericSize || numericSize <= 0 || !canvasRef.current) return;
+
+    setIsOptimizing(true);
+    const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
+    
+    let high = 1, low = 0, mid = 0.5, bestQuality = 0.5;
+    
+    for(let i = 0; i < 10; i++) {
+      mid = (low + high) / 2;
+      const blob = await getBlobFromCanvas(mid);
+      if (!blob) break;
+      
+      if(blob.size > targetBytes) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+      bestQuality = mid;
+    }
+    
+    updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+    
+    setTimeout(onUpdateProcessedSize, 100);
+    setIsOptimizing(false);
+  };
 
   return (
     <div className="space-y-4 p-1">
@@ -117,6 +160,81 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
             </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="text-base font-medium flex items-center gap-2"><Settings size={18}/> Export Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="format">Format</Label>
+            <Select
+              value={settings.format}
+              onValueChange={(value) => {
+                const newSettings: Partial<ImageSettings> = { format: value as ImageSettings['format'] };
+                if (value === 'image/png') {
+                  newSettings.quality = 0.92;
+                }
+                updateSettings(newSettings);
+                setTimeout(onUpdateProcessedSize, 100);
+              }}
+            >
+              <SelectTrigger id="format">
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="image/png">PNG</SelectItem>
+                <SelectItem value="image/jpeg">JPEG</SelectItem>
+                <SelectItem value="image/webp">WEBP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(settings.format === 'image/jpeg' || settings.format === 'image/webp') && (
+            <>
+              <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="quality">Quality</Label>
+                  <span className="text-sm text-muted-foreground">{Math.round(settings.quality * 100)}%</span>
+                </div>
+                <Slider
+                  id="quality"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={[settings.quality]}
+                  onValueChange={(value) => updateSettings({ quality: value[0] })}
+                  onValueChangeCommit={() => onUpdateProcessedSize()}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Target File Size (Optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={targetSize}
+                    onChange={(e) => setTargetSize(e.target.value)}
+                    disabled={isOptimizing}
+                  />
+                  <Select value={targetUnit} onValueChange={(val: 'KB' | 'MB') => setTargetUnit(val)} disabled={isOptimizing}>
+                    <SelectTrigger className="w-[80px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="KB">KB</SelectItem>
+                        <SelectItem value="MB">MB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="icon" variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize}>
+                    {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
