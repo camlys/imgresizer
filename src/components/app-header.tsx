@@ -169,7 +169,7 @@ export function AppHeader({
                             min={0} max={1} step={0.01}
                             value={[settings.quality]}
                             onValueChange={(value) => updateSettings({ quality: value[0] })}
-                            onValueChangeCommit={() => onUpdateProcessedSize()}
+                            onValueCommit={() => onUpdateProcessedSize()}
                           />
                         </div>
                         <div className="space-y-2">
