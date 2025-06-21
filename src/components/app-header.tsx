@@ -83,7 +83,7 @@ export function AppHeader({ onUpload, onDownload, isImageLoaded, settings, updat
                     </SelectContent>
                   </Select>
                 </div>
-                {settings.format === 'image/jpeg' && (
+                {(settings.format === 'image/jpeg' || settings.format === 'image/webp') && (
                   <div className="grid gap-2">
                     <div className="flex justify-between items-center">
                       <Label htmlFor="quality">Quality</Label>
