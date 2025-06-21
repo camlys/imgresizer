@@ -17,7 +17,19 @@ interface TextTabProps {
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
 }
 
-const fonts = ['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'];
+const fonts = [
+  'Arial',
+  'Comic Sans MS',
+  'Courier New',
+  'Georgia',
+  'Impact',
+  'Inter',
+  'Lobster',
+  'Montserrat',
+  'Poppins',
+  'Times New Roman',
+  'Verdana',
+];
 
 export function TextTab({ settings, updateSettings }: TextTabProps) {
   const addText = () => {
@@ -26,8 +38,8 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
       text: 'Hello World',
       font: 'Arial',
       size: 50,
-      color: '#ffffff',
-      backgroundColor: 'transparent',
+      color: '#000000',
+      backgroundColor: '#ffffff',
       padding: 10,
       x: 50,
       y: 50,
