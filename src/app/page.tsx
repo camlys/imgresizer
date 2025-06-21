@@ -140,7 +140,7 @@ export default function Home() {
   }, [settings.format, settings.quality, toast]);
 
   return (
-    <div className="flex flex-col flex-1 bg-background text-foreground">
+    <div className="flex flex-col h-screen bg-background text-foreground">
       <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
