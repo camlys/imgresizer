@@ -154,6 +154,8 @@ export function AppHeader({
                           <SelectItem value="image/png">PNG</SelectItem>
                           <SelectItem value="image/jpeg">JPEG</SelectItem>
                           <SelectItem value="image/webp">WEBP</SelectItem>
+                          <SelectItem value="image/gif">GIF</SelectItem>
+                          <SelectItem value="image/bmp">BMP</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

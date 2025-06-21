@@ -46,6 +46,6 @@ export type ImageSettings = {
     invert: number;
     blur: number;
   };
-  format: 'image/png' | 'image/jpeg' | 'image/webp';
+  format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'image/bmp';
   quality: number;
 };
