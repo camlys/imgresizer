@@ -138,8 +138,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
     canvas.width = width;
     canvas.height = height;
 
-    const { brightness, contrast, saturate, grayscale, sepia, hue } = adjustments;
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg)`;
+    const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
 
     ctx.save();
 

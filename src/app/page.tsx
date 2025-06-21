@@ -23,6 +23,8 @@ const initialSettings: ImageSettings = {
     grayscale: 0,
     sepia: 0,
     hue: 0,
+    invert: 0,
+    blur: 0,
   },
   format: 'image/png',
   quality: 0.92,

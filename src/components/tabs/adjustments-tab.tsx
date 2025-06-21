@@ -20,14 +20,18 @@ const initialAdjustments = {
   grayscale: 0,
   sepia: 0,
   hue: 0,
+  invert: 0,
+  blur: 0,
 };
 
 const presets = [
-    { name: 'Vintage', values: { brightness: 110, contrast: 90, saturate: 70, sepia: 40 } },
+    { name: 'Vintage', values: { brightness: 110, contrast: 105, saturate: 120, sepia: 50, hue: -10 } },
     { name: 'Grayscale', values: { grayscale: 100, saturate: 0 } },
     { name: 'Vibrant', values: { saturate: 180, contrast: 110 } },
-    { name: 'Cool', values: { hue: -20, brightness: 105 } }
-]
+    { name: 'Polaroid', values: { brightness: 120, contrast: 90, saturate: 85, sepia: 20 } },
+    { name: 'Invert', values: { invert: 100 } },
+    { name: 'Technicolor', values: { brightness: 115, contrast: 130, saturate: 140, hue: 180 } },
+];
 
 export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps) {
     
@@ -44,12 +48,14 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
   }
 
   const sliders = [
-    { label: 'Brightness', field: 'brightness', min: 0, max: 200 },
-    { label: 'Contrast', field: 'contrast', min: 0, max: 200 },
-    { label: 'Saturation', field: 'saturate', min: 0, max: 200 },
-    { label: 'Grayscale', field: 'grayscale', min: 0, max: 100 },
-    { label: 'Sepia', field: 'sepia', min: 0, max: 100 },
-    { label: 'Hue', field: 'hue', min: 0, max: 360 },
+    { label: 'Brightness', field: 'brightness', min: 0, max: 200, unit: '%' },
+    { label: 'Contrast', field: 'contrast', min: 0, max: 200, unit: '%' },
+    { label: 'Saturation', field: 'saturate', min: 0, max: 200, unit: '%' },
+    { label: 'Grayscale', field: 'grayscale', min: 0, max: 100, unit: '%' },
+    { label: 'Sepia', field: 'sepia', min: 0, max: 100, unit: '%' },
+    { label: 'Hue', field: 'hue', min: 0, max: 360, unit: '°' },
+    { label: 'Invert', field: 'invert', min: 0, max: 100, unit: '%' },
+    { label: 'Blur', field: 'blur', min: 0, max: 20, unit: 'px' },
   ] as const;
 
 
@@ -63,17 +69,17 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
         <CardContent className="space-y-4">
            <div>
             <Label className="text-xs text-muted-foreground">Presets</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
+            <div className="grid grid-cols-3 gap-2 mt-1">
               {presets.map(p => (
                  <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p.values)}>{p.name}</Button>
               ))}
             </div>
           </div>
-          {sliders.map(({ label, field, min, max }) => (
+          {sliders.map(({ label, field, min, max, unit }) => (
             <div key={field} className="grid gap-1.5">
               <div className="flex justify-between items-center">
                 <Label htmlFor={`adj-${field}`}>{label}</Label>
-                <span className="text-sm text-muted-foreground">{settings.adjustments[field]}</span>
+                <span className="text-sm text-muted-foreground">{settings.adjustments[field]}{unit}</span>
               </div>
               <Slider
                 id={`adj-${field}`}
@@ -81,7 +87,7 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
                 onValueChange={([val]) => handleAdjustmentChange(field, val)}
                 min={min}
                 max={max}
-                step={1}
+                step={field === 'blur' ? 0.1 : 1}
               />
             </div>
           ))}

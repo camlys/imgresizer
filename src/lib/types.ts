@@ -38,6 +38,8 @@ export type ImageSettings = {
     grayscale: number;
     sepia: number;
     hue: number;
+    invert: number;
+    blur: number;
   };
   format: 'image/png' | 'image/jpeg' | 'image/webp';
   quality: number;
