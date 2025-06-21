@@ -30,7 +30,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Camly. All rights reserved. Contact: <a href="mailto:camlysales@gmail.com" className="text-primary hover:underline">camlysales@gmail.com</a></p>
+          <p>&copy; {new Date().getFullYear()} Camly. All rights reserved.</p>
         </div>
       </div>
     </footer>
