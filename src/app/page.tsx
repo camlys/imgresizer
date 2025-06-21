@@ -14,6 +14,8 @@ const initialSettings: ImageSettings = {
   unit: 'px',
   keepAspectRatio: true,
   rotation: 0,
+  flipHorizontal: false,
+  flipVertical: false,
   crop: null,
   texts: [],
   adjustments: {

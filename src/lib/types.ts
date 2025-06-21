@@ -29,6 +29,8 @@ export type ImageSettings = {
   unit: Unit;
   keepAspectRatio: boolean;
   rotation: number;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
   crop: CropSettings | null;
   texts: TextOverlay[];
   adjustments: {

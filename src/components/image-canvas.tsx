@@ -133,7 +133,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { width, height, rotation, crop, texts, adjustments } = settings;
+    const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
 
     canvas.width = width;
     canvas.height = height;
@@ -144,8 +144,18 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
     ctx.save();
 
     ctx.translate(width / 2, height / 2);
+
+    if (flipHorizontal) {
+      ctx.scale(-1, 1);
+    }
+    if (flipVertical) {
+      ctx.scale(1, -1);
+    }
+    
     ctx.rotate((rotation * Math.PI) / 180);
+
     ctx.translate(-width / 2, -height / 2);
+
 
     const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
     ctx.drawImage(

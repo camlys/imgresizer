@@ -4,12 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
-import { Lock, Unlock, RotateCcw, Scan } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Lock, Unlock, Scan } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface ResizeRotateTabProps {
   settings: ImageSettings;
@@ -116,22 +115,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
                 Keep aspect ratio
               </Label>
             </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2"><RotateCcw size={18}/> Rotate</CardTitle>
-            <span className="text-sm text-muted-foreground w-16 text-right">{settings.rotation}°</span>
-        </CardHeader>
-        <CardContent>
-             <Slider 
-                value={[settings.rotation]} 
-                onValueChange={(val) => updateSettings({ rotation: val[0] })} 
-                min={0} 
-                max={360} 
-                step={1} 
-              />
         </CardContent>
       </Card>
     </div>
