@@ -160,10 +160,10 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid md:grid-cols-8 gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid md:grid-cols-[3fr_2fr_3fr] gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
-            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-4">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-1">
               <ControlPanel 
                 settings={settings} 
                 updateSettings={updateSettings} 
@@ -175,7 +175,7 @@ export default function Home() {
                 setPendingCrop={setPendingCrop}
               />
             </div>
-            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-3">
+            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-1">
                <ImageCanvas
                 ref={canvasRef}
                 originalImage={originalImage}
