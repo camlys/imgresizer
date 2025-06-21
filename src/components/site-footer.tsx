@@ -3,8 +3,8 @@ import Link from 'next/link';
 
 export function SiteFooter() {
   return (
-    <footer className="bg-card border-t mt-16">
-      <div className="container mx-auto py-8 px-6">
+    <footer className="bg-card border-t mt-24">
+      <div className="container mx-auto py-12 px-6">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
             <h3 className="text-xl font-bold font-headline">Camly</h3>
