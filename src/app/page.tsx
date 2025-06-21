@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -147,10 +146,33 @@ export default function Home() {
       }, settings.format, settings.quality);
     }
   }, [settings.format, settings.quality, toast]);
+  
+  if (!originalImage) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground">
+        <AppHeader 
+          onUpload={handleImageUpload} 
+          onDownload={handleDownload}
+          isImageLoaded={!!originalImage}
+          settings={settings}
+          updateSettings={updateSettings}
+          canvasRef={canvasRef}
+          processedSize={processedSize}
+          onUpdateProcessedSize={updateProcessedSize}
+        />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl">
+            <UploadPlaceholder onUpload={handleImageUpload} />
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <AppHeader 
+    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+       <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
         isImageLoaded={!!originalImage}
@@ -160,39 +182,30 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid md:grid-cols-[3fr_1fr] gap-4 p-4 overflow-hidden">
-        {originalImage ? (
-          <>
-            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden">
-              <ImageCanvas
-                ref={canvasRef}
-                originalImage={originalImage}
-                settings={settings}
-                activeTab={activeTab}
-                pendingCrop={pendingCrop}
-                setPendingCrop={setPendingCrop}
-              />
-            </div>
-            <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
-              <ControlPanel 
-                settings={settings} 
-                updateSettings={updateSettings} 
-                originalImage={originalImage}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                processedSize={processedSize}
-                pendingCrop={pendingCrop}
-                setPendingCrop={setPendingCrop}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="md:col-span-2 h-full">
-            <UploadPlaceholder onUpload={handleImageUpload} />
-          </div>
-        )}
+      <main className="flex-1 flex p-4 gap-4 bg-muted/40 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative">
+            <ImageCanvas
+              ref={canvasRef}
+              originalImage={originalImage}
+              settings={settings}
+              activeTab={activeTab}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+            />
+        </div>
+        <div className="w-[380px] flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
+            <ControlPanel 
+              settings={settings} 
+              updateSettings={updateSettings} 
+              originalImage={originalImage}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              processedSize={processedSize}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+            />
+        </div>
       </main>
-      <SiteFooter />
     </div>
   );
 }
