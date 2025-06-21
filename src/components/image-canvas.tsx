@@ -7,6 +7,7 @@ import type { ImageSettings, OriginalImage, CropSettings, TextOverlay } from '@/
 interface ImageCanvasProps {
   originalImage: OriginalImage;
   settings: ImageSettings;
+  updateSettings: (newSettings: Partial<ImageSettings>) => void;
   activeTab: string;
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings) => void;
@@ -22,6 +23,7 @@ type Interaction =
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
   originalImage, 
   settings, 
+  updateSettings,
   activeTab, 
   pendingCrop, 
   setPendingCrop 
@@ -250,7 +252,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       return null;
   };
   
-  const getTextBoundingBox = (text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+  const getTextBoundingBox = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
     ctx.font = `${text.size}px ${text.font}`;
     const metrics = ctx.measureText(text.text);
     const padding = text.padding || 0;
@@ -265,7 +267,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     const y = canvasY - rectHeight / 2;
 
     return { x, y, width: rectWidth, height: rectHeight };
-  };
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
@@ -284,10 +286,30 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setStartCrop(pendingCrop);
         }
     } else {
-        // Text interaction is disabled for now as it requires local state management
-        // This can be re-enabled by implementing a similar "pending" state for texts
+        const reversedTexts = [...settings.texts].reverse();
+        let textToDrag: TextOverlay | null = null;
+        for (const text of reversedTexts) {
+            const bbox = getTextBoundingBox(text, canvas, ctx);
+            if (pos.x >= bbox.x && pos.x <= bbox.x + bbox.width &&
+                pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
+                textToDrag = text;
+                break;
+            }
+        }
+
+        if (textToDrag) {
+            e.preventDefault();
+            setInteraction('text');
+            setDraggingTextId(textToDrag.id);
+            setStartPos(pos);
+            const textPosInPixels = {
+                x: (textToDrag.x / 100) * canvas.width,
+                y: (textToDrag.y / 100) * canvas.height,
+            };
+            setDragStartTextPos(textPosInPixels);
+        }
     }
-  }, [getMousePos, activeTab, pendingCrop, getCanvasAndContext, settings]);
+  }, [getMousePos, activeTab, pendingCrop, settings, getCanvasAndContext, getTextBoundingBox, getCropInteractionType]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
@@ -298,11 +320,37 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     }
 
     const pos = getMousePos(e);
-    const { canvas } = getCanvasAndContext();
+    const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
-    if (!canvas || !img) return;
+    if (!canvas || !img || !ctx) return;
 
     if (interaction && startPos) {
+        if (interaction === 'text' && draggingTextId && dragStartTextPos) {
+            canvas.style.cursor = 'grabbing';
+            const dx = pos.x - startPos.x;
+            const dy = pos.y - startPos.y;
+
+            const newTextX_px = dragStartTextPos.x + dx;
+            const newTextY_px = dragStartTextPos.y + dy;
+
+            const newTextX_percent = (newTextX_px / canvas.width) * 100;
+            const newTextY_percent = (newTextY_px / canvas.height) * 100;
+            
+            const newTexts = settings.texts.map(t => {
+                if (t.id === draggingTextId) {
+                    return { 
+                        ...t, 
+                        x: Math.max(0, Math.min(100, newTextX_percent)), 
+                        y: Math.max(0, Math.min(100, newTextY_percent)) 
+                    };
+                }
+                return t;
+            });
+            
+            updateSettings({ texts: newTexts });
+            return;
+        }
+
         if (activeTab === 'crop' && startCrop) {
             const scale = canvas.width / img.width;
             
@@ -360,8 +408,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
     } else {
-        const { ctx } = getCanvasAndContext();
-        if (!ctx) return;
         if (activeTab === 'crop') {
             const cropInteraction = getCropInteractionType(pos.x, pos.y);
             const cursorMap: { [key in Interaction]?: string } = {
@@ -371,11 +417,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             canvas.style.cursor = cursorMap[cropInteraction] || 'default';
         } else {
             let isOverText = false;
-            // Text interaction is disabled for now
-            canvas.style.cursor = 'default';
+            const reversedTexts = [...settings.texts].reverse();
+            for (const text of reversedTexts) {
+                const bbox = getTextBoundingBox(text, canvas, ctx);
+                 if (pos.x >= bbox.x && pos.x <= bbox.x + bbox.width &&
+                    pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
+                    isOverText = true;
+                    break;
+                }
+            }
+            canvas.style.cursor = isOverText ? 'grab' : 'default';
         }
     }
-  }, [interaction, startPos, getMousePos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings]);
+  }, [interaction, startPos, getMousePos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
 
   const handleMouseUpOrLeave = useCallback(() => {
     if(interaction === 'text' && internalCanvasRef.current) internalCanvasRef.current.style.cursor = 'grab';

@@ -188,6 +188,7 @@ export default function Home() {
               ref={canvasRef}
               originalImage={originalImage}
               settings={settings}
+              updateSettings={updateSettings}
               activeTab={activeTab}
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
