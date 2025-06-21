@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -159,10 +160,10 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid md:grid-cols-4 gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid md:grid-cols-[1fr_2fr_1fr] gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
-            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-2">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-1">
               <ControlPanel 
                 settings={settings} 
                 updateSettings={updateSettings} 
@@ -174,17 +175,15 @@ export default function Home() {
                 setPendingCrop={setPendingCrop}
               />
             </div>
-            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-2">
-              <div className="w-full h-1/4">
-                <ImageCanvas
-                  ref={canvasRef}
-                  originalImage={originalImage}
-                  settings={settings}
-                  activeTab={activeTab}
-                  pendingCrop={pendingCrop}
-                  setPendingCrop={setPendingCrop}
-                />
-              </div>
+            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-1">
+              <ImageCanvas
+                ref={canvasRef}
+                originalImage={originalImage}
+                settings={settings}
+                activeTab={activeTab}
+                pendingCrop={pendingCrop}
+                setPendingCrop={setPendingCrop}
+              />
             </div>
           </>
         ) : (
