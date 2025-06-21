@@ -160,7 +160,7 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid md:grid-cols-3 gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid md:grid-cols-4 gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
             <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-1">
@@ -175,7 +175,7 @@ export default function Home() {
                 setPendingCrop={setPendingCrop}
               />
             </div>
-            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-2">
+            <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden md:col-span-1">
                <ImageCanvas
                 ref={canvasRef}
                 originalImage={originalImage}
@@ -187,7 +187,7 @@ export default function Home() {
             </div>
           </>
         ) : (
-          <div className="md:col-span-3 h-full">
+          <div className="md:col-span-4 h-full">
             <UploadPlaceholder onUpload={handleImageUpload} />
           </div>
         )}
