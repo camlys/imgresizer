@@ -33,7 +33,9 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
   };
   
   const resetCrop = () => {
-    setPendingCrop({ x: 0, y: 0, width: originalImage.width, height: originalImage.height });
+    const newCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+    setPendingCrop(newCrop);
+    updateSettings({ crop: newCrop });
   };
   
   const applyAspectRatio = (ratioValue: number) => {
@@ -57,16 +59,21 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     const newX = (originalWidth - newWidth) / 2;
     const newY = (originalHeight - newHeight) / 2;
     
-    setPendingCrop({
+    const newCrop = {
       x: Math.round(newX),
       y: Math.round(newY),
       width: Math.round(newWidth),
       height: Math.round(newHeight),
-    });
+    };
+
+    setPendingCrop(newCrop);
+    updateSettings({ crop: newCrop });
   };
 
   const applyChanges = () => {
-      updateSettings({ crop: pendingCrop });
+      if (pendingCrop) {
+        updateSettings({ crop: pendingCrop });
+      }
   }
 
   return (
@@ -109,7 +116,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
           </div>
             <Button onClick={applyChanges} className="w-full mt-2">
                 <Check size={16} className="mr-2" />
-                Apply Changes
+                Apply Crop
             </Button>
         </CardContent>
       </Card>

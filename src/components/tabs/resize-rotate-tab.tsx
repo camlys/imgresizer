@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
-import { Lock, Unlock, Scan, Check } from 'lucide-react';
+import { Lock, Unlock, Scan } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface ResizeRotateTabProps {
@@ -37,81 +37,57 @@ const convertFromPx = (value: number, unit: Unit): number => {
 };
 
 export function ResizeRotateTab({ settings, updateSettings, originalImage }: ResizeRotateTabProps) {
-    const [localState, setLocalState] = useState({
-        width: settings.width,
-        height: settings.height,
-        unit: settings.unit,
-        keepAspectRatio: settings.keepAspectRatio,
-    });
+    const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toFixed(2));
+    const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toFixed(2));
+    const [unit, setUnit] = useState(settings.unit);
     
-    const [displayValues, setDisplayValues] = useState({
-        width: convertFromPx(settings.width, settings.unit).toFixed(2),
-        height: convertFromPx(settings.height, settings.unit).toFixed(2),
-    });
-
     const aspectRatio = originalImage.width / originalImage.height;
 
     useEffect(() => {
-        setLocalState({
-            width: settings.width,
-            height: settings.height,
-            unit: settings.unit,
-            keepAspectRatio: settings.keepAspectRatio,
-        });
-        setDisplayValues({
-            width: convertFromPx(settings.width, settings.unit).toFixed(2),
-            height: convertFromPx(settings.height, settings.unit).toFixed(2),
-        });
-    }, [settings]);
+        const newWidth = convertFromPx(settings.width, unit);
+        const newHeight = convertFromPx(settings.height, unit);
+        setWidth(newWidth.toFixed(2));
+        setHeight(newHeight.toFixed(2));
+    }, [settings.width, settings.height, unit]);
+    
+    useEffect(() => {
+        setUnit(settings.unit);
+    }, [settings.unit]);
 
-    const handleUnitChange = (unit: Unit) => {
-        setLocalState(prev => ({ ...prev, unit }));
-        setDisplayValues({
-            width: convertFromPx(localState.width, unit).toFixed(2),
-            height: convertFromPx(localState.height, unit).toFixed(2),
-        });
+    const handleUnitChange = (newUnit: Unit) => {
+        setUnit(newUnit);
+        updateSettings({ unit: newUnit });
     };
 
     const handleDimensionChange = (valueStr: string, dimension: 'width' | 'height') => {
         const numericValue = parseFloat(valueStr) || 0;
 
         if (dimension === 'width') {
-            const newPxWidth = convertToPx(numericValue, localState.unit);
-            if (localState.keepAspectRatio) {
+            setWidth(valueStr);
+            const newPxWidth = convertToPx(numericValue, unit);
+            if (settings.keepAspectRatio) {
                 const newPxHeight = newPxWidth / aspectRatio;
-                setLocalState(prev => ({...prev, width: newPxWidth, height: newPxHeight}));
-                setDisplayValues({ width: valueStr, height: convertFromPx(newPxHeight, localState.unit).toFixed(2) });
+                setHeight(convertFromPx(newPxHeight, unit).toFixed(2));
+                updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
-                setLocalState(prev => ({...prev, width: newPxWidth}));
-                setDisplayValues(prev => ({...prev, width: valueStr}));
+                updateSettings({ width: newPxWidth });
             }
         } else { // dimension is height
-            const newPxHeight = convertToPx(numericValue, localState.unit);
-            if (localState.keepAspectRatio) {
+            setHeight(valueStr);
+            const newPxHeight = convertToPx(numericValue, unit);
+            if (settings.keepAspectRatio) {
                 const newPxWidth = newPxHeight * aspectRatio;
-                setLocalState(prev => ({...prev, width: newPxWidth, height: newPxHeight}));
-                setDisplayValues({ height: valueStr, width: convertFromPx(newPxWidth, localState.unit).toFixed(2) });
+                setWidth(convertFromPx(newPxWidth, unit).toFixed(2));
+                updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
-                setLocalState(prev => ({...prev, height: newPxHeight}));
-                setDisplayValues(prev => ({...prev, height: valueStr}));
+                updateSettings({ height: newPxHeight });
             }
         }
     };
     
-    const handleAspectRatioToggle = (checked: boolean) => {
-        setLocalState(prev => ({ ...prev, keepAspectRatio: checked }));
-    }
-
     const resetDimensions = () => {
-        setLocalState(prev => ({ ...prev, width: originalImage.width, height: originalImage.height }));
-        setDisplayValues({
-            width: convertFromPx(originalImage.width, localState.unit).toFixed(2),
-            height: convertFromPx(originalImage.height, localState.unit).toFixed(2),
-        });
-    };
-    
-    const applyChanges = () => {
-        updateSettings(localState);
+        updateSettings({ width: originalImage.width, height: originalImage.height, unit: 'px' });
+        setUnit('px');
     };
 
     return (
@@ -125,15 +101,15 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
                     <div className="flex items-end gap-2">
                         <div className="grid w-full gap-1.5">
                             <Label htmlFor="width">Width</Label>
-                            <Input id="width" type="number" value={displayValues.width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
+                            <Input id="width" type="number" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
                         </div>
                         <div className="grid w-full gap-1.5">
                             <Label htmlFor="height">Height</Label>
-                            <Input id="height" type="number" value={displayValues.height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
+                            <Input id="height" type="number" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
                         </div>
                         <div className="grid w-32 gap-1.5">
                             <Label>Unit</Label>
-                            <Select value={localState.unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
+                            <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="px">px</SelectItem>
@@ -145,16 +121,12 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Switch id="aspect-ratio" checked={localState.keepAspectRatio} onCheckedChange={handleAspectRatioToggle}/>
+                        <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
                         <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
-                            {localState.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
+                            {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
                             Keep aspect ratio
                         </Label>
                     </div>
-                    <Button onClick={applyChanges} className="w-full mt-2">
-                        <Check size={16} className="mr-2" />
-                        Apply Changes
-                    </Button>
                 </CardContent>
             </Card>
         </div>

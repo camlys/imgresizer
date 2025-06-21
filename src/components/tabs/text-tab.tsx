@@ -8,9 +8,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2, Check } from 'lucide-react';
+import { Type, Plus, Trash2 } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 interface TextTabProps {
   settings: ImageSettings;
@@ -20,12 +20,6 @@ interface TextTabProps {
 const fonts = ['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'];
 
 export function TextTab({ settings, updateSettings }: TextTabProps) {
-  const [localTexts, setLocalTexts] = useState<TextOverlay[]>(settings.texts);
-
-  useEffect(() => {
-    setLocalTexts(settings.texts);
-  }, [settings.texts]);
-
   const addText = () => {
     const newText: TextOverlay = {
       id: Date.now().toString(),
@@ -38,19 +32,17 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
       x: 50,
       y: 50,
     };
-    setLocalTexts(prev => [...prev, newText]);
+    updateSettings({ texts: [...settings.texts, newText] });
   };
   
   const removeText = (id: string) => {
-    setLocalTexts(prev => prev.filter(t => t.id !== id));
+    updateSettings({ texts: settings.texts.filter(t => t.id !== id) });
   };
 
   const updateText = (id: string, newProps: Partial<TextOverlay>) => {
-    setLocalTexts(prev => prev.map(t => t.id === id ? { ...t, ...newProps } : t));
-  };
-
-  const applyChanges = () => {
-    updateSettings({ texts: localTexts });
+    updateSettings({
+      texts: settings.texts.map(t => (t.id === id ? { ...t, ...newProps } : t)),
+    });
   };
 
   return (
@@ -61,11 +53,11 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
           <Button variant="outline" size="sm" onClick={addText}><Plus size={16} className="mr-2"/> Add</Button>
         </CardHeader>
         <CardContent>
-          {localTexts.length === 0 ? (
+          {settings.texts.length === 0 ? (
              <p className="text-sm text-muted-foreground py-4 text-center">No text layers added.</p>
           ) : (
             <Accordion type="single" collapsible className="w-full">
-              {localTexts.map((text, index) => (
+              {settings.texts.map((text, index) => (
                 <AccordionItem value={text.id} key={text.id}>
                   <AccordionTrigger>Text Layer {index + 1}</AccordionTrigger>
                   <AccordionContent className="space-y-4">
@@ -126,13 +118,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                     </div>
                     <div>
                       <Label>Position (X: {text.x}%, Y: {text.y}%)</Label>
-                       <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
-                      {/*
-                      <div className="space-y-2 mt-2">
-                         <Slider value={[text.x]} onValueChange={val => updateText(text.id, { x: val[0] })}/>
-                         <Slider value={[text.y]} onValueChange={val => updateText(text.id, { y: val[0] })}/>
-                      </div>
-                      */}
+                      <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => removeText(text.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove</Button>
                   </AccordionContent>
@@ -142,12 +128,6 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
           )}
         </CardContent>
       </Card>
-      <div className="pt-2">
-        <Button onClick={applyChanges} className="w-full">
-            <Check size={16} className="mr-2" />
-            Apply Changes
-        </Button>
-      </div>
     </div>
   );
 }
