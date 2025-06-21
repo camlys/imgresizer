@@ -63,13 +63,15 @@ export function ControlPanel({ settings, updateSettings, originalImage, activeTa
           </TabsContent>
         </Tabs>
       </div>
-      <div className="flex-shrink-0">
-         <ImageInfoPanel 
-            originalImage={originalImage}
-            settings={settings}
-            processedSize={processedSize}
-          />
-      </div>
+      {activeTab === 'resize' && (
+        <div className="flex-shrink-0">
+          <ImageInfoPanel 
+              originalImage={originalImage}
+              settings={settings}
+              processedSize={processedSize}
+            />
+        </div>
+      )}
     </div>
   );
 }
