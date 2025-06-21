@@ -156,6 +156,7 @@ export function AppHeader({
                           <SelectItem value="image/webp">WEBP</SelectItem>
                           <SelectItem value="image/gif">GIF</SelectItem>
                           <SelectItem value="image/bmp">BMP</SelectItem>
+                          <SelectItem value="image/svg+xml">SVG</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -201,7 +202,9 @@ export function AppHeader({
                       </>
                     )}
                     <div className="text-sm text-muted-foreground">
-                        Est. size: <span className="font-medium text-foreground">{processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}</span>
+                        Est. size: <span className="font-medium text-foreground">
+                          {settings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                        </span>
                     </div>
                     <Button onClick={onDownload} className="w-full">
                         <Download className="mr-2"/>

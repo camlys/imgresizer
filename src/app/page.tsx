@@ -80,6 +80,10 @@ export default function Home() {
 
   const updateProcessedSize = useCallback(() => {
     if (canvasRef.current) {
+      if (settings.format === 'image/svg+xml') {
+        setProcessedSize(null); // Size estimation for SVG is not straightforward
+        return;
+      }
       canvasRef.current.toBlob(
         (blob) => {
           if (blob) {
@@ -95,6 +99,27 @@ export default function Home() {
   const handleDownload = useCallback(() => {
     if (canvasRef.current) {
       const canvas = canvasRef.current;
+      
+      if (settings.format === 'image/svg+xml') {
+        const dataUrl = canvas.toDataURL('image/png'); // Use PNG for best quality inside SVG
+        const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
+  <image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}" />
+</svg>`;
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'imageforge-export.svg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        toast({
+          title: "Download Started",
+          description: "Your SVG image has started downloading.",
+        });
+        return;
+      }
+
       canvas.toBlob((blob) => {
         if (blob) {
           const link = document.createElement('a');
