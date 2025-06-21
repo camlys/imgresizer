@@ -81,7 +81,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.clearRect(sx, sy, sWidth, sHeight);
         
