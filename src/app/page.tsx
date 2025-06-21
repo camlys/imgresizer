@@ -160,10 +160,10 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid md:grid-cols-5 gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid md:grid-cols-3 gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
-            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-3">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden md:col-span-1">
               <ControlPanel 
                 settings={settings} 
                 updateSettings={updateSettings} 
@@ -187,7 +187,7 @@ export default function Home() {
             </div>
           </>
         ) : (
-          <div className="md:col-span-5 h-full">
+          <div className="md:col-span-3 h-full">
             <UploadPlaceholder onUpload={handleImageUpload} />
           </div>
         )}
