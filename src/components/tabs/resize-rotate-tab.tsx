@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -10,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
 import { Lock, Unlock, Scan } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { ImageInfoPanel } from '../image-info-panel';
 
 interface ResizeRotateTabProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   originalImage: OriginalImage;
+  processedSize: number | null;
 }
 
 const DPI = 96;
@@ -36,7 +37,7 @@ const convertFromPx = (value: number, unit: Unit): number => {
   return value;
 };
 
-export function ResizeRotateTab({ settings, updateSettings, originalImage }: ResizeRotateTabProps) {
+export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize }: ResizeRotateTabProps) {
     const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toFixed(2));
     const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toFixed(2));
     const [unit, setUnit] = useState(settings.unit);
@@ -129,6 +130,11 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage }: Res
                     </div>
                 </CardContent>
             </Card>
+            <ImageInfoPanel 
+                originalImage={originalImage}
+                settings={settings}
+                processedSize={processedSize}
+            />
         </div>
     );
 }

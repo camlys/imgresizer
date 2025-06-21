@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +8,6 @@ import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw } from 'lucide-react';
-import { ImageInfoPanel } from './image-info-panel';
 
 interface ControlPanelProps {
   settings: ImageSettings;
@@ -63,6 +61,7 @@ export function ControlPanel({
               settings={settings} 
               updateSettings={updateSettings} 
               originalImage={originalImage} 
+              processedSize={processedSize}
             />
           </TabsContent>
            <TabsContent value="rotate">
@@ -85,13 +84,6 @@ export function ControlPanel({
             <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
         </Tabs>
-      </div>
-      <div className="flex-shrink-0 p-2 border-t">
-        <ImageInfoPanel 
-          originalImage={originalImage}
-          settings={settings}
-          processedSize={processedSize}
-        />
       </div>
     </div>
   );
