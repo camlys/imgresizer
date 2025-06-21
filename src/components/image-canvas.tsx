@@ -81,34 +81,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        ctx.clearRect(sx, sy, sWidth, sHeight);
-        
         // Draw main crop border
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 2;
         ctx.strokeRect(sx, sy, sWidth, sHeight);
-
-        // Draw rule-of-thirds grid
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        
-        // Vertical lines
-        ctx.beginPath();
-        ctx.moveTo(sx + sWidth / 3, sy);
-        ctx.lineTo(sx + sWidth / 3, sy + sHeight);
-        ctx.moveTo(sx + (sWidth / 3) * 2, sy);
-        ctx.lineTo(sx + (sWidth / 3) * 2, sy + sHeight);
-        ctx.stroke();
-        
-        // Horizontal lines
-        ctx.beginPath();
-        ctx.moveTo(sx, sy + sHeight / 3);
-        ctx.lineTo(sx + sWidth, sy + sHeight / 3);
-        ctx.moveTo(sx, sy + (sHeight / 3) * 2);
-        ctx.lineTo(sx + sWidth, sy + (sHeight / 3) * 2);
-        ctx.stroke();
 
         ctx.fillStyle = '#fff';
         const handles = getHandleRects(sx, sy, sWidth, sHeight);
