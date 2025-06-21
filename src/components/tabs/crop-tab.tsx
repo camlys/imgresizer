@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crop, Check } from 'lucide-react';
+import { Crop, Check, Info } from 'lucide-react';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import React from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CropTabProps {
   settings: ImageSettings;
@@ -26,6 +27,7 @@ const aspectRatios = [
 
 export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+  const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
 
   const handleCropChange = (field: keyof typeof crop, value: string) => {
     const numericValue = parseInt(value, 10) || 0;
@@ -87,6 +89,17 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
            <p className="text-sm text-muted-foreground">
             Click and drag on the main image to define a crop area, or use the controls below.
           </p>
+
+          {hasTransforms && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Heads up!</AlertTitle>
+              <AlertDescription>
+                Interactive cropping is disabled while the image is rotated or flipped. Use the fields below to crop numerically.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
             <div className="grid grid-cols-4 gap-2 mt-1">
