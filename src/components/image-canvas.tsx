@@ -81,66 +81,52 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
         
-        // Dim the area outside the crop selection
+        // Draw high-contrast crop selection (no mask)
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        ctx.clearRect(sx, sy, sWidth, sHeight);
-        ctx.restore();
 
         // Draw the crop border and rule-of-thirds grid
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 1;
+        
+        // Draw a white "shadow" for all lines first for visibility on dark backgrounds
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.strokeRect(sx + 1, sy + 1, sWidth, sHeight);
+        
+        // Draw main black lines
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.strokeRect(sx, sy, sWidth, sHeight);
         
         if (sWidth > 30 && sHeight > 30) {
+            // Grid lines shadow
             ctx.beginPath();
             ctx.lineWidth = 0.5;
-            // Vertical lines
-            ctx.moveTo(sx + sWidth / 3, sy);
-            ctx.lineTo(sx + sWidth / 3, sy + sHeight);
-            ctx.moveTo(sx + 2 * sWidth / 3, sy);
-            ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
-            // Horizontal lines
-            ctx.moveTo(sx, sy + sHeight / 3);
-            ctx.lineTo(sx + sWidth, sy + sHeight / 3);
-            ctx.moveTo(sx, sy + 2 * sHeight / 3);
-            ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.moveTo(sx + sWidth / 3 + 1, sy); ctx.lineTo(sx + sWidth / 3 + 1, sy + sHeight);
+            ctx.moveTo(sx + 2 * sWidth / 3 + 1, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 1, sy + sHeight);
+            ctx.moveTo(sx, sy + sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 1);
+            ctx.moveTo(sx, sy + 2 * sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 1);
+            ctx.stroke();
+
+            // Main grid lines
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
+            ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
+            ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
+            ctx.moveTo(sx, sy + 2 * sHeight / 3); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
             ctx.stroke();
         }
         ctx.restore();
 
-        // Draw professional corner handles
+        // Draw 8 filled square handles
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-        ctx.lineWidth = 3;
-        const handleLength = Math.min(20, sWidth / 5, sHeight / 5);
-
-        // Top-left
-        ctx.beginPath();
-        ctx.moveTo(sx + handleLength, sy);
-        ctx.lineTo(sx, sy);
-        ctx.lineTo(sx, sy + handleLength);
-        ctx.stroke();
-        // Top-right
-        ctx.beginPath();
-        ctx.moveTo(sx + sWidth - handleLength, sy);
-        ctx.lineTo(sx + sWidth, sy);
-        ctx.lineTo(sx + sWidth, sy + handleLength);
-        ctx.stroke();
-        // Bottom-left
-        ctx.beginPath();
-        ctx.moveTo(sx, sy + sHeight - handleLength);
-        ctx.lineTo(sx, sy + sHeight);
-        ctx.lineTo(sx + handleLength, sy + sHeight);
-        ctx.stroke();
-        // Bottom-right
-        ctx.beginPath();
-        ctx.moveTo(sx + sWidth, sy + sHeight - handleLength);
-        ctx.lineTo(sx + sWidth, sy + sHeight);
-        ctx.lineTo(sx + sWidth - handleLength, sy + sHeight);
-        ctx.stroke();
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        const handles = getHandleRects(sx, sy, sWidth, sHeight);
+        Object.values(handles).forEach(rect => {
+            ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        });
         ctx.restore();
 
     } else {
