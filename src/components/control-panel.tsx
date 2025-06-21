@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +7,7 @@ import { RotateFlipTab } from '@/components/tabs/rotate-flip-tab';
 import { CropTab } from '@/components/tabs/crop-tab';
 import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
-import type { ImageSettings, OriginalImage } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw } from 'lucide-react';
 import { ImageInfoPanel } from './image-info-panel';
 
@@ -17,9 +18,20 @@ interface ControlPanelProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   processedSize: number | null;
+  pendingCrop: CropSettings | null;
+  setPendingCrop: (crop: CropSettings | null) => void;
 }
 
-export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange, processedSize }: ControlPanelProps) {
+export function ControlPanel({ 
+  settings, 
+  updateSettings, 
+  originalImage, 
+  activeTab, 
+  onTabChange, 
+  processedSize,
+  pendingCrop,
+  setPendingCrop,
+}: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
@@ -57,7 +69,13 @@ export function ControlPanel({ settings, updateSettings, originalImage, activeTa
             <RotateFlipTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
           <TabsContent value="crop">
-            <CropTab settings={settings} updateSettings={updateSettings} originalImage={originalImage} />
+            <CropTab 
+              settings={settings} 
+              updateSettings={updateSettings} 
+              originalImage={originalImage}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+            />
           </TabsContent>
           <TabsContent value="text">
             <TextTab settings={settings} updateSettings={updateSettings} />

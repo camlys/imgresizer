@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
@@ -6,8 +7,9 @@ import type { ImageSettings, OriginalImage, CropSettings, TextOverlay } from '@/
 interface ImageCanvasProps {
   originalImage: OriginalImage;
   settings: ImageSettings;
-  updateSettings: (settings: Partial<ImageSettings>) => void;
   activeTab: string;
+  pendingCrop: CropSettings | null;
+  setPendingCrop: (crop: CropSettings) => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -17,7 +19,13 @@ type Interaction =
   | 'move' | 'tl' | 't' | 'tr' | 'l' | 'r' | 'bl' | 'b' | 'br' 
   | 'text' | null;
 
-const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalImage, settings, updateSettings, activeTab }, ref) => {
+const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
+  originalImage, 
+  settings, 
+  activeTab, 
+  pendingCrop, 
+  setPendingCrop 
+}, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
@@ -75,28 +83,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         
         ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
         
-        const crop = settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
+        const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
         const sx = crop.x * scale;
         const sy = crop.y * scale;
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
         
-        // Draw high-contrast crop selection (no mask)
         ctx.save();
-
-        // Draw the crop border and rule-of-thirds grid
         ctx.lineWidth = 1;
-        
-        // Draw a white "shadow" for all lines first for visibility on dark backgrounds
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.strokeRect(sx + 1, sy + 1, sWidth, sHeight);
-        
-        // Draw main black lines
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.strokeRect(sx, sy, sWidth, sHeight);
         
         if (sWidth > 30 && sHeight > 30) {
-            // Grid lines shadow
             ctx.beginPath();
             ctx.lineWidth = 0.5;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
@@ -106,7 +106,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             ctx.moveTo(sx, sy + 2 * sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 1);
             ctx.stroke();
 
-            // Main grid lines
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
@@ -117,7 +116,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         }
         ctx.restore();
 
-        // Draw 8 filled square handles
         ctx.save();
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'black';
@@ -158,7 +156,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // Background and Padding
             const padding = text.padding || 0;
             if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
                 const metrics = ctx.measureText(text.text);
@@ -171,13 +168,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
                 ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
             }
 
-            // Text
             ctx.fillStyle = text.color;
             ctx.fillText(text.text, textX, textY);
         });
     }
 
-  }, [settings, originalImage, imageElement, activeTab, getCanvasAndContext]);
+  }, [settings, originalImage, imageElement, activeTab, getCanvasAndContext, pendingCrop]);
 
   const getHandleRects = (x: number, y: number, w: number, h: number) => {
     const hs = HANDLE_SIZE;
@@ -191,13 +187,13 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
   const getCropInteractionType = (mouseX: number, mouseY: number): Interaction => {
       const { canvas } = getCanvasAndContext();
       const img = imageElement;
-      if (!canvas || !img || !settings.crop) return null;
+      if (!canvas || !img || !pendingCrop) return null;
 
       const scale = canvas.width / img.width;
-      const sx = settings.crop.x * scale;
-      const sy = settings.crop.y * scale;
-      const sWidth = settings.crop.width * scale;
-      const sHeight = settings.crop.height * scale;
+      const sx = pendingCrop.x * scale;
+      const sy = pendingCrop.y * scale;
+      const sWidth = pendingCrop.width * scale;
+      const sHeight = pendingCrop.height * scale;
       
       const handles = getHandleRects(sx, sy, sWidth, sHeight);
       for (const [key, rect] of Object.entries(handles)) {
@@ -237,21 +233,13 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             e.preventDefault();
             setInteraction(cropInteraction);
             setStartPos(pos);
-            setStartCrop(settings.crop);
+            setStartCrop(pendingCrop);
         }
     } else {
-        for (const text of [...settings.texts].reverse()) {
-            const textRect = getTextBoundingBox(text, canvas, ctx);
-            if (pos.x >= textRect.x && pos.x <= textRect.x + textRect.width && pos.y >= textRect.y && pos.y <= textRect.y + textRect.height) {
-                setInteraction('text');
-                setDraggingTextId(text.id);
-                setStartPos(pos);
-                setDragStartTextPos({ x: text.x, y: text.y });
-                return;
-            }
-        }
+        // Text interaction is disabled for now as it requires local state management
+        // This can be re-enabled by implementing a similar "pending" state for texts
     }
-  }, [getMousePos, activeTab, settings.crop, settings.texts, getCanvasAndContext]);
+  }, [getMousePos, activeTab, pendingCrop, getCanvasAndContext]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getMousePos(e);
@@ -260,17 +248,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
     if (!canvas || !img) return;
 
     if (interaction && startPos) {
-        if (interaction === 'text' && draggingTextId && dragStartTextPos) {
-            const deltaX = (pos.x - startPos.x) / canvas.width * 100;
-            const deltaY = (pos.y - startPos.y) / canvas.height * 100;
-            const newTexts = settings.texts.map(t => {
-                if (t.id === draggingTextId) {
-                    return { ...t, x: Math.max(0, Math.min(100, dragStartTextPos.x + deltaX)), y: Math.max(0, Math.min(100, dragStartTextPos.y + deltaY)) };
-                }
-                return t;
-            });
-            updateSettings({ texts: newTexts });
-        } else if (activeTab === 'crop' && startCrop) {
+        if (activeTab === 'crop' && startCrop) {
             const scale = canvas.width / img.width;
             
             if (interaction === 'move') {
@@ -283,7 +261,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
                  newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
                  newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
 
-                 updateSettings({ crop: {x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} });
+                 setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
                  return;
             }
 
@@ -324,7 +302,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             if (newCrop.x + newCrop.width > img.width) newCrop.width = img.width - newCrop.x;
             if (newCrop.y + newCrop.height > img.height) newCrop.height = img.height - newCrop.y;
 
-            updateSettings({ crop: {x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} });
+            setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
     } else {
         const { ctx } = getCanvasAndContext();
@@ -338,17 +316,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             canvas.style.cursor = cursorMap[cropInteraction] || 'default';
         } else {
             let isOverText = false;
-            for (const text of settings.texts) {
-                const textRect = getTextBoundingBox(text, canvas, ctx);
-                if (pos.x >= textRect.x && pos.x <= textRect.x + textRect.width && pos.y >= textRect.y && pos.y <= textRect.y + textRect.height) {
-                    isOverText = true;
-                    break;
-                }
-            }
-            canvas.style.cursor = isOverText ? 'grab' : 'default';
+            // Text interaction is disabled for now
+            canvas.style.cursor = 'default';
         }
     }
-  }, [interaction, startPos, getMousePos, activeTab, draggingTextId, dragStartTextPos, startCrop, imageElement, settings.texts, updateSettings, getCanvasAndContext]);
+  }, [interaction, startPos, getMousePos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext]);
 
   const handleMouseUpOrLeave = useCallback(() => {
     if(interaction === 'text' && internalCanvasRef.current) internalCanvasRef.current.style.cursor = 'grab';

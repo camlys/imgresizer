@@ -1,12 +1,13 @@
+
 "use client";
 
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Check } from 'lucide-react';
 import type { ImageSettings } from '@/lib/types';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface AdjustmentsTabProps {
   settings: ImageSettings;
@@ -34,17 +35,26 @@ const presets = [
 ];
 
 export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps) {
+  const [localAdjustments, setLocalAdjustments] = useState(settings.adjustments);
+
+  useEffect(() => {
+    setLocalAdjustments(settings.adjustments);
+  }, [settings.adjustments]);
     
-  const handleAdjustmentChange = (field: keyof typeof settings.adjustments, value: number) => {
-    updateSettings({ adjustments: { ...settings.adjustments, [field]: value } });
+  const handleAdjustmentChange = (field: keyof typeof localAdjustments, value: number) => {
+    setLocalAdjustments(prev => ({...prev, [field]: value}));
   };
   
   const resetAdjustments = () => {
-    updateSettings({ adjustments: initialAdjustments });
+    setLocalAdjustments(initialAdjustments);
   };
 
   const applyPreset = (presetValues: Partial<typeof initialAdjustments>) => {
-    updateSettings({ adjustments: { ...initialAdjustments, ...presetValues } });
+    setLocalAdjustments({ ...initialAdjustments, ...presetValues });
+  }
+
+  const applyChanges = () => {
+    updateSettings({ adjustments: localAdjustments });
   }
 
   const sliders = [
@@ -79,11 +89,11 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
             <div key={field} className="grid gap-1.5">
               <div className="flex justify-between items-center">
                 <Label htmlFor={`adj-${field}`}>{label}</Label>
-                <span className="text-sm text-muted-foreground">{settings.adjustments[field]}{unit}</span>
+                <span className="text-sm text-muted-foreground">{localAdjustments[field]}{unit}</span>
               </div>
               <Slider
                 id={`adj-${field}`}
-                value={[settings.adjustments[field]]}
+                value={[localAdjustments[field]]}
                 onValueChange={([val]) => handleAdjustmentChange(field, val)}
                 min={min}
                 max={max}
@@ -91,6 +101,10 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
               />
             </div>
           ))}
+            <Button onClick={applyChanges} className="w-full mt-2">
+                <Check size={16} className="mr-2" />
+                Apply Changes
+            </Button>
         </CardContent>
       </Card>
     </div>

@@ -1,17 +1,20 @@
+
 "use client";
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crop } from 'lucide-react';
-import type { ImageSettings, OriginalImage } from '@/lib/types';
+import { Crop, Check } from 'lucide-react';
+import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import React from 'react';
 
 interface CropTabProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   originalImage: OriginalImage;
+  pendingCrop: CropSettings | null;
+  setPendingCrop: (crop: CropSettings | null) => void;
 }
 
 const aspectRatios = [
@@ -21,16 +24,16 @@ const aspectRatios = [
   { name: '16:9', value: 16/9 },
 ];
 
-export function CropTab({ settings, updateSettings, originalImage }: CropTabProps) {
-  const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop }: CropTabProps) {
+  const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
 
   const handleCropChange = (field: keyof typeof crop, value: string) => {
     const numericValue = parseInt(value, 10) || 0;
-    updateSettings({ crop: { ...crop, [field]: numericValue } });
+    setPendingCrop({ ...crop, [field]: numericValue });
   };
   
   const resetCrop = () => {
-    updateSettings({ crop: { x: 0, y: 0, width: originalImage.width, height: originalImage.height } });
+    setPendingCrop({ x: 0, y: 0, width: originalImage.width, height: originalImage.height });
   };
   
   const applyAspectRatio = (ratioValue: number) => {
@@ -54,15 +57,17 @@ export function CropTab({ settings, updateSettings, originalImage }: CropTabProp
     const newX = (originalWidth - newWidth) / 2;
     const newY = (originalHeight - newHeight) / 2;
     
-    updateSettings({
-      crop: {
-        x: Math.round(newX),
-        y: Math.round(newY),
-        width: Math.round(newWidth),
-        height: Math.round(newHeight),
-      },
+    setPendingCrop({
+      x: Math.round(newX),
+      y: Math.round(newY),
+      width: Math.round(newWidth),
+      height: Math.round(newHeight),
     });
   };
+
+  const applyChanges = () => {
+      updateSettings({ crop: pendingCrop });
+  }
 
   return (
     <div className="space-y-4 p-1">
@@ -102,6 +107,10 @@ export function CropTab({ settings, updateSettings, originalImage }: CropTabProp
               <Input id="crop-height" type="number" value={Math.round(crop.height)} onChange={e => handleCropChange('height', e.target.value)} />
             </div>
           </div>
+            <Button onClick={applyChanges} className="w-full mt-2">
+                <Check size={16} className="mr-2" />
+                Apply Changes
+            </Button>
         </CardContent>
       </Card>
     </div>

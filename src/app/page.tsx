@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -5,7 +6,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 
 const initialSettings: ImageSettings = {
@@ -40,6 +41,8 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
+  const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
+
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
         toast({
@@ -53,6 +56,7 @@ export default function Home() {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
+        const cropData = { x: 0, y: 0, width: img.width, height: img.height };
         setOriginalImage({
           src: img.src,
           width: img.width,
@@ -63,8 +67,9 @@ export default function Home() {
           ...initialSettings,
           width: img.width,
           height: img.height,
-          crop: { x: 0, y: 0, width: img.width, height: img.height },
+          crop: cropData,
         });
+        setPendingCrop(cropData);
         setActiveTab('resize');
         setProcessedSize(null);
       };
@@ -75,6 +80,9 @@ export default function Home() {
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
+    if (newSettings.crop) {
+      setPendingCrop(newSettings.crop);
+    }
     setProcessedSize(null);
   }, []);
 
@@ -162,6 +170,8 @@ export default function Home() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 processedSize={processedSize}
+                pendingCrop={pendingCrop}
+                setPendingCrop={setPendingCrop}
               />
             </div>
             <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden">
@@ -169,8 +179,9 @@ export default function Home() {
                 ref={canvasRef}
                 originalImage={originalImage}
                 settings={settings}
-                updateSettings={updateSettings}
                 activeTab={activeTab}
+                pendingCrop={pendingCrop}
+                setPendingCrop={setPendingCrop}
               />
             </div>
           </>

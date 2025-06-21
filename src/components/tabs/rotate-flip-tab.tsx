@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Slider } from '@/components/ui/slider';
@@ -5,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ImageSettings } from '@/lib/types';
-import { RotateCcw, ArrowLeftRight, ArrowUpDown } from 'lucide-react';
-import React from 'react';
+import { RotateCcw, ArrowLeftRight, ArrowUpDown, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 interface RotateFlipTabProps {
   settings: ImageSettings;
@@ -14,27 +15,47 @@ interface RotateFlipTabProps {
 }
 
 export function RotateFlipTab({ settings, updateSettings }: RotateFlipTabProps) {
-  
+  const [localSettings, setLocalSettings] = useState({
+    rotation: settings.rotation,
+    flipHorizontal: settings.flipHorizontal,
+    flipVertical: settings.flipVertical,
+  });
+
+  useEffect(() => {
+    setLocalSettings({
+      rotation: settings.rotation,
+      flipHorizontal: settings.flipHorizontal,
+      flipVertical: settings.flipVertical,
+    });
+  }, [settings]);
+
   const handleFlip = (direction: 'horizontal' | 'vertical') => {
     if (direction === 'horizontal') {
-      updateSettings({ flipHorizontal: !settings.flipHorizontal });
+      setLocalSettings(prev => ({ ...prev, flipHorizontal: !prev.flipHorizontal }));
     } else {
-      updateSettings({ flipVertical: !settings.flipVertical });
+      setLocalSettings(prev => ({ ...prev, flipVertical: !prev.flipVertical }));
     }
   };
 
   const handleRotationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    let numericValue = parseInt(value, 10);
     if (value === '') {
-        updateSettings({ rotation: 0 });
-        return;
+        numericValue = 0;
     }
 
-    const numericValue = parseInt(value, 10);
     if (!isNaN(numericValue)) {
         const clampedValue = Math.max(0, Math.min(numericValue, 360));
-        updateSettings({ rotation: clampedValue });
+        setLocalSettings(prev => ({ ...prev, rotation: clampedValue }));
     }
+  };
+  
+  const handleRotationSliderChange = (val: number[]) => {
+    setLocalSettings(prev => ({ ...prev, rotation: val[0] }));
+  };
+  
+  const applyChanges = () => {
+    updateSettings(localSettings);
   };
 
   return (
@@ -45,7 +66,7 @@ export function RotateFlipTab({ settings, updateSettings }: RotateFlipTabProps) 
             <div className="relative w-24">
               <Input
                 type="number"
-                value={settings.rotation}
+                value={localSettings.rotation}
                 onChange={handleRotationInputChange}
                 min={0}
                 max={360}
@@ -56,8 +77,8 @@ export function RotateFlipTab({ settings, updateSettings }: RotateFlipTabProps) 
         </CardHeader>
         <CardContent>
              <Slider 
-                value={[settings.rotation]} 
-                onValueChange={(val) => updateSettings({ rotation: val[0] })} 
+                value={[localSettings.rotation]} 
+                onValueChange={handleRotationSliderChange}
                 min={0} 
                 max={360} 
                 step={1} 
@@ -79,6 +100,12 @@ export function RotateFlipTab({ settings, updateSettings }: RotateFlipTabProps) 
              </Button>
         </CardContent>
       </Card>
+       <div className="pt-2">
+          <Button onClick={applyChanges} className="w-full">
+              <Check size={16} className="mr-2" />
+              Apply Changes
+          </Button>
+      </div>
     </div>
   );
 }
