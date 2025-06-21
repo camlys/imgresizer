@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 
 export function SiteFooter() {
@@ -15,15 +16,15 @@ export function SiteFooter() {
             <div>
               <h4 className="font-semibold text-foreground">Company</h4>
               <ul className="mt-4 space-y-2 text-sm">
-                <li><Link href="#" className="text-muted-foreground hover:text-foreground">About</Link></li>
-                <li><Link href="#" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-foreground">Legal</h4>
               <ul className="mt-4 space-y-2 text-sm">
-                <li><Link href="#" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
-                <li><Link href="#" className="text-muted-foreground hover:text-foreground">Data Related</Link></li>
+                <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
+                <li><Link href="/data-related" className="text-muted-foreground hover:text-foreground">Data Related</Link></li>
               </ul>
             </div>
           </div>
