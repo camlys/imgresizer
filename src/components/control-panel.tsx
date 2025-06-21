@@ -17,11 +17,9 @@ interface ControlPanelProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   processedSize: number | null;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  onUpdateProcessedSize: () => void;
 }
 
-export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange, processedSize, canvasRef, onUpdateProcessedSize }: ControlPanelProps) {
+export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange, processedSize }: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
@@ -53,8 +51,6 @@ export function ControlPanel({ settings, updateSettings, originalImage, activeTa
               settings={settings} 
               updateSettings={updateSettings} 
               originalImage={originalImage} 
-              canvasRef={canvasRef}
-              onUpdateProcessedSize={onUpdateProcessedSize}
             />
           </TabsContent>
            <TabsContent value="rotate">
