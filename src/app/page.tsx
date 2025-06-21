@@ -114,6 +114,7 @@ export default function Home() {
                 ref={canvasRef}
                 originalImage={originalImage}
                 settings={settings}
+                updateSettings={updateSettings}
               />
             </div>
           </>
