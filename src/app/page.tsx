@@ -151,7 +151,7 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[380px_1fr] gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-[380px_minmax(0,800px)] gap-4 p-4 overflow-hidden md:justify-center">
         {originalImage ? (
           <>
             <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
