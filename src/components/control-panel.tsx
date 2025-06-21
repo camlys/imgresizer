@@ -64,11 +64,6 @@ export function ControlPanel({
               updateSettings={updateSettings} 
               originalImage={originalImage} 
             />
-            <ImageInfoPanel 
-              originalImage={originalImage}
-              settings={settings}
-              processedSize={processedSize}
-            />
           </TabsContent>
            <TabsContent value="rotate">
             <RotateFlipTab settings={settings} updateSettings={updateSettings} />
@@ -90,6 +85,13 @@ export function ControlPanel({
             <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
         </Tabs>
+      </div>
+      <div className="flex-shrink-0 p-2 border-t">
+        <ImageInfoPanel 
+          originalImage={originalImage}
+          settings={settings}
+          processedSize={processedSize}
+        />
       </div>
     </div>
   );
