@@ -81,7 +81,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.clearRect(sx, sy, sWidth, sHeight);
         
@@ -202,32 +202,58 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             });
             updateSettings({ texts: newTexts });
         } else if (activeTab === 'crop' && startCrop) {
-            let newCrop = { ...startCrop };
             const scale = canvas.width / img.width;
-            const dx = (pos.x - startPos.x) / scale;
-            const dy = (pos.y - startPos.y) / scale;
-
-            const actions = {
-                move: () => { newCrop.x = startCrop.x + dx; newCrop.y = startCrop.y + dy; },
-                tl: () => { newCrop.x = startCrop.x + dx; newCrop.y = startCrop.y + dy; newCrop.width = startCrop.width - dx; newCrop.height = startCrop.height - dy; },
-                t:  () => { newCrop.y = startCrop.y + dy; newCrop.height = startCrop.height - dy; },
-                tr: () => { newCrop.y = startCrop.y + dy; newCrop.width = startCrop.width + dx; newCrop.height = startCrop.height - dy; },
-                l:  () => { newCrop.x = startCrop.x + dx; newCrop.width = startCrop.width - dx; },
-                r:  () => { newCrop.width = startCrop.width + dx; },
-                bl: () => { newCrop.x = startCrop.x + dx; newCrop.width = startCrop.width - dx; newCrop.height = startCrop.height + dy; },
-                b:  () => { newCrop.height = startCrop.height + dy; },
-                br: () => { newCrop.width = startCrop.width + dx; newCrop.height = startCrop.height + dy; },
-            };
-            if (actions[interaction as keyof typeof actions]) actions[interaction as keyof typeof actions]();
             
-            if (newCrop.width < 0) { const oldX = newCrop.x; newCrop.x = oldX + newCrop.width; newCrop.width = Math.abs(newCrop.width); }
-            if (newCrop.height < 0) { const oldY = newCrop.y; newCrop.y = oldY + newCrop.height; newCrop.height = Math.abs(newCrop.height); }
-            
-            if (newCrop.width < MIN_CROP_SIZE_PX / scale) newCrop.width = MIN_CROP_SIZE_PX / scale;
-            if (newCrop.height < MIN_CROP_SIZE_PX / scale) newCrop.height = MIN_CROP_SIZE_PX / scale;
+            if (interaction === 'move') {
+                 const dx = (pos.x - startPos.x) / scale;
+                 const dy = (pos.y - startPos.y) / scale;
+                 let newCrop = { ...startCrop };
+                 newCrop.x += dx;
+                 newCrop.y += dy;
+                 
+                 newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
+                 newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
 
-            newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
-            newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
+                 updateSettings({ crop: {x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} });
+                 return;
+            }
+
+            let fixedAnchorX, fixedAnchorY;
+            if (interaction.includes('l')) fixedAnchorX = startCrop.x + startCrop.width; else fixedAnchorX = startCrop.x;
+            if (interaction.includes('t')) fixedAnchorY = startCrop.y + startCrop.height; else fixedAnchorY = startCrop.y;
+            
+            const movingAnchorX = pos.x / scale;
+            const movingAnchorY = pos.y / scale;
+
+            let newX, newY, newWidth, newHeight;
+            
+            if (interaction === 't' || interaction === 'b') {
+                newX = startCrop.x;
+                newWidth = startCrop.width;
+            } else {
+                newX = Math.min(fixedAnchorX, movingAnchorX);
+                newWidth = Math.abs(fixedAnchorX - movingAnchorX);
+            }
+            
+            if (interaction === 'l' || interaction === 'r') {
+                newY = startCrop.y;
+                newHeight = startCrop.height;
+            } else {
+                newY = Math.min(fixedAnchorY, movingAnchorY);
+                newHeight = Math.abs(fixedAnchorY - movingAnchorY);
+            }
+            
+            let newCrop = { x: newX, y: newY, width: newWidth, height: newHeight };
+
+            const minW = MIN_CROP_SIZE_PX / scale;
+            const minH = MIN_CROP_SIZE_PX / scale;
+            if (newCrop.width < minW) newCrop.width = minW;
+            if (newCrop.height < minH) newCrop.height = minH;
+
+            newCrop.x = Math.max(0, newCrop.x);
+            newCrop.y = Math.max(0, newCrop.y);
+            if (newCrop.x + newCrop.width > img.width) newCrop.width = img.width - newCrop.x;
+            if (newCrop.y + newCrop.height > img.height) newCrop.height = img.height - newCrop.y;
 
             updateSettings({ crop: {x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} });
         }
