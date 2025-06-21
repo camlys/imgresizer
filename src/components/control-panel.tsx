@@ -8,6 +8,7 @@ import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import type { ImageSettings, OriginalImage } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw } from 'lucide-react';
+import { ImageInfoPanel } from './image-info-panel';
 
 interface ControlPanelProps {
   settings: ImageSettings;
@@ -15,48 +16,60 @@ interface ControlPanelProps {
   originalImage: OriginalImage;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  processedSize: number | null;
 }
 
-export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange }: ControlPanelProps) {
+export function ControlPanel({ settings, updateSettings, originalImage, activeTab, onTabChange, processedSize }: ControlPanelProps) {
   return (
-    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full p-2">
-      <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-        <TabsTrigger value="resize" className="flex-col h-auto gap-1 py-2">
-          <Scan size={16}/>
-          <span className="text-xs">Resize</span>
-        </TabsTrigger>
-         <TabsTrigger value="rotate" className="flex-col h-auto gap-1 py-2">
-          <RotateCcw size={16}/>
-          <span className="text-xs">Rotate &amp; Flip</span>
-        </TabsTrigger>
-        <TabsTrigger value="crop" className="flex-col h-auto gap-1 py-2">
-            <Crop size={16}/>
-            <span className="text-xs">Crop</span>
-        </TabsTrigger>
-        <TabsTrigger value="text" className="flex-col h-auto gap-1 py-2">
-            <Type size={16}/>
-            <span className="text-xs">Text</span>
-        </TabsTrigger>
-        <TabsTrigger value="adjustments" className="flex-col h-auto gap-1 py-2">
-            <SlidersHorizontal size={16}/>
-            <span className="text-xs">Adjust</span>
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="resize">
-        <ResizeRotateTab settings={settings} updateSettings={updateSettings} originalImage={originalImage} />
-      </TabsContent>
-       <TabsContent value="rotate">
-        <RotateFlipTab settings={settings} updateSettings={updateSettings} />
-      </TabsContent>
-      <TabsContent value="crop">
-        <CropTab settings={settings} updateSettings={updateSettings} originalImage={originalImage} />
-      </TabsContent>
-      <TabsContent value="text">
-        <TextTab settings={settings} updateSettings={updateSettings} />
-      </TabsContent>
-      <TabsContent value="adjustments">
-        <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
-      </TabsContent>
-    </Tabs>
+    <div className="flex flex-col h-full">
+      <div className="flex-grow p-2 overflow-y-auto">
+        <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsTrigger value="resize" className="flex-col h-auto gap-1 py-2">
+              <Scan size={16}/>
+              <span className="text-xs">Resize</span>
+            </TabsTrigger>
+             <TabsTrigger value="rotate" className="flex-col h-auto gap-1 py-2">
+              <RotateCcw size={16}/>
+              <span className="text-xs">Rotate &amp; Flip</span>
+            </TabsTrigger>
+            <TabsTrigger value="crop" className="flex-col h-auto gap-1 py-2">
+                <Crop size={16}/>
+                <span className="text-xs">Crop</span>
+            </TabsTrigger>
+            <TabsTrigger value="text" className="flex-col h-auto gap-1 py-2">
+                <Type size={16}/>
+                <span className="text-xs">Text</span>
+            </TabsTrigger>
+            <TabsTrigger value="adjustments" className="flex-col h-auto gap-1 py-2">
+                <SlidersHorizontal size={16}/>
+                <span className="text-xs">Adjust</span>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="resize">
+            <ResizeRotateTab settings={settings} updateSettings={updateSettings} originalImage={originalImage} />
+          </TabsContent>
+           <TabsContent value="rotate">
+            <RotateFlipTab settings={settings} updateSettings={updateSettings} />
+          </TabsContent>
+          <TabsContent value="crop">
+            <CropTab settings={settings} updateSettings={updateSettings} originalImage={originalImage} />
+          </TabsContent>
+          <TabsContent value="text">
+            <TextTab settings={settings} updateSettings={updateSettings} />
+          </TabsContent>
+          <TabsContent value="adjustments">
+            <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
+          </TabsContent>
+        </Tabs>
+      </div>
+      <div className="flex-shrink-0">
+         <ImageInfoPanel 
+            originalImage={originalImage}
+            settings={settings}
+            processedSize={processedSize}
+          />
+      </div>
+    </div>
   );
 }

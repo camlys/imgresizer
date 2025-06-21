@@ -23,6 +23,7 @@ export type OriginalImage = {
     src: string;
     width: number;
     height: number;
+    size: number;
 }
 
 export type ImageSettings = {

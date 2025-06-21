@@ -36,6 +36,7 @@ export default function Home() {
   const [originalImage, setOriginalImage] = useState<OriginalImage | null>(null);
   const [settings, setSettings] = useState<ImageSettings>(initialSettings);
   const [activeTab, setActiveTab] = useState('resize');
+  const [processedSize, setProcessedSize] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
@@ -56,6 +57,7 @@ export default function Home() {
           src: img.src,
           width: img.width,
           height: img.height,
+          size: file.size,
         });
         setSettings({
           ...initialSettings,
@@ -64,6 +66,7 @@ export default function Home() {
           crop: { x: 0, y: 0, width: img.width, height: img.height },
         });
         setActiveTab('resize');
+        setProcessedSize(null);
       };
       img.src = e.target?.result as string;
     };
@@ -72,7 +75,22 @@ export default function Home() {
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
+    setProcessedSize(null);
   }, []);
+
+  const updateProcessedSize = useCallback(() => {
+    if (canvasRef.current) {
+      canvasRef.current.toBlob(
+        (blob) => {
+          if (blob) {
+            setProcessedSize(blob.size);
+          }
+        },
+        settings.format,
+        settings.quality
+      );
+    }
+  }, [settings.format, settings.quality]);
 
   const handleDownload = useCallback(() => {
     if (canvasRef.current) {
@@ -104,17 +122,21 @@ export default function Home() {
         isImageLoaded={!!originalImage}
         settings={settings}
         updateSettings={updateSettings}
+        canvasRef={canvasRef}
+        processedSize={processedSize}
+        onUpdateProcessedSize={updateProcessedSize}
       />
       <main className="flex-1 grid grid-cols-1 md:grid-cols-[380px_1fr] gap-4 p-4 overflow-hidden">
         {originalImage ? (
           <>
-            <div className="bg-card rounded-xl shadow-sm border overflow-y-auto">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
               <ControlPanel 
                 settings={settings} 
                 updateSettings={updateSettings} 
                 originalImage={originalImage}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                processedSize={processedSize}
               />
             </div>
             <div className="bg-card rounded-xl shadow-sm border flex items-center justify-center p-4 overflow-hidden">
