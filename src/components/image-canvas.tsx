@@ -162,14 +162,33 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
 
         ctx.save();
+        
+        const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+        const rad = (rotation * Math.PI) / 180;
+        
+        // Bounding box of the source crop after rotation
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+        const boundingBoxWidth = cropData.width * cos + cropData.height * sin;
+        const boundingBoxHeight = cropData.width * sin + cropData.height * cos;
+
+        // Scale to fit the rotated bounding box within the canvas
+        const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
+        
+        const drawWidth = cropData.width * scale;
+        const drawHeight = cropData.height * scale;
+        
+        // Center the drawing on the canvas and apply transforms
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.translate(-width / 2, -height / 2);
-
-        const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-        ctx.drawImage(img, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, width, height);
+        ctx.rotate(rad);
+        
+        // Draw the image centered in the rotated context
+        ctx.drawImage(img, 
+            cropData.x, cropData.y, cropData.width, cropData.height, 
+            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
+        );
 
         ctx.restore();
         ctx.filter = 'none';
