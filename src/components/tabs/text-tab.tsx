@@ -27,6 +27,8 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
       font: 'Arial',
       size: 50,
       color: '#ffffff',
+      backgroundColor: 'transparent',
+      padding: 10,
       x: 50,
       y: 50,
     };
@@ -78,12 +80,41 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                         <Input id={`text-size-${text.id}`} type="number" value={text.size} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) })}/>
                       </div>
                     </div>
-                     <div className="grid gap-1.5">
-                      <Label htmlFor={`text-color-${text.id}`}>Color</Label>
-                      <div className="relative">
-                        <Input id={`text-color-${text.id}`} type="text" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
-                        <Input type="color" className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className="grid gap-1.5">
+                        <Label htmlFor={`text-color-${text.id}`}>Color</Label>
+                        <div className="relative">
+                          <Input id={`text-color-${text.id}`} type="text" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
+                          <Input type="color" className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
+                        </div>
                       </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor={`text-bgcolor-${text.id}`}>Background</Label>
+                        <div className="relative">
+                          <Input
+                            id={`text-bgcolor-${text.id}`}
+                            value={text.backgroundColor}
+                            onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
+                            placeholder="e.g. #000, transparent"
+                          />
+                          <Input
+                            type="color"
+                            className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer"
+                            value={text.backgroundColor.startsWith('#') ? text.backgroundColor : '#000000'}
+                            onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor={`text-padding-${text.id}`}>Padding</Label>
+                        <Input
+                            id={`text-padding-${text.id}`}
+                            type="number"
+                            min="0"
+                            value={text.padding}
+                            onChange={(e) => updateText(text.id, { padding: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                        />
                     </div>
                     <div>
                       <Label>Position (X: {text.x}%, Y: {text.y}%)</Label>

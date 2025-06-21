@@ -1,7 +1,7 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
-import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay } from '@/lib/types';
 
 interface ImageCanvasProps {
   originalImage: OriginalImage;
@@ -151,11 +151,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         ctx.filter = 'none';
 
         texts.forEach(text => {
-            ctx.fillStyle = text.color;
+            const textX = (text.x / 100) * width;
+            const textY = (text.y / 100) * height;
+
             ctx.font = `${text.size}px ${text.font}`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text.text, text.x / 100 * width, text.y / 100 * height);
+            
+            // Background and Padding
+            const padding = text.padding || 0;
+            if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                const metrics = ctx.measureText(text.text);
+                const rectWidth = metrics.width + padding * 2;
+                const rectHeight = text.size + padding * 2;
+                const rectX = textX - rectWidth / 2;
+                const rectY = textY - rectHeight / 2;
+
+                ctx.fillStyle = text.backgroundColor;
+                ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+            }
+
+            // Text
+            ctx.fillStyle = text.color;
+            ctx.fillText(text.text, textX, textY);
         });
     }
 
@@ -190,6 +208,23 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
       if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) return 'move';
       return null;
   };
+  
+  const getTextBoundingBox = (text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.font = `${text.size}px ${text.font}`;
+    const metrics = ctx.measureText(text.text);
+    const padding = text.padding || 0;
+    
+    const rectWidth = metrics.width + padding * 2;
+    const rectHeight = text.size + padding * 2;
+    
+    const canvasX = (text.x / 100) * canvas.width;
+    const canvasY = (text.y / 100) * canvas.height;
+    
+    const x = canvasX - rectWidth / 2;
+    const y = canvasY - rectHeight / 2;
+
+    return { x, y, width: rectWidth, height: rectHeight };
+  };
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getMousePos(e);
@@ -206,9 +241,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
         }
     } else {
         for (const text of [...settings.texts].reverse()) {
-            ctx.font = `${text.size}px ${text.font}`;
-            const metrics = ctx.measureText(text.text);
-            const textRect = { x: (text.x / 100 * canvas.width) - metrics.width / 2, y: (text.y / 100 * canvas.height) - text.size / 2, width: metrics.width, height: text.size };
+            const textRect = getTextBoundingBox(text, canvas, ctx);
             if (pos.x >= textRect.x && pos.x <= textRect.x + textRect.width && pos.y >= textRect.y && pos.y <= textRect.y + textRect.height) {
                 setInteraction('text');
                 setDraggingTextId(text.id);
@@ -294,6 +327,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             updateSettings({ crop: {x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} });
         }
     } else {
+        const { ctx } = getCanvasAndContext();
+        if (!ctx) return;
         if (activeTab === 'crop') {
             const cropInteraction = getCropInteractionType(pos.x, pos.y);
             const cursorMap: { [key in Interaction]?: string } = {
@@ -302,13 +337,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ originalI
             };
             canvas.style.cursor = cursorMap[cropInteraction] || 'default';
         } else {
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
             let isOverText = false;
             for (const text of settings.texts) {
-                ctx.font = `${text.size}px ${text.font}`;
-                const metrics = ctx.measureText(text.text);
-                const textRect = { x: (text.x / 100 * canvas.width) - metrics.width / 2, y: (text.y / 100 * canvas.height) - text.size / 2, width: metrics.width, height: text.size };
+                const textRect = getTextBoundingBox(text, canvas, ctx);
                 if (pos.x >= textRect.x && pos.x <= textRect.x + textRect.width && pos.y >= textRect.y && pos.y <= textRect.y + textRect.height) {
                     isOverText = true;
                     break;

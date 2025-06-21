@@ -6,6 +6,8 @@ export type TextOverlay = {
   font: string;
   size: number;
   color: string;
+  backgroundColor: string;
+  padding: number;
   x: number;
   y: number;
 };
