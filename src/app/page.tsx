@@ -8,6 +8,7 @@ import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
+import { SiteFooter } from '@/components/site-footer';
 
 const initialSettings: ImageSettings = {
   width: 512,
@@ -191,6 +192,7 @@ export default function Home() {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }
