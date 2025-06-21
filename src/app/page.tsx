@@ -108,7 +108,7 @@ export default function Home() {
         const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'imageforge-export.svg';
+        link.download = 'camly-export.svg';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -125,7 +125,7 @@ export default function Home() {
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
           const extension = settings.format.split('/')[1];
-          link.download = `imageforge-export.${extension}`;
+          link.download = `camly-export.${extension}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -140,7 +140,7 @@ export default function Home() {
   }, [settings.format, settings.quality, toast]);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
+    <div className="flex flex-col flex-1 bg-background text-foreground">
       <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}

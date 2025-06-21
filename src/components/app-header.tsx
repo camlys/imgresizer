@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Image as ImageIcon, Settings, Loader2 } from 'lucide-react';
+import { Upload, Download, Wand2, Settings, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -100,9 +100,9 @@ export function AppHeader({
     <header className="flex items-center justify-between p-4 border-b bg-card">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-primary/10 text-primary">
-          <ImageIcon className="w-6 h-6" />
+          <Wand2 className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground font-headline tracking-tight">ImageForge</h1>
+        <h1 className="text-2xl font-bold text-foreground font-headline tracking-tight">Image Editor</h1>
       </div>
       <div className="flex items-center gap-2">
         <input
