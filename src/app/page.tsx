@@ -171,7 +171,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col h-screen bg-background text-foreground">
        <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
@@ -183,6 +183,17 @@ export default function Home() {
         onUpdateProcessedSize={updateProcessedSize}
       />
       <main className="flex-1 flex p-4 gap-4 bg-muted/40 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative">
+            <ImageCanvas
+              ref={canvasRef}
+              originalImage={originalImage}
+              settings={settings}
+              updateSettings={updateSettings}
+              activeTab={activeTab}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+            />
+        </div>
         <div className="w-[380px] flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
             <ControlPanel 
               settings={settings} 
@@ -195,18 +206,8 @@ export default function Home() {
               setPendingCrop={setPendingCrop}
             />
         </div>
-        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative">
-            <ImageCanvas
-              ref={canvasRef}
-              originalImage={originalImage}
-              settings={settings}
-              updateSettings={updateSettings}
-              activeTab={activeTab}
-              pendingCrop={pendingCrop}
-              setPendingCrop={setPendingCrop}
-            />
-        </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
