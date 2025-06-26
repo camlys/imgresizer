@@ -18,7 +18,7 @@ import Link from 'next/link';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
-  onDownload: () => void;
+  onDownload: (filename: string) => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
@@ -42,6 +42,7 @@ export function AppHeader({
   const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [filename, setFilename] = useState('camly-export');
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -94,7 +95,7 @@ export function AppHeader({
     }
     
     updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
-    onUpdateProcessedSize();
+    setTimeout(() => onUpdateProcessedSize(), 0);
     setIsOptimizing(false);
   };
 
@@ -131,11 +132,20 @@ export function AppHeader({
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none flex items-center gap-2"><Settings size={18}/> Export Settings</h4>
                   <p className="text-sm text-muted-foreground">
-                    Adjust format and quality before downloading.
+                    Adjust filename, format, and quality before downloading.
                   </p>
                 </div>
                 <Separator />
                 <div className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="filename">Filename</Label>
+                        <Input
+                            id="filename"
+                            value={filename}
+                            onChange={(e) => setFilename(e.target.value)}
+                            placeholder="camly-export"
+                        />
+                    </div>
                     <div className="grid gap-2">
                       <Label htmlFor="format">Format</Label>
                       <Select
@@ -209,7 +219,7 @@ export function AppHeader({
                           {settings.format === 'image/svg+xml' || settings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
-                    <Button onClick={onDownload} className="w-full">
+                    <Button onClick={() => onDownload(filename)} className="w-full">
                         <Download className="mr-2"/>
                         Download Image
                     </Button>

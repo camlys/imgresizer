@@ -105,9 +105,10 @@ export default function Home() {
     }
   }, [settings.format, settings.quality]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback((filename: string) => {
     if (canvasRef.current) {
       const canvas = canvasRef.current;
+      const downloadName = filename || 'camly-export';
       
       if (settings.format === 'application/pdf') {
         const imgData = canvas.toDataURL('image/png');
@@ -118,7 +119,7 @@ export default function Home() {
           format: [canvas.width, canvas.height]
         });
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save('camly-export.pdf');
+        pdf.save(`${downloadName}.pdf`);
         
         toast({
           title: "Download Started",
@@ -135,7 +136,7 @@ export default function Home() {
         const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'camly-export.svg';
+        link.download = `${downloadName}.svg`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -151,8 +152,8 @@ export default function Home() {
         if (blob) {
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
-          const extension = settings.format.split('/')[1];
-          link.download = `camly-export.${extension}`;
+          const extension = settings.format.split('/')[1].split('+')[0];
+          link.download = `${downloadName}.${extension}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
