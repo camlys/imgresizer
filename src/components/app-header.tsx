@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -93,8 +94,6 @@ export function AppHeader({
     }
     
     updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
-    
-    setTimeout(onUpdateProcessedSize, 100);
     setIsOptimizing(false);
   };
 
@@ -196,7 +195,7 @@ export function AppHeader({
                                     <SelectItem value="MB">MB</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button size="icon" variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize}>
+                            <Button variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize}>
                                 {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
                             </Button>
                             </div>
