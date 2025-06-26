@@ -32,7 +32,29 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
 
   const handleCropChange = (field: keyof typeof crop, value: string) => {
     const numericValue = parseInt(value, 10) || 0;
-    setPendingCrop({ ...crop, [field]: numericValue });
+    const newCrop = { ...crop };
+
+    switch (field) {
+      case 'x':
+        newCrop.x = Math.max(0, Math.min(numericValue, originalImage.width - newCrop.width));
+        break;
+      case 'y':
+        newCrop.y = Math.max(0, Math.min(numericValue, originalImage.height - newCrop.height));
+        break;
+      case 'width':
+        newCrop.width = Math.max(1, Math.min(numericValue, originalImage.width - newCrop.x));
+        break;
+      case 'height':
+        newCrop.height = Math.max(1, Math.min(numericValue, originalImage.height - newCrop.y));
+        break;
+    }
+
+    setPendingCrop({
+      x: Math.round(newCrop.x),
+      y: Math.round(newCrop.y),
+      width: Math.round(newCrop.width),
+      height: Math.round(newCrop.height),
+    });
   };
   
   const resetCrop = () => {
