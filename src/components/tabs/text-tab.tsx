@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Type, Plus, Trash2 } from 'lucide-react';
@@ -97,23 +96,27 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                         <Label htmlFor={`text-color-${text.id}`}>Color</Label>
                         <div className="relative">
                           <Input id={`text-color-${text.id}`} type="text" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
-                          <Input type="color" className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
+                          <Input type="color" className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer" value={text.color.startsWith('#') ? text.color : '#000000'} onChange={e => updateText(text.id, { color: e.target.value })}/>
                         </div>
                       </div>
                       <div className="grid gap-1.5">
-                        <Label htmlFor={`text-bgcolor-${text.id}`}>Background</Label>
+                        <div className="flex justify-between items-center">
+                          <Label htmlFor={`text-bgcolor-${text.id}`}>Background</Label>
+                          <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => updateText(text.id, { backgroundColor: 'transparent' })}>Transparent</Button>
+                        </div>
                         <div className="relative">
                           <Input
                             id={`text-bgcolor-${text.id}`}
                             value={text.backgroundColor}
                             onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
-                            placeholder="e.g. #000, transparent"
+                            placeholder="e.g. #FFF, transparent"
                           />
                           <Input
                             type="color"
-                            className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer"
-                            value={text.backgroundColor.startsWith('#') ? text.backgroundColor : '#000000'}
+                            className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            value={text.backgroundColor.startsWith('#') ? text.backgroundColor : '#ffffff'}
                             onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
+                            disabled={text.backgroundColor === 'transparent'}
                           />
                         </div>
                       </div>
@@ -129,7 +132,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                         />
                     </div>
                     <div>
-                      <Label>Position (X: {text.x}%, Y: {text.y}%)</Label>
+                      <Label>Position (X: {Math.round(text.x)}%, Y: {Math.round(text.y)}%)</Label>
                       <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => removeText(text.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove</Button>

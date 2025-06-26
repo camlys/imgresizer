@@ -309,7 +309,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setDragStartTextPos(textPosInPixels);
         }
     }
-  }, [getMousePos, activeTab, pendingCrop, settings, getCanvasAndContext, getTextBoundingBox, getCropInteractionType]);
+  }, [getMousePos, activeTab, pendingCrop, settings, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
@@ -410,11 +410,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     } else {
         if (activeTab === 'crop') {
             const cropInteraction = getCropInteractionType(pos.x, pos.y);
-            const cursorMap: { [key in Interaction]?: string } = {
+            const cursorMap: { [key: string]: string } = {
               'move': 'move', 'tl': 'nwse-resize', 't': 'ns-resize', 'tr': 'nesw-resize',
               'l': 'ew-resize', 'r': 'ew-resize', 'bl': 'nesw-resize', 'b': 'ns-resize', 'br': 'nwse-resize',
             };
-            canvas.style.cursor = cursorMap[cropInteraction] || 'default';
+            canvas.style.cursor = cropInteraction ? cursorMap[cropInteraction] : 'default';
         } else {
             let isOverText = false;
             const reversedTexts = [...settings.texts].reverse();
