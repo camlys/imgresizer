@@ -94,6 +94,7 @@ export function AppHeader({
     }
     
     updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+    onUpdateProcessedSize();
     setIsOptimizing(false);
   };
 
@@ -158,6 +159,7 @@ export function AppHeader({
                           <SelectItem value="image/gif">GIF</SelectItem>
                           <SelectItem value="image/bmp">BMP</SelectItem>
                           <SelectItem value="image/svg+xml">SVG</SelectItem>
+                          <SelectItem value="application/pdf">PDF</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -195,7 +197,7 @@ export function AppHeader({
                                     <SelectItem value="MB">MB</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize}>
+                            <Button variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize} className="px-4">
                                 {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
                             </Button>
                             </div>
@@ -204,7 +206,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {settings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                          {settings.format === 'image/svg+xml' || settings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <Button onClick={onDownload} className="w-full">

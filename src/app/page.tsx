@@ -8,6 +8,7 @@ import { UploadPlaceholder } from '@/components/upload-placeholder';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
+import jsPDF from 'jspdf';
 
 const initialSettings: ImageSettings = {
   width: 512,
@@ -88,8 +89,8 @@ export default function Home() {
 
   const updateProcessedSize = useCallback(() => {
     if (canvasRef.current) {
-      if (settings.format === 'image/svg+xml') {
-        setProcessedSize(null); // Size estimation for SVG is not straightforward
+      if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
+        setProcessedSize(null);
         return;
       }
       canvasRef.current.toBlob(
@@ -108,6 +109,24 @@ export default function Home() {
     if (canvasRef.current) {
       const canvas = canvasRef.current;
       
+      if (settings.format === 'application/pdf') {
+        const imgData = canvas.toDataURL('image/png');
+        const orientation = canvas.width > canvas.height ? 'l' : 'p';
+        const pdf = new jsPDF({
+          orientation: orientation,
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('camly-export.pdf');
+        
+        toast({
+          title: "Download Started",
+          description: "Your PDF file has started downloading.",
+        });
+        return;
+      }
+
       if (settings.format === 'image/svg+xml') {
         const dataUrl = canvas.toDataURL('image/png'); // Use PNG for best quality inside SVG
         const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
