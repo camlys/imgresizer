@@ -9,6 +9,9 @@ import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import jsPDF from 'jspdf';
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const initialSettings: ImageSettings = {
   width: 512,
@@ -44,39 +47,94 @@ export default function Home() {
 
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
 
-  const handleImageUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
+  const handleImageUpload = async (file: File) => {
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const cropData = { x: 0, y: 0, width: img.width, height: img.height };
+                setOriginalImage({
+                    src: img.src,
+                    width: img.width,
+                    height: img.height,
+                    size: file.size,
+                });
+                setSettings({
+                    ...initialSettings,
+                    width: img.width,
+                    height: img.height,
+                    crop: cropData,
+                });
+                setPendingCrop(cropData);
+                setActiveTab('resize');
+                setProcessedSize(null);
+            };
+            img.src = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 });
+
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCtx) {
+                toast({
+                    title: "Error",
+                    description: "Could not create canvas context to render PDF.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            tempCanvas.width = viewport.width;
+            tempCanvas.height = viewport.height;
+
+            const renderContext = {
+                canvasContext: tempCtx,
+                viewport: viewport,
+            };
+
+            await page.render(renderContext).promise;
+            
+            const img = new Image();
+            img.onload = () => {
+                const cropData = { x: 0, y: 0, width: img.width, height: img.height };
+                setOriginalImage({
+                    src: img.src,
+                    width: img.width,
+                    height: img.height,
+                    size: file.size,
+                });
+                setSettings({
+                    ...initialSettings,
+                    width: img.width,
+                    height: img.height,
+                    crop: cropData,
+                });
+                setPendingCrop(cropData);
+                setActiveTab('resize');
+                setProcessedSize(null);
+            };
+            img.src = tempCanvas.toDataURL('image/png');
+        } catch (error) {
+            console.error("Error processing PDF:", error);
+            toast({
+                title: "PDF Error",
+                description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
+                variant: "destructive",
+            });
+        }
+    } else {
         toast({
             title: "Invalid File",
-            description: "Please upload a valid image file.",
+            description: "Please upload a valid image or PDF file.",
             variant: "destructive",
-        })
-        return;
+        });
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const cropData = { x: 0, y: 0, width: img.width, height: img.height };
-        setOriginalImage({
-          src: img.src,
-          width: img.width,
-          height: img.height,
-          size: file.size,
-        });
-        setSettings({
-          ...initialSettings,
-          width: img.width,
-          height: img.height,
-          crop: cropData,
-        });
-        setPendingCrop(cropData);
-        setActiveTab('resize');
-        setProcessedSize(null);
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
   };
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
@@ -203,6 +261,17 @@ export default function Home() {
         onUpdateProcessedSize={updateProcessedSize}
       />
       <main className="flex-1 flex p-4 gap-4 bg-muted/40 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative">
+            <ImageCanvas
+              ref={canvasRef}
+              originalImage={originalImage}
+              settings={settings}
+              updateSettings={updateSettings}
+              activeTab={activeTab}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+            />
+        </div>
         <div className="w-[380px] flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
             <ControlPanel 
               settings={settings} 
@@ -211,17 +280,6 @@ export default function Home() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               processedSize={processedSize}
-              pendingCrop={pendingCrop}
-              setPendingCrop={setPendingCrop}
-            />
-        </div>
-        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative">
-            <ImageCanvas
-              ref={canvasRef}
-              originalImage={originalImage}
-              settings={settings}
-              updateSettings={updateSettings}
-              activeTab={activeTab}
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
             />

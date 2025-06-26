@@ -13,7 +13,7 @@ import type { ImageSettings } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
-
+import { UploadTypeDialog } from './upload-type-dialog';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -42,6 +42,7 @@ export function AppHeader({
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('camly-export');
+  const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -51,7 +52,15 @@ export function AppHeader({
 
 
   const handleUploadClick = () => {
-    uploadInputRef.current?.click();
+    setIsUploadTypeDialogOpen(true);
+  };
+
+  const handleSelectUploadType = (type: 'image' | 'pdf') => {
+    if (uploadInputRef.current) {
+      uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+      uploadInputRef.current.click();
+    }
+    setIsUploadTypeDialogOpen(false);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,8 +103,10 @@ export function AppHeader({
     }
     
     updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
-    setTimeout(() => onUpdateProcessedSize(), 0);
-    setIsOptimizing(false);
+    setTimeout(() => {
+        onUpdateProcessedSize();
+        setIsOptimizing(false);
+    }, 100);
   };
 
   return (
@@ -112,12 +123,16 @@ export function AppHeader({
           ref={uploadInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept="image/*"
         />
         <Button variant="outline" onClick={handleUploadClick}>
           <Upload className="mr-2" />
           Upload New
         </Button>
+         <UploadTypeDialog
+          isOpen={isUploadTypeDialogOpen}
+          onOpenChange={setIsUploadTypeDialogOpen}
+          onSelectType={handleSelectUploadType}
+        />
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
