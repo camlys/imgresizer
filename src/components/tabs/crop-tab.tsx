@@ -129,9 +129,9 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
           {hasTransforms && (
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Heads up!</AlertTitle>
+              <AlertTitle>Note</AlertTitle>
               <AlertDescription>
-                Interactive cropping is disabled while the image is rotated or flipped. Use the fields below to crop numerically.
+                Rotation and flips are hidden during crop mode for precise selection. They will be applied to the final result.
               </AlertDescription>
             </Alert>
           )}

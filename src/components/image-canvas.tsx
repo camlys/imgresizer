@@ -73,91 +73,71 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     const img = imageElement;
     if (!canvas || !ctx || !img) return;
     
-    const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
-
     if (activeTab === 'crop') {
         const container = containerRef.current;
         if (!container) return;
 
-        if (hasTransforms) {
-            // Show transformed image, but no interaction for simplicity.
-            const { rotation, flipHorizontal, flipVertical, adjustments } = settings;
-            const rad = (rotation * Math.PI) / 180;
-            
-            const w = img.width, h = img.height;
-            const rotatedWidth = Math.abs(w * Math.cos(rad)) + Math.abs(h * Math.sin(rad));
-            const rotatedHeight = Math.abs(w * Math.sin(rad)) + Math.abs(h * Math.cos(rad));
-            
-            const scale = Math.min(container.clientWidth / rotatedWidth, container.clientHeight / rotatedHeight);
-            canvas.width = rotatedWidth * scale;
-            canvas.height = rotatedHeight * scale;
+        // Original interactive crop logic is now used for all cases in crop tab.
+        // It always shows the untransformed image for cropping.
+        const scale = Math.min(container.clientWidth / img.width, container.clientHeight / img.height);
+        const canvasWidth = img.width * scale;
+        const canvasHeight = img.height * scale;
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Apply adjustments so user sees color changes
+        const { adjustments } = settings;
+        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
+        
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
 
-            const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
-            ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
-            
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(rad);
-            if (flipHorizontal) ctx.scale(-1, 1);
-            if (flipVertical) ctx.scale(1, -1);
-            ctx.drawImage(img, -w * scale / 2, -h * scale / 2, w * scale, h * scale);
-            ctx.restore();
-            ctx.filter = 'none';
-        } else {
-            // Original interactive crop logic for when no transforms are applied.
-            const scale = Math.min(container.clientWidth / img.width, container.clientHeight / img.height);
-            const canvasWidth = img.width * scale;
-            const canvasHeight = img.height * scale;
-            
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            
-            ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-            
-            const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
-            const sx = crop.x * scale;
-            const sy = crop.y * scale;
-            const sWidth = crop.width * scale;
-            const sHeight = crop.height * scale;
-            
-            ctx.save();
-            ctx.lineWidth = 1;
+        ctx.filter = 'none'; // reset filter before drawing overlays
+        
+        const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
+        const sx = crop.x * scale;
+        const sy = crop.y * scale;
+        const sWidth = crop.width * scale;
+        const sHeight = crop.height * scale;
+        
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.strokeRect(sx + 1, sy + 1, sWidth, sHeight);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.strokeRect(sx, sy, sWidth, sHeight);
+        
+        if (sWidth > 30 && sHeight > 30) {
+            ctx.beginPath();
+            ctx.lineWidth = 0.5;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.strokeRect(sx + 1, sy + 1, sWidth, sHeight);
+            ctx.moveTo(sx + sWidth / 3 + 1, sy); ctx.lineTo(sx + sWidth / 3 + 1, sy + sHeight);
+            ctx.moveTo(sx + 2 * sWidth / 3 + 1, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 1, sy + sHeight);
+            ctx.moveTo(sx, sy + sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 1);
+            ctx.moveTo(sx, sy + 2 * sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 1);
+            ctx.stroke();
+
+            ctx.beginPath();
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.strokeRect(sx, sy, sWidth, sHeight);
-            
-            if (sWidth > 30 && sHeight > 30) {
-                ctx.beginPath();
-                ctx.lineWidth = 0.5;
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.moveTo(sx + sWidth / 3 + 1, sy); ctx.lineTo(sx + sWidth / 3 + 1, sy + sHeight);
-                ctx.moveTo(sx + 2 * sWidth / 3 + 1, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 1, sy + sHeight);
-                ctx.moveTo(sx, sy + sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 1);
-                ctx.moveTo(sx, sy + 2 * sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 1);
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
-                ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
-                ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
-                ctx.moveTo(sx, sy + 2 * sHeight / 3); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
-                ctx.stroke();
-            }
-            ctx.restore();
-
-            ctx.save();
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 1;
-            const handles = getHandleRects(sx, sy, sWidth, sHeight);
-            Object.values(handles).forEach(rect => {
-                ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-                ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-            });
-            ctx.restore();
+            ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
+            ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
+            ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
+            ctx.moveTo(sx, sy + 2 * sHeight / 3); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
+            ctx.stroke();
         }
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        const handles = getHandleRects(sx, sy, sWidth, sHeight);
+        Object.values(handles).forEach(rect => {
+            ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        });
+        ctx.restore();
     } else {
         const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
         canvas.width = width;
@@ -273,9 +253,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
-    if (activeTab === 'crop' && hasTransforms) return;
-
     const pos = getMousePos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
@@ -329,13 +306,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, [getMousePos, activeTab, pendingCrop, settings, imageElement, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
-    if (activeTab === 'crop' && hasTransforms) {
-        const { canvas } = getCanvasAndContext();
-        if (canvas) canvas.style.cursor = 'not-allowed';
-        return;
-    }
-
     const pos = getMousePos(e);
     const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
