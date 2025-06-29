@@ -61,10 +61,26 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     };
 
     const handleDimensionChange = (valueStr: string, dimension: 'width' | 'height') => {
-        const numericValue = parseFloat(valueStr) || 0;
-
         if (dimension === 'width') {
             setWidth(valueStr);
+        } else { // dimension is height
+            setHeight(valueStr);
+        }
+
+        if (valueStr.trim() === '') {
+            // Do not update settings if the input is empty.
+            // This allows the user to clear the field without it resetting to 0.
+            return;
+        }
+
+        const numericValue = parseFloat(valueStr);
+
+        if (isNaN(numericValue) || numericValue < 0) {
+            // Do not update for invalid or negative numbers.
+            return;
+        }
+
+        if (dimension === 'width') {
             const newPxWidth = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxHeight = newPxWidth / aspectRatio;
@@ -74,7 +90,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                 updateSettings({ width: newPxWidth });
             }
         } else { // dimension is height
-            setHeight(valueStr);
             const newPxHeight = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxWidth = newPxHeight * aspectRatio;
