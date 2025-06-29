@@ -32,6 +32,8 @@ const presets = [
     { name: 'Polaroid', values: { brightness: 120, contrast: 90, saturate: 85, sepia: 20 } },
     { name: 'Invert', values: { invert: 100 } },
     { name: 'Technicolor', values: { brightness: 115, contrast: 130, saturate: 140, hue: 180 } },
+    { name: 'Cool', values: { brightness: 105, contrast: 95, saturate: 90 } },
+    { name: 'Warm', values: { brightness: 105, saturate: 110, sepia: 25 } },
 ];
 
 export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps) {
@@ -69,9 +71,9 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
         <CardContent className="space-y-4">
            <div>
             <Label className="text-xs text-muted-foreground">Presets</Label>
-            <div className="grid grid-cols-3 gap-2 mt-1">
+            <div className="grid grid-cols-4 gap-2 mt-1">
               {presets.map(p => (
-                 <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p.values)}>{p.name}</Button>
+                 <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p.values)} className="text-xs h-8">{p.name}</Button>
               ))}
             </div>
           </div>
