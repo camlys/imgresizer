@@ -42,7 +42,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   useEffect(() => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    // Conditionally set crossOrigin for non-data URIs to prevent canvas tainting.
+    if (!originalImage.src.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.src = originalImage.src;
     img.onload = () => setImageElement(img);
   }, [originalImage.src]);
