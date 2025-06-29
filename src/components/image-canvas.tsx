@@ -278,15 +278,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     const pos = getMousePos(e);
     const { canvas, ctx } = getCanvasAndContext();
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx || !imageElement) return;
 
     if (activeTab === 'crop') {
         const cropInteraction = getCropInteractionType(pos.x, pos.y);
+        e.preventDefault();
+
         if (cropInteraction) {
-            e.preventDefault();
             setInteraction(cropInteraction);
             setStartPos(pos);
             setStartCrop(pendingCrop);
+        } else {
+            // If clicking outside the current crop area, start drawing a new one.
+            const scale = canvas.width / imageElement.width;
+            setInteraction('br'); // Treat as dragging the bottom-right corner.
+            setStartPos(pos);
+            const newCrop = {
+                x: pos.x / scale,
+                y: pos.y / scale,
+                width: 0,
+                height: 0,
+            };
+            setStartCrop(newCrop);
+            setPendingCrop(newCrop);
         }
     } else {
         const reversedTexts = [...settings.texts].reverse();
@@ -312,7 +326,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setDragStartTextPos(textPosInPixels);
         }
     }
-  }, [getMousePos, activeTab, pendingCrop, settings, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType]);
+  }, [getMousePos, activeTab, pendingCrop, settings, imageElement, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
@@ -417,7 +431,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               'move': 'move', 'tl': 'nwse-resize', 't': 'ns-resize', 'tr': 'nesw-resize',
               'l': 'ew-resize', 'r': 'ew-resize', 'bl': 'nesw-resize', 'b': 'ns-resize', 'br': 'nwse-resize',
             };
-            canvas.style.cursor = cropInteraction ? cursorMap[cropInteraction] : 'default';
+            canvas.style.cursor = cropInteraction ? cursorMap[cropInteraction] : 'crosshair';
         } else {
             let isOverText = false;
             const reversedTexts = [...settings.texts].reverse();

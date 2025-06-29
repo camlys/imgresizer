@@ -48,6 +48,28 @@ export default function Home() {
 
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
 
+  const handleTabChange = (tab: string) => {
+    if (tab === 'crop' && originalImage && pendingCrop) {
+      // If the user is entering the crop tab and the crop is still set to the full image,
+      // present a smaller, centered crop box to make the tool more intuitive.
+      if (pendingCrop.width === originalImage.width && pendingCrop.height === originalImage.height) {
+        const newWidth = originalImage.width * 0.8;
+        const newHeight = originalImage.height * 0.8;
+        const newX = (originalImage.width - newWidth) / 2;
+        const newY = (originalImage.height - newHeight) / 2;
+        
+        const centeredCrop = {
+          x: Math.round(newX),
+          y: Math.round(newY),
+          width: Math.round(newWidth),
+          height: Math.round(newHeight),
+        };
+        setPendingCrop(centeredCrop);
+      }
+    }
+    setActiveTab(tab);
+  };
+
   const handleImageUpload = async (file: File) => {
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -269,7 +291,7 @@ export default function Home() {
             updateSettings={updateSettings} 
             originalImage={originalImage}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             processedSize={processedSize}
             pendingCrop={pendingCrop}
             setPendingCrop={setPendingCrop}
