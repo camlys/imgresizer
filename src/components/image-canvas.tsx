@@ -385,42 +385,41 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                  return;
             }
 
-            let fixedAnchorX, fixedAnchorY;
-            if (interaction.includes('l')) fixedAnchorX = startCrop.x + startCrop.width; else fixedAnchorX = startCrop.x;
-            if (interaction.includes('t')) fixedAnchorY = startCrop.y + startCrop.height; else fixedAnchorY = startCrop.y;
-            
-            const movingAnchorX = pos.x / scale;
-            const movingAnchorY = pos.y / scale;
-
-            let newX, newY, newWidth, newHeight;
-            
-            if (interaction === 't' || interaction === 'b') {
-                newX = startCrop.x;
-                newWidth = startCrop.width;
-            } else {
-                newX = Math.min(fixedAnchorX, movingAnchorX);
-                newWidth = Math.abs(fixedAnchorX - movingAnchorX);
-            }
-            
-            if (interaction === 'l' || interaction === 'r') {
-                newY = startCrop.y;
-                newHeight = startCrop.height;
-            } else {
-                newY = Math.min(fixedAnchorY, movingAnchorY);
-                newHeight = Math.abs(fixedAnchorY - movingAnchorY);
-            }
-            
-            let newCrop = { x: newX, y: newY, width: newWidth, height: newHeight };
-
+            let newCrop = { ...startCrop };
+            const mouseX = pos.x / scale;
+            const mouseY = pos.y / scale;
             const minW = MIN_CROP_SIZE_PX / scale;
             const minH = MIN_CROP_SIZE_PX / scale;
+            
+            // Determine the fixed anchor point and resize from there
+            const anchorX = interaction.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
+            const anchorY = interaction.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
+
+            let newX1 = interaction.includes('l') ? mouseX : anchorX;
+            let newY1 = interaction.includes('t') ? mouseY : anchorY;
+            let newX2 = interaction.includes('r') ? mouseX : anchorX;
+            let newY2 = interaction.includes('b') ? mouseY : anchorY;
+            
+            // For edge-only drags, keep the other dimension fixed
+            if (interaction === 'l' || interaction === 'r') {
+                newY1 = startCrop.y;
+                newY2 = startCrop.y + startCrop.height;
+            }
+             if (interaction === 't' || interaction === 'b') {
+                newX1 = startCrop.x;
+                newX2 = startCrop.x + startCrop.width;
+            }
+
+            newCrop.x = Math.min(newX1, newX2);
+            newCrop.y = Math.min(newY1, newY2);
+            newCrop.width = Math.abs(newX1 - newX2);
+            newCrop.height = Math.abs(newY1 - newY2);
+
             if (newCrop.width < minW) newCrop.width = minW;
             if (newCrop.height < minH) newCrop.height = minH;
 
-            newCrop.x = Math.max(0, newCrop.x);
-            newCrop.y = Math.max(0, newCrop.y);
-            if (newCrop.x + newCrop.width > img.width) newCrop.width = img.width - newCrop.x;
-            if (newCrop.y + newCrop.height > img.height) newCrop.height = img.height - newCrop.y;
+            newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
+            newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
 
             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
