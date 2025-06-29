@@ -186,67 +186,160 @@ export default function Home() {
     }
   }, [settings.format, settings.quality]);
 
-  const handleDownload = useCallback((filename: string) => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const downloadName = filename || 'camly-export';
-      
-      if (settings.format === 'application/pdf') {
-        const imgData = canvas.toDataURL('image/png');
-        const orientation = canvas.width > canvas.height ? 'l' : 'p';
-        const pdf = new jsPDF({
-          orientation: orientation,
-          unit: 'px',
-          format: [canvas.width, canvas.height]
-        });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`${downloadName}.pdf`);
-        
+  const handleDownload = useCallback(async (filename: string) => {
+    if (!originalImage) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
         toast({
-          title: "Download Started",
-          description: "Your PDF file has started downloading.",
+            title: "Download Error",
+            description: "Could not create a canvas to generate the image.",
+            variant: "destructive",
         });
         return;
-      }
-
-      if (settings.format === 'image/svg+xml') {
-        const dataUrl = canvas.toDataURL('image/png'); // Use PNG for best quality inside SVG
-        const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
-  <image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}" />
-</svg>`;
-        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `${downloadName}.svg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-        toast({
-          title: "Download Started",
-          description: "Your SVG image has started downloading.",
-        });
-        return;
-      }
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          const extension = settings.format.split('/')[1].split('+')[0];
-          link.download = `${downloadName}.${extension}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(link.href);
-           toast({
-            title: "Download Started",
-            description: "Your image has started downloading.",
-        })
-        }
-      }, settings.format, settings.quality);
     }
-  }, [settings.format, settings.quality, toast]);
+
+    const img = new Image();
+    const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        if (!originalImage.src.startsWith('data:')) {
+            img.crossOrigin = 'anonymous';
+        }
+        img.src = originalImage.src;
+    });
+
+    try {
+        const imageElement = await imageLoadPromise;
+        const downloadName = filename || 'camly-export';
+        
+        // Re-implement drawing logic here for guaranteed accuracy
+        const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
+        canvas.width = width;
+        canvas.height = height;
+
+        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
+
+        ctx.save();
+        
+        const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+        const rad = (rotation * Math.PI) / 180;
+        
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+        const boundingBoxWidth = cropData.width * cos + cropData.height * sin;
+        const boundingBoxHeight = cropData.width * sin + cropData.height * cos;
+
+        const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
+        
+        const drawWidth = cropData.width * scale;
+        const drawHeight = cropData.height * scale;
+        
+        ctx.translate(width / 2, height / 2);
+        if (flipHorizontal) ctx.scale(-1, 1);
+        if (flipVertical) ctx.scale(1, -1);
+        ctx.rotate(rad);
+        
+        ctx.drawImage(imageElement, 
+            cropData.x, cropData.y, cropData.width, cropData.height, 
+            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
+        );
+
+        ctx.restore();
+        ctx.filter = 'none';
+
+        texts.forEach(text => {
+            const textX = (text.x / 100) * width;
+            const textY = (text.y / 100) * height;
+
+            ctx.font = `${text.size}px ${text.font}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const padding = text.padding || 0;
+            if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                const metrics = ctx.measureText(text.text);
+                const rectWidth = metrics.width + padding * 2;
+                const rectHeight = text.size + padding * 2;
+                const rectX = textX - rectWidth / 2;
+                const rectY = textY - rectHeight / 2;
+
+                ctx.fillStyle = text.backgroundColor;
+                ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+            }
+
+            ctx.fillStyle = text.color;
+            ctx.fillText(text.text, textX, textY);
+        });
+
+        // Continue with original download logic, but using the offscreen canvas
+        if (settings.format === 'application/pdf') {
+            const imgData = canvas.toDataURL('image/png');
+            const orientation = canvas.width > canvas.height ? 'l' : 'p';
+            const pdf = new jsPDF({
+              orientation: orientation,
+              unit: 'px',
+              format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`${downloadName}.pdf`);
+            
+            toast({
+              title: "Download Started",
+              description: "Your PDF file has started downloading.",
+            });
+            return;
+        }
+
+        if (settings.format === 'image/svg+xml') {
+            const dataUrl = canvas.toDataURL('image/png'); // Use PNG for best quality inside SVG
+            const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
+<image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}" />
+</svg>`;
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${downloadName}.svg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            toast({
+              title: "Download Started",
+              description: "Your SVG image has started downloading.",
+            });
+            return;
+        }
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              const extension = settings.format.split('/')[1].split('+')[0];
+              link.download = `${downloadName}.${extension}`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+              toast({
+                title: "Download Started",
+                description: "Your image has started downloading.",
+            })
+            }
+        }, settings.format, settings.quality);
+
+    } catch (error) {
+        console.error("Error preparing image for download:", error);
+        toast({
+            title: "Download Error",
+            description: "There was a problem loading the image for export.",
+            variant: "destructive",
+        });
+    }
+  }, [originalImage, settings, toast]);
   
   if (!originalImage) {
     return (
@@ -261,7 +354,7 @@ export default function Home() {
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
         />
-        <main className="flex-1 w-full">
+        <main className="flex-1 w-full overflow-y-auto">
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} />
           </div>
