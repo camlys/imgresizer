@@ -34,7 +34,7 @@ const initialSettings: ImageSettings = {
     invert: 0,
     blur: 0,
   },
-  format: 'image/png',
+  format: 'image/jpeg',
   quality: 0.92,
 };
 
