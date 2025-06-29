@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -8,15 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
 import { Lock, Unlock, Scan } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
-
-interface ResizeRotateTabProps {
-  settings: ImageSettings;
-  updateSettings: (newSettings: Partial<ImageSettings>) => void;
-  originalImage: OriginalImage;
-  processedSize: number | null;
-}
 
 const DPI = 96;
 const CM_TO_INCH = 0.393701;
@@ -38,53 +32,49 @@ const convertFromPx = (value: number, unit: Unit): number => {
 };
 
 export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize }: ResizeRotateTabProps) {
-    const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toFixed(2));
-    const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toFixed(2));
+    const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toString());
+    const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toString());
     const [unit, setUnit] = useState(settings.unit);
     
     const aspectRatio = originalImage.width / originalImage.height;
 
+    // This effect ensures that if the global settings change (e.g., via crop or reset),
+    // the local inputs update accordingly.
     useEffect(() => {
-        const newWidth = convertFromPx(settings.width, unit);
-        const newHeight = convertFromPx(settings.height, unit);
-        setWidth(newWidth.toFixed(2));
-        setHeight(newHeight.toFixed(2));
-    }, [settings.width, settings.height, unit]);
-    
-    useEffect(() => {
+        setWidth(convertFromPx(settings.width, settings.unit).toString());
+        setHeight(convertFromPx(settings.height, settings.unit).toString());
         setUnit(settings.unit);
-    }, [settings.unit]);
+    }, [settings.width, settings.height, settings.unit, originalImage]);
+
 
     const handleUnitChange = (newUnit: Unit) => {
+        const currentPxWidth = settings.width;
+        const currentPxHeight = settings.height;
+        
+        setWidth(convertFromPx(currentPxWidth, newUnit).toString());
+        setHeight(convertFromPx(currentPxHeight, newUnit).toString());
         setUnit(newUnit);
         updateSettings({ unit: newUnit });
     };
 
     const handleDimensionChange = (valueStr: string, dimension: 'width' | 'height') => {
+        // Update local state immediately to provide a responsive typing experience.
         if (dimension === 'width') {
             setWidth(valueStr);
-        } else { // dimension is height
+        } else {
             setHeight(valueStr);
         }
 
-        if (valueStr.trim() === '') {
-            // Do not update settings if the input is empty.
-            // This allows the user to clear the field without it resetting to 0.
-            return;
-        }
-
         const numericValue = parseFloat(valueStr);
-
-        if (isNaN(numericValue) || numericValue < 0) {
-            // Do not update for invalid or negative numbers.
-            return;
+        if (valueStr.trim() === '' || isNaN(numericValue) || numericValue < 0) {
+            return; // Don't update global state if input is empty or invalid
         }
 
         if (dimension === 'width') {
             const newPxWidth = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxHeight = newPxWidth / aspectRatio;
-                setHeight(convertFromPx(newPxHeight, unit).toFixed(2));
+                setHeight(convertFromPx(newPxHeight, unit).toString());
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ width: newPxWidth });
@@ -93,7 +83,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
             const newPxHeight = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxWidth = newPxHeight * aspectRatio;
-                setWidth(convertFromPx(newPxWidth, unit).toFixed(2));
+                setWidth(convertFromPx(newPxWidth, unit).toString());
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ height: newPxHeight });
@@ -102,8 +92,8 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     };
     
     const resetDimensions = () => {
+        // Global state is source of truth, local state will update via useEffect
         updateSettings({ width: originalImage.width, height: originalImage.height, unit: 'px' });
-        setUnit('px');
     };
 
     return (
@@ -117,11 +107,11 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                     <div className="flex items-end gap-2">
                         <div className="grid w-full gap-1.5">
                             <Label htmlFor="width">Width</Label>
-                            <Input id="width" type="number" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
+                            <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
                         </div>
                         <div className="grid w-full gap-1.5">
                             <Label htmlFor="height">Height</Label>
-                            <Input id="height" type="number" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
+                            <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
                         </div>
                         <div className="grid w-32 gap-1.5">
                             <Label>Unit</Label>
