@@ -31,34 +31,51 @@ const convertFromPx = (value: number, unit: Unit): number => {
   return value;
 };
 
+interface ResizeRotateTabProps {
+    settings: ImageSettings;
+    updateSettings: (newSettings: Partial<ImageSettings>) => void;
+    originalImage: OriginalImage;
+    processedSize: number | null;
+}
+
 export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize }: ResizeRotateTabProps) {
     const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toString());
     const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toString());
     const [unit, setUnit] = useState(settings.unit);
     
-    const aspectRatio = originalImage.width / originalImage.height;
+    const [aspectRatio, setAspectRatio] = useState(originalImage.width / originalImage.height);
 
-    // This effect ensures that if the global settings change (e.g., via crop or reset),
-    // the local inputs update accordingly.
     useEffect(() => {
-        setWidth(convertFromPx(settings.width, settings.unit).toString());
-        setHeight(convertFromPx(settings.height, settings.unit).toString());
-        setUnit(settings.unit);
-    }, [settings.width, settings.height, settings.unit, originalImage]);
+        if (settings.crop) {
+            setAspectRatio(settings.crop.width / settings.crop.height);
+        } else {
+            setAspectRatio(originalImage.width / originalImage.height);
+        }
+    }, [settings.crop, originalImage]);
+
+    useEffect(() => {
+        if (parseFloat(width) !== convertFromPx(settings.width, unit)) {
+            setWidth(convertFromPx(settings.width, unit).toFixed(2).replace(/\.00$/, ''));
+        }
+        if (parseFloat(height) !== convertFromPx(settings.height, unit)) {
+            setHeight(convertFromPx(settings.height, unit).toFixed(2).replace(/\.00$/, ''));
+        }
+        if (unit !== settings.unit) {
+            setUnit(settings.unit);
+        }
+    }, [settings.width, settings.height, settings.unit]);
 
 
     const handleUnitChange = (newUnit: Unit) => {
         const currentPxWidth = settings.width;
-        const currentPxHeight = settings.height;
         
-        setWidth(convertFromPx(currentPxWidth, newUnit).toString());
-        setHeight(convertFromPx(currentPxHeight, newUnit).toString());
+        setWidth(convertFromPx(currentPxWidth, newUnit).toFixed(2).replace(/\.00$/, ''));
+        setHeight(convertFromPx(settings.height, newUnit).toFixed(2).replace(/\.00$/, ''));
         setUnit(newUnit);
         updateSettings({ unit: newUnit });
     };
 
     const handleDimensionChange = (valueStr: string, dimension: 'width' | 'height') => {
-        // Update local state immediately to provide a responsive typing experience.
         if (dimension === 'width') {
             setWidth(valueStr);
         } else {
@@ -66,24 +83,24 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         }
 
         const numericValue = parseFloat(valueStr);
-        if (valueStr.trim() === '' || isNaN(numericValue) || numericValue < 0) {
-            return; // Don't update global state if input is empty or invalid
+        if (valueStr.trim() === '' || isNaN(numericValue) || numericValue <= 0) {
+            return;
         }
 
         if (dimension === 'width') {
             const newPxWidth = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxHeight = newPxWidth / aspectRatio;
-                setHeight(convertFromPx(newPxHeight, unit).toString());
+                setHeight(convertFromPx(newPxHeight, unit).toFixed(2).replace(/\.00$/, ''));
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ width: newPxWidth });
             }
-        } else { // dimension is height
+        } else {
             const newPxHeight = convertToPx(numericValue, unit);
             if (settings.keepAspectRatio) {
                 const newPxWidth = newPxHeight * aspectRatio;
-                setWidth(convertFromPx(newPxWidth, unit).toString());
+                setWidth(convertFromPx(newPxWidth, unit).toFixed(2).replace(/\.00$/, ''));
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ height: newPxHeight });
@@ -92,8 +109,9 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     };
     
     const resetDimensions = () => {
-        // Global state is source of truth, local state will update via useEffect
-        updateSettings({ width: originalImage.width, height: originalImage.height, unit: 'px' });
+        const resetWidth = settings.crop ? settings.crop.width : originalImage.width;
+        const resetHeight = settings.crop ? settings.crop.height : originalImage.height;
+        updateSettings({ width: resetWidth, height: resetHeight, unit: 'px' });
     };
 
     return (
@@ -104,16 +122,16 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                     <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-end gap-2">
-                        <div className="grid w-full gap-1.5">
+                    <div className="flex flex-wrap items-end gap-2">
+                        <div className="grid flex-grow gap-1.5">
                             <Label htmlFor="width">Width</Label>
                             <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
                         </div>
-                        <div className="grid w-full gap-1.5">
+                        <div className="grid flex-grow gap-1.5">
                             <Label htmlFor="height">Height</Label>
                             <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
                         </div>
-                        <div className="grid w-32 gap-1.5">
+                        <div className="grid flex-grow sm:flex-grow-0 w-full sm:w-32 gap-1.5">
                             <Label>Unit</Label>
                             <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
                                 <SelectTrigger><SelectValue/></SelectTrigger>
