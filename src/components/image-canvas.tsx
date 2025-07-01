@@ -42,7 +42,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   useEffect(() => {
     const img = new Image();
-    // Conditionally set crossOrigin for non-data URIs to prevent canvas tainting.
     if (!originalImage.src.startsWith('data:')) {
       img.crossOrigin = 'anonymous';
     }
@@ -56,15 +55,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { canvas, ctx };
   }, []);
 
-  const getMousePos = useCallback((e: MouseEvent | React.MouseEvent) => {
+  const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   }, [getCanvasAndContext]);
 
@@ -77,8 +80,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const container = containerRef.current;
         if (!container) return;
 
-        // Original interactive crop logic is now used for all cases in crop tab.
-        // It always shows the untransformed image for cropping.
         const scale = Math.min(container.clientWidth / img.width, container.clientHeight / img.height);
         const canvasWidth = img.width * scale;
         const canvasHeight = img.height * scale;
@@ -86,14 +87,13 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        // Apply adjustments so user sees color changes
         const { adjustments } = settings;
         const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
         ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
         
         ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
 
-        ctx.filter = 'none'; // reset filter before drawing overlays
+        ctx.filter = 'none'; 
         
         const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
         const sx = crop.x * scale;
@@ -151,25 +151,21 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
         const rad = (rotation * Math.PI) / 180;
         
-        // Bounding box of the source crop after rotation
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
         const boundingBoxWidth = cropData.width * cos + cropData.height * sin;
         const boundingBoxHeight = cropData.width * sin + cropData.height * cos;
 
-        // Scale to fit the rotated bounding box within the canvas
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
         
         const drawWidth = cropData.width * scale;
         const drawHeight = cropData.height * scale;
         
-        // Center the drawing on the canvas and apply transforms
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        // Draw the image centered in the rotated context
         ctx.drawImage(img, 
             cropData.x, cropData.y, cropData.width, cropData.height, 
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
@@ -252,8 +248,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { x, y, width: rectWidth, height: rectHeight };
   }, []);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getMousePos(e);
+  const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
 
@@ -266,9 +262,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setStartPos(pos);
             setStartCrop(pendingCrop);
         } else {
-            // If clicking outside the current crop area, start drawing a new one.
             const scale = canvas.width / imageElement.width;
-            setInteraction('br'); // Treat as dragging the bottom-right corner.
+            setInteraction('br');
             setStartPos(pos);
             const newCrop = {
                 x: pos.x / scale,
@@ -303,15 +298,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setDragStartTextPos(textPosInPixels);
         }
     }
-  }, [getMousePos, activeTab, pendingCrop, settings, imageElement, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType]);
+  }, [getInteractionPos, activeTab, pendingCrop, settings, imageElement, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType, setPendingCrop]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getMousePos(e);
+  const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if ('touches' in e && !interaction) {
+      return;
+    }
+    
+    const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
     if (!canvas || !img || !ctx) return;
 
     if (interaction && startPos) {
+        e.preventDefault();
         if (interaction === 'text' && draggingTextId && dragStartTextPos) {
             canvas.style.cursor = 'grabbing';
             const dx = pos.x - startPos.x;
@@ -361,7 +361,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const minW = MIN_CROP_SIZE_PX / scale;
             const minH = MIN_CROP_SIZE_PX / scale;
             
-            // Determine the fixed anchor point and resize from there
             const anchorX = interaction.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
             const anchorY = interaction.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
 
@@ -370,7 +369,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             let newX2 = interaction.includes('r') ? mouseX : anchorX;
             let newY2 = interaction.includes('b') ? mouseY : anchorY;
             
-            // For edge-only drags, keep the other dimension fixed
             if (interaction === 'l' || interaction === 'r') {
                 newY1 = startCrop.y;
                 newY2 = startCrop.y + startCrop.height;
@@ -394,6 +392,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
     } else {
+        if ('touches' in e) return;
+
         if (activeTab === 'crop') {
             const cropInteraction = getCropInteractionType(pos.x, pos.y);
             const cursorMap: { [key: string]: string } = {
@@ -415,9 +415,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             canvas.style.cursor = isOverText ? 'grab' : 'default';
         }
     }
-  }, [interaction, startPos, getMousePos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
+  }, [interaction, startPos, getInteractionPos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
 
-  const handleMouseUpOrLeave = useCallback(() => {
+  const handleInteractionEnd = useCallback(() => {
     if(interaction === 'text' && internalCanvasRef.current) internalCanvasRef.current.style.cursor = 'grab';
     setInteraction(null);
     setStartPos(null);
@@ -431,10 +431,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
+          onMouseDown={handleInteractionStart}
+          onMouseMove={handleInteractionMove}
+          onMouseUp={handleInteractionEnd}
+          onMouseLeave={handleInteractionEnd}
+          onTouchStart={handleInteractionStart}
+          onTouchMove={handleInteractionMove}
+          onTouchEnd={handleInteractionEnd}
+          onTouchCancel={handleInteractionEnd}
         />
     </div>
   );
