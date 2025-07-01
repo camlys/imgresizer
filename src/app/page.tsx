@@ -50,8 +50,6 @@ export default function Home() {
 
   const handleTabChange = (tab: string) => {
     if (tab === 'crop' && originalImage && pendingCrop) {
-      // If the user is entering the crop tab and the crop is still set to the full image,
-      // present a smaller, centered crop box to make the tool more intuitive.
       if (pendingCrop.width === originalImage.width && pendingCrop.height === originalImage.height) {
         const newWidth = originalImage.width * 0.8;
         const newHeight = originalImage.height * 0.8;
@@ -215,7 +213,6 @@ export default function Home() {
         const imageElement = await imageLoadPromise;
         const downloadName = filename || 'camly-export';
         
-        // Re-implement drawing logic here for guaranteed accuracy
         const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
         canvas.width = width;
         canvas.height = height;
@@ -275,7 +272,6 @@ export default function Home() {
             ctx.fillText(text.text, textX, textY);
         });
 
-        // Continue with original download logic, but using the offscreen canvas
         if (settings.format === 'application/pdf') {
             const imgData = canvas.toDataURL('image/png');
             const orientation = canvas.width > canvas.height ? 'l' : 'p';
@@ -295,7 +291,7 @@ export default function Home() {
         }
 
         if (settings.format === 'image/svg+xml') {
-            const dataUrl = canvas.toDataURL('image/png'); // Use PNG for best quality inside SVG
+            const dataUrl = canvas.toDataURL('image/png');
             const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
 <image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}" />
 </svg>`;
@@ -366,7 +362,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className="flex flex-col h-screen bg-background text-foreground">
       <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
@@ -377,7 +373,7 @@ export default function Home() {
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
-      <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto">
+      <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
         <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
           <ControlPanel 
             settings={settings} 
