@@ -322,7 +322,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const getCropInteractionType = (mouseX: number, mouseY: number): InteractionType | 'crop-move' | null => {
       const { canvas } = getCanvasAndContext();
       const img = imageElement;
-      if (!canvas || !img || !pendingCrop) return null;
+      if (!canvas || !img) return null;
 
       if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
         const scale = canvas.width / img.width;
@@ -338,6 +338,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
 
       if (settings.cropMode === 'rect') {
+        if (!pendingCrop) return null;
         const scale = canvas.width / img.width;
         const sx = pendingCrop.x * scale;
         const sy = pendingCrop.y * scale;
@@ -365,7 +366,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (activeTab === 'crop') {
         const cropInteractionType = getCropInteractionType(pos.x, pos.y);
         if (cropInteractionType) {
-            setInteractionState({ type: cropInteractionType, startPos: pos, startCrop: pendingCrop! });
+            setInteractionState({ 
+              type: cropInteractionType, 
+              startPos: pos, 
+              startCrop: cropInteractionType.startsWith('crop-') ? pendingCrop! : undefined
+            });
         } else if (settings.cropMode === 'rect') {
             const scale = canvas.width / imageElement.width;
             const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
