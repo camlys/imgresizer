@@ -322,7 +322,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 });
                 return;
             }
-            if (pos.x >= boundingBox.x && pos.x <= bbox.x + bbox.width && pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
+            if (pos.x >= boundingBox.x && pos.x <= boundingBox.x + boundingBox.width && pos.y >= boundingBox.y && pos.y <= boundingBox.y + boundingBox.height) {
                 setInteractionState({
                     type: 'text-move', textId: text.id, startPos: pos, startTextCoords: { x: text.x, y: text.y },
                 });
