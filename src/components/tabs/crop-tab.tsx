@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crop, Check, Info } from 'lucide-react';
+import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CropTabProps {
   settings: ImageSettings;
@@ -20,10 +21,13 @@ interface CropTabProps {
 }
 
 const aspectRatios = [
-  { name: 'Original', value: 0 },
-  { name: '1:1', value: 1 },
-  { name: '4:3', value: 4/3 },
-  { name: '16:9', value: 16/9 },
+  { name: 'Original', value: 0, icon: RefreshCw },
+  { name: '1:1 Square', value: 1, icon: Square },
+  { name: '4:3 Standard', value: 4/3, icon: RectangleHorizontal },
+  { name: '16:9 Wide', value: 16/9, icon: RectangleHorizontal },
+  { name: '3:2 Photo', value: 3/2, icon: RectangleHorizontal },
+  { name: '9:16 Story', value: 9/16, icon: RectangleVertical },
+  { name: '4:5 Portrait', value: 4/5, icon: RectangleVertical },
 ];
 
 export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange }: CropTabProps) {
@@ -102,6 +106,20 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
       height: newCrop.height
     });
   };
+  
+  const centerCrop = () => {
+    if (!pendingCrop) return;
+
+    const newX = (originalImage.width - pendingCrop.width) / 2;
+    const newY = (originalImage.height - pendingCrop.height) / 2;
+    
+    setPendingCrop({
+      ...pendingCrop,
+      x: Math.round(newX),
+      y: Math.round(newY),
+    });
+  };
+
 
   const applyChanges = () => {
       if (pendingCrop) {
@@ -119,7 +137,30 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-medium flex items-center gap-2"><Crop size={18}/> Crop Image</CardTitle>
-          <Button variant="ghost" size="sm" onClick={resetCrop}>Reset</Button>
+           <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={centerCrop} className="h-8 w-8">
+                    <Move size={16}/>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Center Crop</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={resetCrop} className="h-8 w-8">
+                    <RefreshCw size={16}/>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Reset Crop</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
            <p className="text-sm text-muted-foreground">
@@ -138,9 +179,12 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
 
           <div>
             <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
-            <div className="grid grid-cols-4 gap-2 mt-1">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               {aspectRatios.map(r => (
-                 <Button key={r.name} variant="outline" size="sm" onClick={() => applyAspectRatio(r.value)}>{r.name}</Button>
+                 <Button key={r.name} variant="outline" size="sm" onClick={() => applyAspectRatio(r.value)} className="justify-start gap-2">
+                    <r.icon size={16} />
+                    <span>{r.name}</span>
+                 </Button>
               ))}
             </div>
           </div>
