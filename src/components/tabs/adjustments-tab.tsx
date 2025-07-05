@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Label } from '@/components/ui/label';
@@ -32,6 +31,10 @@ const presets = [
     { name: 'Technicolor', values: { brightness: 115, contrast: 130, saturate: 140 } },
     { name: 'Cool', values: { brightness: 105, contrast: 95, saturate: 90 } },
     { name: 'Warm', values: { brightness: 105, saturate: 110, sepia: 25 } },
+    { name: 'Clarity', values: { brightness: 105, contrast: 120, saturate: 105 } },
+    { name: 'Lomo', values: { brightness: 100, contrast: 150, saturate: 150 } },
+    { name: 'Sunrise', values: { brightness: 110, contrast: 110, saturate: 130, sepia: 15 } },
+    { name: 'Nostalgia', values: { brightness: 105, contrast: 90, saturate: 80, sepia: 60 } },
 ];
 
 export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps) {
