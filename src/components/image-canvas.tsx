@@ -63,6 +63,28 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { canvas, ctx };
   }, []);
 
+  const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.font = `${text.size}px ${text.font}`;
+    const metrics = ctx.measureText(text.text);
+    const padding = text.padding || 0;
+    const rectWidth = metrics.width + padding * 2;
+    const rectHeight = text.size + padding * 2;
+    const canvasX = (text.x / 100) * canvas.width;
+    const canvasY = (text.y / 100) * canvas.height;
+    
+    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
+    
+    const handleAngle = (text.rotation - 90) * Math.PI / 180;
+    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
+    const rotationHandle = {
+      x: canvasX + handleDistance * Math.cos(handleAngle),
+      y: canvasY + handleDistance * Math.sin(handleAngle),
+      radius: TEXT_ROTATION_HANDLE_RADIUS,
+    };
+
+    return { boundingBox, rotationHandle };
+  }, []);
+
   useEffect(() => {
     if (!imageElement) return;
 
@@ -100,28 +122,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     setProcessedImageCache(tempCanvas);
 
   }, [settings.adjustments, settings.crop, imageElement]);
-
-  const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-    ctx.font = `${text.size}px ${text.font}`;
-    const metrics = ctx.measureText(text.text);
-    const padding = text.padding || 0;
-    const rectWidth = metrics.width + padding * 2;
-    const rectHeight = text.size + padding * 2;
-    const canvasX = (text.x / 100) * canvas.width;
-    const canvasY = (text.y / 100) * canvas.height;
-    
-    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
-    
-    const handleAngle = (text.rotation - 90) * Math.PI / 180;
-    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
-    const rotationHandle = {
-      x: canvasX + handleDistance * Math.cos(handleAngle),
-      y: canvasY + handleDistance * Math.sin(handleAngle),
-      radius: TEXT_ROTATION_HANDLE_RADIUS,
-    };
-
-    return { boundingBox, rotationHandle };
-  }, []);
 
   useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
@@ -186,38 +186,50 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           });
           ctx.restore();
         } else if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
-          const { tl, tr, bl, br } = settings.perspectivePoints;
-          const points = {
-            tl: { x: tl.x * scale, y: tl.y * scale },
-            tr: { x: tr.x * scale, y: tr.y * scale },
-            bl: { x: bl.x * scale, y: bl.y * scale },
-            br: { x: br.x * scale, y: br.y * scale },
-          };
-          
-          ctx.save();
-          ctx.setLineDash([6, 3]);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(points.tl.x, points.tl.y);
-          ctx.lineTo(points.tr.x, points.tr.y);
-          ctx.lineTo(points.br.x, points.br.y);
-          ctx.lineTo(points.bl.x, points.bl.y);
-          ctx.closePath();
-          ctx.stroke();
-          ctx.restore();
-
-          ctx.save();
-          ctx.fillStyle = 'white';
-          ctx.strokeStyle = 'black';
-          ctx.lineWidth = 1.5;
-          Object.values(points).forEach(p => {
+            const { tl, tr, bl, br } = settings.perspectivePoints;
+            const points = {
+              tl: { x: tl.x * scale, y: tl.y * scale },
+              tr: { x: tr.x * scale, y: tr.y * scale },
+              bl: { x: bl.x * scale, y: bl.y * scale },
+              br: { x: br.x * scale, y: br.y * scale },
+            };
+            
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.beginPath();
-            ctx.arc(p.x, p.y, PERSPECTIVE_HANDLE_RADIUS, 0, 2 * Math.PI);
-            ctx.fill();
+            ctx.rect(0, 0, canvas.width, canvas.height); // Outer rectangle
+            ctx.moveTo(points.tl.x, points.tl.y); // Inner path
+            ctx.lineTo(points.tr.x, points.tr.y);
+            ctx.lineTo(points.br.x, points.br.y);
+            ctx.lineTo(points.bl.x, points.bl.y);
+            ctx.closePath();
+            ctx.fill('evenodd');
+            ctx.restore();
+  
+            ctx.save();
+            ctx.setLineDash([6, 3]);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(points.tl.x, points.tl.y);
+            ctx.lineTo(points.tr.x, points.tr.y);
+            ctx.lineTo(points.br.x, points.br.y);
+            ctx.lineTo(points.bl.x, points.bl.y);
+            ctx.closePath();
             ctx.stroke();
-          });
-          ctx.restore();
+            ctx.restore();
+  
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1.5;
+            Object.values(points).forEach(p => {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, PERSPECTIVE_HANDLE_RADIUS, 0, 2 * Math.PI);
+              ctx.fill();
+              ctx.stroke();
+            });
+            ctx.restore();
         }
 
     } else {
