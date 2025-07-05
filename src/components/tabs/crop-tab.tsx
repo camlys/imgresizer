@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical, GitCommitVertical } from 'lucide-react';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,6 +19,7 @@ interface CropTabProps {
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings | null) => void;
   onTabChange: (tab: string) => void;
+  onApplyPerspectiveCrop: () => void;
 }
 
 const aspectRatios = [
@@ -30,7 +32,7 @@ const aspectRatios = [
   { name: '4:5 Portrait', value: 4/5, icon: RectangleVertical },
 ];
 
-export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange }: CropTabProps) {
+export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange, onApplyPerspectiveCrop }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
   const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
 
@@ -62,13 +64,24 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
   };
   
   const resetCrop = () => {
-    const newCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-    setPendingCrop(newCrop);
-    updateSettings({ 
-      crop: newCrop,
-      width: originalImage.width,
-      height: originalImage.height
-    });
+    if (settings.cropMode === 'rect') {
+      const newCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+      setPendingCrop(newCrop);
+      updateSettings({ 
+        crop: newCrop,
+        width: originalImage.width,
+        height: originalImage.height
+      });
+    } else {
+       updateSettings({
+        perspectivePoints: {
+          tl: { x: 0, y: 0 },
+          tr: { x: originalImage.width, y: 0 },
+          bl: { x: 0, y: originalImage.height },
+          br: { x: originalImage.width, y: originalImage.height },
+        },
+      });
+    }
   };
   
   const applyAspectRatio = (ratioValue: number) => {
@@ -82,10 +95,8 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     let newHeight = originalHeight;
     
     if (originalWidth / originalHeight > ratioValue) {
-      // Image is wider than aspect ratio, so height is the constraint
       newWidth = originalHeight * ratioValue;
     } else {
-      // Image is taller than or same as aspect ratio, so width is the constraint
       newHeight = originalWidth / ratioValue;
     }
 
@@ -120,15 +131,16 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     });
   };
 
-
   const applyChanges = () => {
-      if (pendingCrop) {
+      if (settings.cropMode === 'rect' && pendingCrop) {
         updateSettings({ 
           crop: pendingCrop,
           width: pendingCrop.width,
           height: pendingCrop.height
         });
         onTabChange('resize');
+      } else if (settings.cropMode === 'perspective') {
+        onApplyPerspectiveCrop();
       }
   }
 
@@ -139,16 +151,18 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
           <CardTitle className="text-base font-medium flex items-center gap-2"><Crop size={18}/> Crop Image</CardTitle>
            <div className="flex items-center gap-1">
             <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={centerCrop} className="h-8 w-8">
-                    <Move size={16}/>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Center Crop</p>
-                </TooltipContent>
-              </Tooltip>
+              {settings.cropMode === 'rect' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={centerCrop} className="h-8 w-8">
+                      <Move size={16}/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Center Crop</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" onClick={resetCrop} className="h-8 w-8">
@@ -156,16 +170,27 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Reset Crop</p>
+                  <p>Reset</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-           <p className="text-sm text-muted-foreground">
-            Click and drag on the main image to define a crop area, or use the controls below.
-          </p>
+           
+          <div className="grid gap-2">
+            <Label className="text-xs text-muted-foreground">Mode</Label>
+            <RadioGroup defaultValue="rect" value={settings.cropMode} onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="rect" id="r-rect" />
+                <Label htmlFor="r-rect">Rectangle</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="perspective" id="r-perspective" />
+                <Label htmlFor="r-perspective">Perspective</Label>
+              </div>
+            </RadioGroup>
+          </div>
 
           {hasTransforms && (
             <Alert>
@@ -177,40 +202,65 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
             </Alert>
           )}
 
-          <div>
-            <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {aspectRatios.map(r => (
-                 <Button key={r.name} variant="outline" size="sm" onClick={() => applyAspectRatio(r.value)} className="justify-start gap-2">
-                    <r.icon size={16} />
-                    <span>{r.name}</span>
-                 </Button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="crop-x">X</Label>
-              <Input id="crop-x" type="number" value={Math.round(crop.x)} onChange={e => handleCropChange('x', e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="crop-y">Y</Label>
-              <Input id="crop-y" type="number" value={Math.round(crop.y)} onChange={e => handleCropChange('y', e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="crop-width">Width</Label>
-              <Input id="crop-width" type="number" value={Math.round(crop.width)} onChange={e => handleCropChange('width', e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="crop-height">Height</Label>
-              <Input id="crop-height" type="number" value={Math.round(crop.height)} onChange={e => handleCropChange('height', e.target.value)} />
-            </div>
-          </div>
-            <Button onClick={applyChanges} className="w-full mt-2">
-                <Check size={16} className="mr-2" />
-                Apply Crop
-            </Button>
+          {settings.cropMode === 'rect' ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Click and drag on the main image to define a crop area, or use the controls below.
+              </p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {aspectRatios.map(r => (
+                    <Button key={r.name} variant="outline" size="sm" onClick={() => applyAspectRatio(r.value)} className="justify-start gap-2">
+                        <r.icon size={16} />
+                        <span>{r.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="crop-x">X</Label>
+                  <Input id="crop-x" type="number" value={Math.round(crop.x)} onChange={e => handleCropChange('x', e.target.value)} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="crop-y">Y</Label>
+                  <Input id="crop-y" type="number" value={Math.round(crop.y)} onChange={e => handleCropChange('y', e.target.value)} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="crop-width">Width</Label>
+                  <Input id="crop-width" type="number" value={Math.round(crop.width)} onChange={e => handleCropChange('width', e.target.value)} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="crop-height">Height</Label>
+                  <Input id="crop-height" type="number" value={Math.round(crop.height)} onChange={e => handleCropChange('height', e.target.value)} />
+                </div>
+              </div>
+                <Button onClick={applyChanges} className="w-full mt-2">
+                    <Check size={16} className="mr-2" />
+                    Apply Crop
+                </Button>
+            </>
+          ) : (
+             <>
+                <p className="text-sm text-muted-foreground">
+                  Click and drag the corners on the main image to define the perspective.
+                </p>
+                 <Alert variant="destructive">
+                  <GitCommitVertical className="h-4 w-4" />
+                  <AlertTitle>Destructive Action</AlertTitle>
+                  <AlertDescription>
+                    Applying a perspective crop will permanently alter the image for subsequent edits.
+                  </AlertDescription>
+                </Alert>
+                 <Button onClick={applyChanges} className="w-full mt-2">
+                    <Check size={16} className="mr-2" />
+                    Apply Perspective Crop
+                </Button>
+             </>
+          )}
+
         </CardContent>
       </Card>
     </div>

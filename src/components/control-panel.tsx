@@ -19,6 +19,7 @@ interface ControlPanelProps {
   processedSize: number | null;
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings | null) => void;
+  onApplyPerspectiveCrop: () => void;
 }
 
 export function ControlPanel({ 
@@ -30,6 +31,7 @@ export function ControlPanel({
   processedSize,
   pendingCrop,
   setPendingCrop,
+  onApplyPerspectiveCrop,
 }: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
@@ -73,6 +75,7 @@ export function ControlPanel({
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
               onTabChange={onTabChange}
+              onApplyPerspectiveCrop={onApplyPerspectiveCrop}
             />
           </TabsContent>
            <TabsContent value="rotate">

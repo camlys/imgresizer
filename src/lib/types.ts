@@ -27,6 +27,13 @@ export type OriginalImage = {
     size: number;
 }
 
+export type CornerPoints = {
+  tl: { x: number; y: number };
+  tr: { x: number; y: number };
+  bl: { x: number; y: number };
+  br: { x: number; y: number };
+};
+
 export type ImageSettings = {
   width: number;
   height: number;
@@ -47,4 +54,6 @@ export type ImageSettings = {
   };
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'image/bmp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
+  cropMode: 'rect' | 'perspective';
+  perspectivePoints: CornerPoints | null;
 };

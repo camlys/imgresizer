@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
@@ -11,6 +11,7 @@ import { SiteFooter } from '@/components/site-footer';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SeoContent } from '@/components/seo-content';
+import { applyPerspectiveTransform } from '@/lib/utils';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -23,6 +24,8 @@ const initialSettings: ImageSettings = {
   flipHorizontal: false,
   flipVertical: false,
   crop: null,
+  cropMode: 'rect',
+  perspectivePoints: null,
   texts: [],
   adjustments: {
     brightness: 100,
@@ -45,6 +48,20 @@ export default function Home() {
   const { toast } = useToast();
 
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!originalImage) return;
+    const img = new Image();
+    if (!originalImage.src.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+    img.src = originalImage.src;
+    img.onload = () => {
+      setImageElement(img);
+    };
+  }, [originalImage]);
+
 
   const handleTabChange = (tab: string) => {
     if (tab === 'crop' && originalImage && !pendingCrop) {
@@ -87,6 +104,12 @@ export default function Home() {
                     width: img.width,
                     height: img.height,
                     crop: cropData,
+                    perspectivePoints: {
+                      tl: { x: 0, y: 0 },
+                      tr: { x: img.width, y: 0 },
+                      bl: { x: 0, y: img.height },
+                      br: { x: img.width, y: img.height },
+                    },
                 });
                 setPendingCrop(null);
                 setActiveTab('resize');
@@ -136,6 +159,12 @@ export default function Home() {
                     width: img.width,
                     height: img.height,
                     crop: cropData,
+                    perspectivePoints: {
+                      tl: { x: 0, y: 0 },
+                      tr: { x: img.width, y: 0 },
+                      bl: { x: 0, y: img.height },
+                      br: { x: img.width, y: img.height },
+                    },
                 });
                 setPendingCrop(null);
                 setActiveTab('resize');
@@ -161,7 +190,7 @@ export default function Home() {
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
-    if (Object.keys(newSettings).some(key => key !== 'crop')) {
+    if (Object.keys(newSettings).some(key => key !== 'crop' && key !== 'perspectivePoints')) {
         setPendingCrop(null);
     }
     if (newSettings.crop) {
@@ -169,6 +198,56 @@ export default function Home() {
     }
     setProcessedSize(null);
   }, []);
+
+  const handleApplyPerspectiveCrop = useCallback(async () => {
+    if (!imageElement || !settings.perspectivePoints) {
+      toast({ title: "Error", description: "Could not apply perspective crop.", variant: "destructive" });
+      return;
+    }
+    try {
+      const transformedCanvas = await applyPerspectiveTransform(imageElement, settings.perspectivePoints);
+      const newDataUrl = transformedCanvas.toDataURL('image/png');
+      const img = new Image();
+      img.onload = () => {
+        const newWidth = img.width;
+        const newHeight = img.height;
+
+        // Approximating new file size.
+        const head = 'data:image/png;base64,';
+        const size = Math.round((newDataUrl.length - head.length) * 3 / 4);
+
+        setOriginalImage({
+          src: newDataUrl,
+          width: newWidth,
+          height: newHeight,
+          size: size, 
+        });
+
+        // Reset settings for the new image
+        setSettings({
+          ...initialSettings,
+          width: newWidth,
+          height: newHeight,
+          crop: { x: 0, y: 0, width: newWidth, height: newHeight },
+          perspectivePoints: {
+            tl: { x: 0, y: 0 },
+            tr: { x: newWidth, y: 0 },
+            bl: { x: 0, y: newHeight },
+            br: { x: newWidth, y: newHeight },
+          },
+        });
+        setPendingCrop(null);
+        toast({ title: "Success", description: "Perspective crop applied." });
+        setActiveTab('resize');
+      };
+      img.src = newDataUrl;
+
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Failed to apply perspective transformation.", variant: "destructive" });
+    }
+  }, [imageElement, settings.perspectivePoints, toast]);
+
 
   const updateProcessedSize = useCallback(() => {
     if (canvasRef.current) {
@@ -420,12 +499,14 @@ export default function Home() {
             processedSize={processedSize}
             pendingCrop={pendingCrop}
             setPendingCrop={setPendingCrop}
+            onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
           />
         </div>
         <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
           <ImageCanvas
             ref={canvasRef}
             originalImage={originalImage}
+            imageElement={imageElement}
             settings={settings}
             updateSettings={updateSettings}
             activeTab={activeTab}
