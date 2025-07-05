@@ -41,6 +41,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
 
+  // New state to hold the canvas with adjustments applied
+  const [adjustedImageCanvas, setAdjustedImageCanvas] = useState<HTMLCanvasElement | null>(null);
+
   const [interaction, setInteraction] = useState<Interaction>(null);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
   const [startCrop, setStartCrop] = useState<CropSettings | null>(null);
@@ -80,12 +83,64 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     };
   }, [getCanvasAndContext]);
 
+  // Effect 1: Create a pre-processed canvas with color adjustments.
+  // This runs only when the base image, crop, or adjustments change.
+  useEffect(() => {
+    if (!imageElement) return;
+
+    const { adjustments, crop } = settings;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    const cropData = crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
+    canvas.width = cropData.width;
+    canvas.height = cropData.height;
+
+    // Draw cropped image
+    ctx.drawImage(imageElement,
+        cropData.x, cropData.y, cropData.width, cropData.height,
+        0, 0,
+        cropData.width, cropData.height
+    );
+    
+    // Apply pixel-level adjustments
+    if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
+
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i], g = data[i + 1], b = data[i + 2];
+
+            if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+            if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+            if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+            
+            const tempR = r, tempG = g, tempB = b;
+            if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+            if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+            if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+
+            data[i] = Math.max(0, Math.min(255, r));
+            data[i+1] = Math.max(0, Math.min(255, g));
+            data[i+2] = Math.max(0, Math.min(255, b));
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    setAdjustedImageCanvas(canvas);
+
+  }, [imageElement, settings.adjustments, settings.crop]);
+
+  // Effect 2: Main render loop for drawing to the visible canvas.
+  // This uses the pre-adjusted canvas and is much faster.
   useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
     if (!canvas || !ctx || !img) return;
     
-    // Always render with original orientation for cropping
     if (activeTab === 'crop') {
         const container = containerRef.current;
         if (!container) return;
@@ -143,49 +198,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         });
         ctx.restore();
     } else {
-        const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
+        if (!adjustedImageCanvas) return;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts } = settings;
         canvas.width = width;
         canvas.height = height;
-
-        // Use an intermediate canvas for adjustments to ensure Safari compatibility
-        const adjustedCanvas = document.createElement('canvas');
-        const adjustedCtx = adjustedCanvas.getContext('2d', { willReadFrequently: true });
-        if (!adjustedCtx) return;
-
-        const cropData = crop || { x: 0, y: 0, width: img.width, height: img.height };
-        adjustedCanvas.width = cropData.width;
-        adjustedCanvas.height = cropData.height;
-
-        adjustedCtx.drawImage(img,
-            cropData.x, cropData.y, cropData.width, cropData.height,
-            0, 0,
-            cropData.width, cropData.height
-        );
-        
-        // Apply pixel-level adjustments only if they have changed
-        if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
-            let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
-            const data = imageData.data;
-            const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
-
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i + 1], b = data[i + 2];
-
-                if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
-                if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-                if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
-                
-                const tempR = r, tempG = g, tempB = b;
-                if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
-                if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
-                if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
-
-                data[i] = Math.max(0, Math.min(255, r));
-                data[i+1] = Math.max(0, Math.min(255, g));
-                data[i+2] = Math.max(0, Math.min(255, b));
-            }
-            adjustedCtx.putImageData(imageData, 0, 0);
-        }
         
         ctx.save();
         
@@ -193,20 +209,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
         
-        const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
-        const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
+        const boundingBoxWidth = adjustedImageCanvas.width * cos + adjustedImageCanvas.height * sin;
+        const boundingBoxHeight = adjustedImageCanvas.width * sin + adjustedImageCanvas.height * cos;
 
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
         
-        const drawWidth = adjustedCanvas.width * scale;
-        const drawHeight = adjustedCanvas.height * scale;
+        const drawWidth = adjustedImageCanvas.width * scale;
+        const drawHeight = adjustedImageCanvas.height * scale;
         
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        ctx.drawImage(adjustedCanvas, 
+        ctx.drawImage(adjustedImageCanvas, 
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
         );
 
@@ -237,7 +253,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         });
     }
 
-  }, [settings, originalImage, imageElement, activeTab, getCanvasAndContext, pendingCrop]);
+  }, [
+      settings.width, settings.height, settings.rotation, settings.flipHorizontal,
+      settings.flipVertical, settings.texts, settings.crop,
+      imageElement, activeTab, getCanvasAndContext, pendingCrop, adjustedImageCanvas
+  ]);
 
   const getHandleRects = (x: number, y: number, w: number, h: number) => {
     const hs = HANDLE_SIZE;
@@ -336,7 +356,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             setDragStartTextPos(textPosInPixels);
         }
     }
-  }, [getInteractionPos, activeTab, pendingCrop, settings, imageElement, getCanvasAndContext, getTextBoundingBox, setInteraction, setStartPos, setStartCrop, getCropInteractionType, setPendingCrop]);
+  }, [getInteractionPos, activeTab, pendingCrop, settings.texts, imageElement, getCanvasAndContext, getTextBoundingBox, getCropInteractionType, setPendingCrop]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e && !interaction) {
@@ -466,7 +486,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             canvas.style.cursor = isOverText ? 'grab' : 'default';
         }
     }
-  }, [interaction, startPos, getInteractionPos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
+  }, [interaction, startPos, getInteractionPos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings.texts, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
 
   const handleInteractionEnd = useCallback(() => {
     if(interaction === 'text' && internalCanvasRef.current) internalCanvasRef.current.style.cursor = 'grab';
