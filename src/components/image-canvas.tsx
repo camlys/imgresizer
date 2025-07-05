@@ -31,7 +31,7 @@ const getFilterString = (adjustments: ImageSettings['adjustments']) => {
   if (hue !== 0) filters.push(`hue-rotate(${hue}deg)`);
   if (invert !== 0) filters.push(`invert(${invert}%)`);
   if (blur !== 0) filters.push(`blur(${blur}px)`);
-  return filters.length > 0 ? filters.join(' ') : 'none';
+  return filters.length > 0 ? filters.join(' ') : '';
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -102,12 +102,25 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        ctx.filter = getFilterString(settings.adjustments);
-        
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+        // Use a temporary canvas to apply filters for better browser support
+        const tempFilteredCanvas = document.createElement('canvas');
+        const tempFilteredCtx = tempFilteredCanvas.getContext('2d');
+        if (!tempFilteredCtx) return;
 
-        ctx.filter = 'none'; 
+        tempFilteredCanvas.width = canvas.width;
+        tempFilteredCanvas.height = canvas.height;
+
+        const filterString = getFilterString(settings.adjustments);
+        if (filterString) {
+            tempFilteredCtx.filter = filterString;
+        }
+
+        tempFilteredCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
+        // Draw the filtered result to the main canvas
+        ctx.drawImage(tempFilteredCanvas, 0, 0);
+
+        // Now draw crop overlay on top
         const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
         const sx = crop.x * scale;
         const sy = crop.y * scale;
@@ -154,35 +167,50 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = width;
         canvas.height = height;
 
-        ctx.filter = getFilterString(adjustments);
+        // Create a temporary canvas to bake in filters for better browser compatibility
+        const filterCanvas = document.createElement('canvas');
+        const filterCtx = filterCanvas.getContext('2d');
+        if (!filterCtx) return;
 
+        const cropData = crop || { x: 0, y: 0, width: img.width, height: img.height };
+        filterCanvas.width = cropData.width;
+        filterCanvas.height = cropData.height;
+        
+        const filterString = getFilterString(adjustments);
+        if (filterString) {
+            filterCtx.filter = filterString;
+        }
+
+        filterCtx.drawImage(img,
+            cropData.x, cropData.y, cropData.width, cropData.height,
+            0, 0,
+            cropData.width, cropData.height
+        );
+        
         ctx.save();
         
-        const cropData = crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
         const rad = (rotation * Math.PI) / 180;
-        
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
-        const boundingBoxWidth = cropData.width * cos + cropData.height * sin;
-        const boundingBoxHeight = cropData.width * sin + cropData.height * cos;
+        
+        const boundingBoxWidth = filterCanvas.width * cos + filterCanvas.height * sin;
+        const boundingBoxHeight = filterCanvas.width * sin + filterCanvas.height * cos;
 
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
         
-        const drawWidth = cropData.width * scale;
-        const drawHeight = cropData.height * scale;
+        const drawWidth = filterCanvas.width * scale;
+        const drawHeight = filterCanvas.height * scale;
         
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        ctx.drawImage(img, 
-            cropData.x, cropData.y, cropData.width, cropData.height, 
+        ctx.drawImage(filterCanvas, 
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
         );
 
         ctx.restore();
-        ctx.filter = 'none';
 
         texts.forEach(text => {
             const textX = (text.x / 100) * width;
@@ -321,7 +349,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (!canvas || !img || !ctx) return;
 
     if (interaction && startPos) {
-        e.preventDefault();
         if (e.cancelable) e.preventDefault();
         
         if (interaction === 'text' && draggingTextId && dragStartTextPos) {
