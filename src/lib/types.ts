@@ -10,6 +10,7 @@ export type TextOverlay = {
   padding: number;
   x: number;
   y: number;
+  rotation: number;
 };
 
 export type CropSettings = {

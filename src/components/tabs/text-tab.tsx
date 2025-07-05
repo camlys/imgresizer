@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Type, Plus, Trash2 } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
+import { Slider } from '@/components/ui/slider';
 
 interface TextTabProps {
   settings: ImageSettings;
@@ -42,6 +43,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
       padding: 10,
       x: 50,
       y: 50,
+      rotation: 0,
     };
     updateSettings({ texts: [...settings.texts, newText] });
   };
@@ -67,7 +69,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
           {settings.texts.length === 0 ? (
              <p className="text-sm text-muted-foreground py-4 text-center">No text layers added.</p>
           ) : (
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" defaultValue={settings.texts[settings.texts.length - 1]?.id}>
               {settings.texts.map((text, index) => (
                 <AccordionItem value={text.id} key={text.id}>
                   <AccordionTrigger>Text Layer {index + 1}</AccordionTrigger>
@@ -129,6 +131,20 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                             min="0"
                             value={text.padding}
                             onChange={(e) => updateText(text.id, { padding: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                        />
+                    </div>
+                     <div className="grid gap-1.5">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
+                            <span className="text-sm text-muted-foreground">{text.rotation}°</span>
+                        </div>
+                        <Slider
+                            id={`text-rotation-${text.id}`}
+                            value={[text.rotation]}
+                            onValueChange={([val]) => updateText(text.id, { rotation: val })}
+                            min={0}
+                            max={360}
+                            step={1}
                         />
                     </div>
                     <div>

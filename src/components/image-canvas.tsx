@@ -13,20 +13,27 @@ interface ImageCanvasProps {
   setPendingCrop: (crop: CropSettings | null) => void;
 }
 
-const HANDLE_SIZE = 10;
+const CROP_HANDLE_SIZE = 10;
 const MIN_CROP_SIZE_PX = 20;
+const TEXT_ROTATION_HANDLE_RADIUS = 6;
+const TEXT_ROTATION_HANDLE_OFFSET = 20;
 
-type Interaction = 
-  | 'move' | 'tl' | 't' | 'tr' | 'l' | 'r' | 'bl' | 'b' | 'br' 
-  | 'text' | null;
+type InteractionType = 
+  | 'crop-move' | 'crop-tl' | 'crop-t' | 'crop-tr' | 'crop-l' | 'crop-r' | 'crop-bl' | 'crop-b' | 'crop-br' | 'crop-new'
+  | 'text-move' | 'text-rotate';
 
-const initialAdjustments: ImageSettings['adjustments'] = {
-    brightness: 100,
-    contrast: 100,
-    saturate: 100,
-    grayscale: 0,
-    sepia: 0,
-    invert: 0,
+type InteractionState = {
+  type: InteractionType;
+  startPos: { x: number; y: number };
+  
+  // Crop-specific state
+  startCrop?: CropSettings;
+
+  // Text-specific state
+  textId?: string;
+  startTextCoords?: { x: number; y: number };
+  startTextRotation?: number;
+  textCenter?: { x: number; y: number };
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -40,15 +47,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
-
-  // New state to hold the canvas with adjustments applied
-  const [adjustedImageCanvas, setAdjustedImageCanvas] = useState<HTMLCanvasElement | null>(null);
-
-  const [interaction, setInteraction] = useState<Interaction>(null);
-  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [startCrop, setStartCrop] = useState<CropSettings | null>(null);
-  const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
-  const [dragStartTextPos, setDragStartTextPos] = useState<{ x: number, y: number } | null>(null);
+  const [interactionState, setInteractionState] = useState<InteractionState | null>(null);
 
   useImperativeHandle(ref, () => internalCanvasRef.current!, []);
 
@@ -67,80 +66,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { canvas, ctx };
   }, []);
 
-  const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const { canvas } = getCanvasAndContext();
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
-  }, [getCanvasAndContext]);
-
-  // Effect 1: Create a pre-processed canvas with color adjustments.
-  // This runs only when the base image, crop, or adjustments change.
-  useEffect(() => {
-    if (!imageElement) return;
-
-    const { adjustments, crop } = settings;
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-
-    const cropData = crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
-    canvas.width = cropData.width;
-    canvas.height = cropData.height;
-
-    // Draw cropped image
-    ctx.drawImage(imageElement,
-        cropData.x, cropData.y, cropData.width, cropData.height,
-        0, 0,
-        cropData.width, cropData.height
-    );
-    
-    // Apply pixel-level adjustments
-    if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
-
-        for (let i = 0; i < data.length; i += 4) {
-            let r = data[i], g = data[i + 1], b = data[i + 2];
-
-            if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
-            if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-            if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
-            
-            const tempR = r, tempG = g, tempB = b;
-            if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
-            if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
-            if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
-
-            data[i] = Math.max(0, Math.min(255, r));
-            data[i+1] = Math.max(0, Math.min(255, g));
-            data[i+2] = Math.max(0, Math.min(255, b));
-        }
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    setAdjustedImageCanvas(canvas);
-
-  }, [imageElement, settings.adjustments, settings.crop]);
-
-  // Effect 2: Main render loop for drawing to the visible canvas.
-  // This uses the pre-adjusted canvas and is much faster.
   useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
     if (!canvas || !ctx || !img) return;
     
+    // Clear canvas before drawing
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     if (activeTab === 'crop') {
         const container = containerRef.current;
         if (!container) return;
@@ -152,10 +85,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
 
-        // Draw the image without filters for crop preview
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // Now draw crop overlay on top
         const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
         const sx = crop.x * scale;
         const sy = crop.y * scale;
@@ -191,46 +122,72 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
-        const handles = getHandleRects(sx, sy, sWidth, sHeight);
+        const handles = getCropHandleRects(sx, sy, sWidth, sHeight);
         Object.values(handles).forEach(rect => {
             ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
             ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
         });
         ctx.restore();
     } else {
-        if (!adjustedImageCanvas) return;
-        const { width, height, rotation, flipHorizontal, flipVertical, texts } = settings;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts, adjustments, crop } = settings;
         canvas.width = width;
         canvas.height = height;
+
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        if (!tempCtx) return;
+
+        const cropData = crop || { x: 0, y: 0, width: img.width, height: img.height };
+        tempCanvas.width = cropData.width;
+        tempCanvas.height = cropData.height;
+
+        tempCtx.drawImage(img, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+
+        const initialAdjustments = { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, invert: 0 };
+        if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
+            let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i + 1], b = data[i + 2];
+                if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+                if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+                if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+                const tempR = r, tempG = g, tempB = b;
+                if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+                if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+                if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+                data[i] = Math.max(0, Math.min(255, r)); data[i+1] = Math.max(0, Math.min(255, g)); data[i+2] = Math.max(0, Math.min(255, b));
+            }
+            tempCtx.putImageData(imageData, 0, 0);
+        }
         
         ctx.save();
-        
         const rad = (rotation * Math.PI) / 180;
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
-        
-        const boundingBoxWidth = adjustedImageCanvas.width * cos + adjustedImageCanvas.height * sin;
-        const boundingBoxHeight = adjustedImageCanvas.width * sin + adjustedImageCanvas.height * cos;
-
+        const boundingBoxWidth = tempCanvas.width * cos + tempCanvas.height * sin;
+        const boundingBoxHeight = tempCanvas.width * sin + tempCanvas.height * cos;
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
-        
-        const drawWidth = adjustedImageCanvas.width * scale;
-        const drawHeight = adjustedImageCanvas.height * scale;
+        const drawWidth = tempCanvas.width * scale;
+        const drawHeight = tempCanvas.height * scale;
         
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        ctx.drawImage(adjustedImageCanvas, 
-            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
-        );
-
+        ctx.drawImage(tempCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
 
         texts.forEach(text => {
             const textX = (text.x / 100) * width;
             const textY = (text.y / 100) * height;
+
+            ctx.save();
+            ctx.translate(textX, textY);
+            ctx.rotate(text.rotation * Math.PI / 180);
 
             ctx.font = `${text.size}px ${text.font}`;
             ctx.textAlign = 'center';
@@ -241,26 +198,50 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 const metrics = ctx.measureText(text.text);
                 const rectWidth = metrics.width + padding * 2;
                 const rectHeight = text.size + padding * 2;
-                const rectX = textX - rectWidth / 2;
-                const rectY = textY - rectHeight / 2;
-
                 ctx.fillStyle = text.backgroundColor;
-                ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                ctx.fillRect(-rectWidth / 2, -rectHeight / 2, rectWidth, rectHeight);
             }
 
             ctx.fillStyle = text.color;
-            ctx.fillText(text.text, textX, textY);
+            ctx.fillText(text.text, 0, 0);
+            ctx.restore();
         });
+        
+        if (activeTab === 'text') {
+            texts.forEach(text => {
+                const { boundingBox, rotationHandle } = getTextHandlePositions(text, canvas, ctx);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
+                ctx.lineWidth = 1;
+                ctx.strokeRect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+                ctx.beginPath();
+                ctx.moveTo(boundingBox.x + boundingBox.width / 2, boundingBox.y);
+                ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(rotationHandle.x, rotationHandle.y, rotationHandle.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            });
+        }
     }
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop]);
 
-  }, [
-      settings.width, settings.height, settings.rotation, settings.flipHorizontal,
-      settings.flipVertical, settings.texts, settings.crop,
-      imageElement, activeTab, getCanvasAndContext, pendingCrop, adjustedImageCanvas
-  ]);
+  const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const { canvas } = getCanvasAndContext();
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }, [getCanvasAndContext]);
 
-  const getHandleRects = (x: number, y: number, w: number, h: number) => {
-    const hs = HANDLE_SIZE;
+  const getCropHandleRects = (x: number, y: number, w: number, h: number) => {
+    const hs = CROP_HANDLE_SIZE;
     return {
       tl: { x: x - hs/2, y: y - hs/2, w: hs, h: hs }, t:  { x: x + w/2 - hs/2, y: y - hs/2, w: hs, h: hs }, tr: { x: x + w - hs/2, y: y - hs/2, w: hs, h: hs },
       l:  { x: x - hs/2, y: y + h/2 - hs/2, w: hs, h: hs }, r:  { x: x + w - hs/2, y: y + h/2 - hs/2, w: hs, h: hs },
@@ -268,234 +249,168 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     };
   };
 
-  const getCropInteractionType = (mouseX: number, mouseY: number): Interaction => {
+  const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.font = `${text.size}px ${text.font}`;
+    const metrics = ctx.measureText(text.text);
+    const padding = text.padding || 0;
+    const rectWidth = metrics.width + padding * 2;
+    const rectHeight = text.size + padding * 2;
+    const canvasX = (text.x / 100) * canvas.width;
+    const canvasY = (text.y / 100) * canvas.height;
+    
+    // Non-rotated bounding box for interaction detection
+    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
+    
+    // Position of rotation handle, rotated with the text
+    const handleAngle = (text.rotation - 90) * Math.PI / 180;
+    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
+    const rotationHandle = {
+      x: canvasX + handleDistance * Math.cos(handleAngle),
+      y: canvasY + handleDistance * Math.sin(handleAngle),
+      radius: TEXT_ROTATION_HANDLE_RADIUS,
+    };
+
+    return { boundingBox, rotationHandle };
+  }, []);
+
+  const getCropInteractionType = (mouseX: number, mouseY: number): InteractionType | 'crop-move' | null => {
       const { canvas } = getCanvasAndContext();
       const img = imageElement;
       if (!canvas || !img || !pendingCrop) return null;
-
       const scale = canvas.width / img.width;
       const sx = pendingCrop.x * scale;
       const sy = pendingCrop.y * scale;
       const sWidth = pendingCrop.width * scale;
       const sHeight = pendingCrop.height * scale;
-      
-      const handles = getHandleRects(sx, sy, sWidth, sHeight);
+      const handles = getCropHandleRects(sx, sy, sWidth, sHeight);
       for (const [key, rect] of Object.entries(handles)) {
           if (mouseX >= rect.x && mouseX <= rect.x + rect.w && mouseY >= rect.y && mouseY <= rect.y + rect.h) {
-              return key as Interaction;
+              return `crop-${key}` as InteractionType;
           }
       }
-      if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) return 'move';
+      if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) return 'crop-move';
       return null;
   };
-  
-  const getTextBoundingBox = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-    ctx.font = `${text.size}px ${text.font}`;
-    const metrics = ctx.measureText(text.text);
-    const padding = text.padding || 0;
-    
-    const rectWidth = metrics.width + padding * 2;
-    const rectHeight = text.size + padding * 2;
-    
-    const canvasX = (text.x / 100) * canvas.width;
-    const canvasY = (text.y / 100) * canvas.height;
-    
-    const x = canvasX - rectWidth / 2;
-    const y = canvasY - rectHeight / 2;
-
-    return { x, y, width: rectWidth, height: rectHeight };
-  }, []);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
 
-    if (activeTab === 'crop') {
-        const cropInteraction = getCropInteractionType(pos.x, pos.y);
-        e.preventDefault();
+    if (e.cancelable) e.preventDefault();
 
-        if (cropInteraction) {
-            setInteraction(cropInteraction);
-            setStartPos(pos);
-            setStartCrop(pendingCrop);
+    if (activeTab === 'crop') {
+        const cropInteractionType = getCropInteractionType(pos.x, pos.y);
+        if (cropInteractionType) {
+            setInteractionState({ type: cropInteractionType, startPos: pos, startCrop: pendingCrop! });
         } else {
             const scale = canvas.width / imageElement.width;
-            setInteraction('br');
-            setStartPos(pos);
-            const newCrop = {
-                x: pos.x / scale,
-                y: pos.y / scale,
-                width: 0,
-                height: 0,
-            };
-            setStartCrop(newCrop);
+            const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
             setPendingCrop(newCrop);
+            setInteractionState({ type: 'crop-br', startPos: pos, startCrop: newCrop });
         }
-    } else {
+    } else if (activeTab === 'text') {
         const reversedTexts = [...settings.texts].reverse();
-        let textToDrag: TextOverlay | null = null;
         for (const text of reversedTexts) {
-            const bbox = getTextBoundingBox(text, canvas, ctx);
-            if (pos.x >= bbox.x && pos.x <= bbox.x + bbox.width &&
-                pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
-                textToDrag = text;
-                break;
+            const { boundingBox, rotationHandle } = getTextHandlePositions(text, canvas, ctx);
+            const distToHandle = Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2));
+
+            if (distToHandle <= rotationHandle.radius + 5) { // 5px buffer
+                setInteractionState({
+                    type: 'text-rotate', textId: text.id, startPos: pos, startTextRotation: text.rotation,
+                    textCenter: { x: (text.x / 100) * canvas.width, y: (text.y / 100) * canvas.height },
+                });
+                return;
+            }
+            if (pos.x >= boundingBox.x && pos.x <= bbox.x + bbox.width && pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
+                setInteractionState({
+                    type: 'text-move', textId: text.id, startPos: pos, startTextCoords: { x: text.x, y: text.y },
+                });
+                return;
             }
         }
-
-        if (textToDrag) {
-            e.preventDefault();
-            setInteraction('text');
-            setDraggingTextId(textToDrag.id);
-            setStartPos(pos);
-            const textPosInPixels = {
-                x: (textToDrag.x / 100) * canvas.width,
-                y: (textToDrag.y / 100) * canvas.height,
-            };
-            setDragStartTextPos(textPosInPixels);
-        }
     }
-  }, [getInteractionPos, activeTab, pendingCrop, settings.texts, imageElement, getCanvasAndContext, getTextBoundingBox, getCropInteractionType, setPendingCrop]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, setPendingCrop, getTextHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('touches' in e && !interaction) {
-      return;
+    if (!interactionState) {
+       // Handle hover cursor changes
+       return;
     }
     
+    if (e.cancelable) e.preventDefault();
     const pos = getInteractionPos(e);
-    const { canvas, ctx } = getCanvasAndContext();
+    const { canvas } = getCanvasAndContext();
     const img = imageElement;
-    if (!canvas || !img || !ctx) return;
+    if (!canvas || !img) return;
 
-    if (interaction && startPos) {
-        if (e.cancelable) e.preventDefault();
-        
-        if (interaction === 'text' && draggingTextId && dragStartTextPos) {
-            canvas.style.cursor = 'grabbing';
-            const dx = pos.x - startPos.x;
-            const dy = pos.y - startPos.y;
-
-            const newTextX_px = dragStartTextPos.x + dx;
-            const newTextY_px = dragStartTextPos.y + dy;
-
-            const newTextX_percent = (newTextX_px / canvas.width) * 100;
-            const newTextY_percent = (newTextY_px / canvas.height) * 100;
-            
-            const newTexts = settings.texts.map(t => {
-                if (t.id === draggingTextId) {
-                    return { 
-                        ...t, 
-                        x: Math.max(0, Math.min(100, newTextX_percent)), 
-                        y: Math.max(0, Math.min(100, newTextY_percent)) 
-                    };
-                }
-                return t;
-            });
-            
+    const { type, startPos } = interactionState;
+    
+    if (type.startsWith('text-')) {
+        if (type === 'text-move' && interactionState.textId && interactionState.startTextCoords) {
+            const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
+            const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
+            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, 
+                x: Math.max(0, Math.min(100, interactionState.startTextCoords!.x + dx_percent)),
+                y: Math.max(0, Math.min(100, interactionState.startTextCoords!.y + dy_percent)),
+            } : t);
             updateSettings({ texts: newTexts });
-            return;
+        } else if (type === 'text-rotate' && interactionState.textId && interactionState.textCenter) {
+            const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
+            const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, startPos.x - interactionState.textCenter.x) * (180 / Math.PI);
+            let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
+            newRotation = (newRotation % 360 + 360) % 360;
+            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: Math.round(newRotation) } : t);
+            updateSettings({ texts: newTexts });
         }
-
-        if (activeTab === 'crop' && startCrop) {
-            const scale = canvas.width / img.width;
-            
-            if (interaction === 'move') {
-                 const dx = (pos.x - startPos.x) / scale;
-                 const dy = (pos.y - startPos.y) / scale;
-                 let newCrop = { ...startCrop };
-                 newCrop.x += dx;
-                 newCrop.y += dy;
-                 
-                 newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
-                 newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
-
-                 setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
-                 return;
-            }
-
-            let newCrop = { ...startCrop };
-            const mouseX = pos.x / scale;
-            const mouseY = pos.y / scale;
-            const minW = MIN_CROP_SIZE_PX / scale;
-            const minH = MIN_CROP_SIZE_PX / scale;
-            
-            const anchorX = interaction.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
-            const anchorY = interaction.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
-
-            let newX1 = interaction.includes('l') ? mouseX : anchorX;
-            let newY1 = interaction.includes('t') ? mouseY : anchorY;
-            let newX2 = interaction.includes('r') ? mouseX : anchorX;
-            let newY2 = interaction.includes('b') ? mouseY : anchorY;
-            
-            if (!interaction.includes('l') && !interaction.includes('r')) {
-                newX1 = startCrop.x;
-                newX2 = startCrop.x + startCrop.width;
-            }
-             if (!interaction.includes('t') && !interaction.includes('b')) {
-                newY1 = startCrop.y;
-                newY2 = startCrop.y + startCrop.height;
-            }
-
-            newCrop.x = Math.min(newX1, newX2);
-            newCrop.y = Math.min(newY1, newY2);
-            newCrop.width = Math.abs(newX1 - newX2);
-            newCrop.height = Math.abs(newY1 - newY2);
-
-            if (newCrop.width < minW) {
-              newCrop.width = minW;
-              if (newCrop.x === Math.min(newX1, newX2)) { // dragging right
-                newCrop.x = newX2 - minW;
-              }
-            }
-            if (newCrop.height < minH) {
-              newCrop.height = minH;
-               if (newCrop.y === Math.min(newY1, newY2)) { // dragging down
-                newCrop.y = newY2 - minH;
-              }
-            }
-
-            if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
-            if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
-            if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
-            if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
-
-            setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
-        }
-    } else {
-        if ('touches' in e) return;
-
-        if (activeTab === 'crop') {
-            const cropInteraction = getCropInteractionType(pos.x, pos.y);
-            const cursorMap: { [key: string]: string } = {
-              'move': 'move', 'tl': 'nwse-resize', 't': 'ns-resize', 'tr': 'nesw-resize',
-              'l': 'ew-resize', 'r': 'ew-resize', 'bl': 'nesw-resize', 'b': 'ns-resize', 'br': 'nwse-resize',
-            };
-            canvas.style.cursor = cropInteraction ? cursorMap[cropInteraction] : 'crosshair';
+    } else if (type.startsWith('crop-')) {
+        const { startCrop } = interactionState;
+        if (!startCrop) return;
+        const scale = canvas.width / img.width;
+        
+        if (type === 'crop-move') {
+             const dx = (pos.x - startPos.x) / scale;
+             const dy = (pos.y - startPos.y) / scale;
+             let newCrop = { ...startCrop, x: startCrop.x + dx, y: startCrop.y + dy };
+             newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
+             newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
+             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         } else {
-            let isOverText = false;
-            const reversedTexts = [...settings.texts].reverse();
-            for (const text of reversedTexts) {
-                const bbox = getTextBoundingBox(text, canvas, ctx);
-                 if (pos.x >= bbox.x && pos.x <= bbox.x + bbox.width &&
-                    pos.y >= bbox.y && pos.y <= bbox.y + bbox.height) {
-                    isOverText = true;
-                    break;
-                }
-            }
-            canvas.style.cursor = isOverText ? 'grab' : 'default';
+             let newCrop = { ...startCrop };
+             const mouseX = pos.x / scale;
+             const mouseY = pos.y / scale;
+             const minW = MIN_CROP_SIZE_PX / scale;
+             const minH = MIN_CROP_SIZE_PX / scale;
+             
+             const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
+             const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
+             let newX1 = type.includes('l') ? mouseX : anchorX;
+             let newY1 = type.includes('t') ? mouseY : anchorY;
+             let newX2 = type.includes('r') ? mouseX : anchorX;
+             let newY2 = type.includes('b') ? mouseY : anchorY;
+             
+             if (!type.includes('l') && !type.includes('r')) { newX1 = startCrop.x; newX2 = startCrop.x + startCrop.width; }
+             if (!type.includes('t') && !type.includes('b')) { newY1 = startCrop.y; newY2 = startCrop.y + startCrop.height; }
+
+             newCrop.x = Math.min(newX1, newX2);
+             newCrop.y = Math.min(newY1, newY2);
+             newCrop.width = Math.abs(newX1 - newX2);
+             newCrop.height = Math.abs(newY1 - newY2);
+
+             if (newCrop.width < minW) { newCrop.width = minW; if (newCrop.x === Math.min(newX1, newX2)) { newCrop.x = newX2 - minW; } }
+             if (newCrop.height < minH) { newCrop.height = minH; if (newCrop.y === Math.min(newY1, newY2)) { newCrop.y = newY2 - minH; } }
+             if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
+             if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
+             if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
+             if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
+             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
     }
-  }, [interaction, startPos, getInteractionPos, activeTab, startCrop, imageElement, setPendingCrop, getCanvasAndContext, settings.texts, draggingTextId, dragStartTextPos, updateSettings, getTextBoundingBox, getCropInteractionType]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, updateSettings]);
 
   const handleInteractionEnd = useCallback(() => {
-    if(interaction === 'text' && internalCanvasRef.current) internalCanvasRef.current.style.cursor = 'grab';
-    setInteraction(null);
-    setStartPos(null);
-    setStartCrop(null);
-    setDraggingTextId(null);
-    setDragStartTextPos(null);
-  }, [interaction]);
+    setInteractionState(null);
+  }, []);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center touch-none">
