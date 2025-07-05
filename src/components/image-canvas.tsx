@@ -47,6 +47,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+  const [processedImageCache, setProcessedImageCache] = useState<HTMLCanvasElement | null>(null);
   const [interactionState, setInteractionState] = useState<InteractionState | null>(null);
 
   useImperativeHandle(ref, () => internalCanvasRef.current!, []);
@@ -57,7 +58,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       img.crossOrigin = 'anonymous';
     }
     img.src = originalImage.src;
-    img.onload = () => setImageElement(img);
+    img.onload = () => {
+      setImageElement(img);
+      setProcessedImageCache(null); // Invalidate cache on new image
+    };
   }, [originalImage.src]);
 
   const getCanvasAndContext = useCallback(() => {
@@ -67,11 +71,50 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, []);
 
   useEffect(() => {
+    const { canvas } = getCanvasAndContext();
+    if (!canvas || !imageElement) return;
+
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    if (!tempCtx) return;
+
+    const cropData = settings.crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
+    tempCanvas.width = cropData.width;
+    tempCanvas.height = cropData.height;
+
+    tempCtx.drawImage(imageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+    
+    let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const data = imageData.data;
+    const { brightness, contrast, saturate, grayscale, sepia, invert } = settings.adjustments;
+
+    for (let i = 0; i < data.length; i += 4) {
+        let r = data[i], g = data[i + 1], b = data[i + 2];
+
+        if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+        if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+        if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+        
+        const tempR = r, tempG = g, tempB = b;
+        if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+        if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+        if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i+1] = Math.max(0, Math.min(255, g));
+        data[i+2] = Math.max(0, Math.min(255, b));
+    }
+    tempCtx.putImageData(imageData, 0, 0);
+    setProcessedImageCache(tempCanvas);
+
+  }, [settings.adjustments, settings.crop, imageElement]);
+
+
+  useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
     const img = imageElement;
     if (!canvas || !ctx || !img) return;
     
-    // Clear canvas before drawing
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (activeTab === 'crop') {
@@ -129,56 +172,27 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         });
         ctx.restore();
     } else {
-        const { width, height, rotation, flipHorizontal, flipVertical, texts, adjustments, crop } = settings;
+        if (!processedImageCache) return;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts } = settings;
         canvas.width = width;
         canvas.height = height;
 
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-        if (!tempCtx) return;
-
-        const cropData = crop || { x: 0, y: 0, width: img.width, height: img.height };
-        tempCanvas.width = cropData.width;
-        tempCanvas.height = cropData.height;
-
-        tempCtx.drawImage(img, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
-
-        const initialAdjustments = { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, invert: 0 };
-        if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
-            let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            const data = imageData.data;
-            const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
-
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i + 1], b = data[i + 2];
-                if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
-                if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-                if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
-                const tempR = r, tempG = g, tempB = b;
-                if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
-                if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
-                if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
-                data[i] = Math.max(0, Math.min(255, r)); data[i+1] = Math.max(0, Math.min(255, g)); data[i+2] = Math.max(0, Math.min(255, b));
-            }
-            tempCtx.putImageData(imageData, 0, 0);
-        }
-        
         ctx.save();
         const rad = (rotation * Math.PI) / 180;
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
-        const boundingBoxWidth = tempCanvas.width * cos + tempCanvas.height * sin;
-        const boundingBoxHeight = tempCanvas.width * sin + tempCanvas.height * cos;
+        const boundingBoxWidth = processedImageCache.width * cos + processedImageCache.height * sin;
+        const boundingBoxHeight = processedImageCache.width * sin + processedImageCache.height * cos;
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
-        const drawWidth = tempCanvas.width * scale;
-        const drawHeight = tempCanvas.height * scale;
+        const drawWidth = processedImageCache.width * scale;
+        const drawHeight = processedImageCache.height * scale;
         
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        ctx.drawImage(tempCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.drawImage(processedImageCache, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
 
         texts.forEach(text => {
@@ -210,14 +224,27 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if (activeTab === 'text') {
             texts.forEach(text => {
                 const { boundingBox, rotationHandle } = getTextHandlePositions(text, canvas, ctx);
+                const centerX = boundingBox.x + boundingBox.width / 2;
+                const centerY = boundingBox.y + boundingBox.height / 2;
+                
+                // Draw rotated bounding box
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(text.rotation * Math.PI / 180);
+                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-boundingBox.width / 2, -boundingBox.height / 2, boundingBox.width, boundingBox.height);
+                ctx.restore();
+                
+                // Draw rotation handle and connecting line
                 ctx.save();
                 ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
                 ctx.lineWidth = 1;
-                ctx.strokeRect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
                 ctx.beginPath();
-                ctx.moveTo(boundingBox.x + boundingBox.width / 2, boundingBox.y);
+                ctx.moveTo(centerX, centerY);
                 ctx.lineTo(rotationHandle.x, rotationHandle.y);
                 ctx.stroke();
+
                 ctx.beginPath();
                 ctx.arc(rotationHandle.x, rotationHandle.y, rotationHandle.radius, 0, 2 * Math.PI);
                 ctx.fillStyle = 'white';
@@ -227,7 +254,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             });
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -322,9 +349,24 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 });
                 return;
             }
-            if (pos.x >= boundingBox.x && pos.x <= boundingBox.x + boundingBox.width && pos.y >= boundingBox.y && pos.y <= boundingBox.y + boundingBox.height) {
-                setInteractionState({
-                    type: 'text-move', textId: text.id, startPos: pos, startTextCoords: { x: text.x, y: text.y },
+
+            // Precise hit detection for rotated text
+            const centerX = boundingBox.x + boundingBox.width / 2;
+            const centerY = boundingBox.y + boundingBox.height / 2;
+            const translatedX = pos.x - centerX;
+            const translatedY = pos.y - centerY;
+            const angleRad = -text.rotation * Math.PI / 180;
+            const cosVal = Math.cos(angleRad);
+            const sinVal = Math.sin(angleRad);
+            const rotatedX = translatedX * cosVal - translatedY * sinVal;
+            const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+            if (Math.abs(rotatedX) <= boundingBox.width / 2 && Math.abs(rotatedY) <= boundingBox.height / 2) {
+                 setInteractionState({
+                    type: 'text-move',
+                    textId: text.id,
+                    startPos: pos,
+                    startTextCoords: { x: text.x, y: text.y },
                 });
                 return;
             }
@@ -334,7 +376,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!interactionState) {
-       // Handle hover cursor changes
        return;
     }
     
@@ -360,7 +401,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, startPos.x - interactionState.textCenter.x) * (180 / Math.PI);
             let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
             newRotation = (newRotation % 360 + 360) % 360;
-            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: Math.round(newRotation) } : t);
+            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: newRotation } : t);
             updateSettings({ texts: newTexts });
         }
     } else if (type.startsWith('crop-')) {
