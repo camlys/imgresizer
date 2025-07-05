@@ -18,6 +18,9 @@ const CROP_HANDLE_SIZE = 10;
 const MIN_CROP_SIZE_PX = 20;
 const TEXT_ROTATION_HANDLE_RADIUS = 6;
 const TEXT_ROTATION_HANDLE_OFFSET = 20;
+const PERSPECTIVE_HANDLE_RADIUS = 8;
+const PERSPECTIVE_HANDLE_HIT_RADIUS = 15;
+
 
 type InteractionType = 
   | 'crop-move' | 'crop-tl' | 'crop-t' | 'crop-tr' | 'crop-l' | 'crop-r' | 'crop-bl' | 'crop-b' | 'crop-br' | 'crop-new'
@@ -189,7 +192,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.lineWidth = 1.5;
           Object.values(points).forEach(p => {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, CROP_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+            ctx.arc(p.x, p.y, PERSPECTIVE_HANDLE_RADIUS, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
           });
@@ -275,7 +278,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             });
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -326,11 +329,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
       if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
         const scale = canvas.width / img.width;
-        const handleRadius = CROP_HANDLE_SIZE / 1.5;
         const corners = Object.entries(settings.perspectivePoints);
         for (const [key, point] of corners) {
             const dist = Math.sqrt(Math.pow(mouseX - point.x * scale, 2) + Math.pow(mouseY - point.y * scale, 2));
-            if (dist <= handleRadius) {
+            if (dist <= PERSPECTIVE_HANDLE_HIT_RADIUS) {
                 return `perspective-${key}` as InteractionType;
             }
         }
@@ -436,7 +438,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             updateSettings({ texts: newTexts });
         } else if (type === 'text-rotate' && interactionState.textId && interactionState.textCenter) {
             const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
-            const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, startPos.x - interactionState.textCenter.x) * (180 / Math.PI);
+            const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
             let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
             const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: newRotation } : t);
             updateSettings({ texts: newTexts });
@@ -522,3 +524,5 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
