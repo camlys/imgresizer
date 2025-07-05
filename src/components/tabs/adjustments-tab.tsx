@@ -20,18 +20,16 @@ const initialAdjustments = {
   saturate: 100,
   grayscale: 0,
   sepia: 0,
-  hue: 0,
   invert: 0,
-  blur: 0,
 };
 
 const presets = [
-    { name: 'Vintage', values: { brightness: 110, contrast: 105, saturate: 120, sepia: 50, hue: -10 } },
+    { name: 'Vintage', values: { brightness: 110, contrast: 105, saturate: 120, sepia: 50 } },
     { name: 'Grayscale', values: { grayscale: 100, saturate: 0 } },
     { name: 'Vibrant', values: { saturate: 180, contrast: 110 } },
     { name: 'Polaroid', values: { brightness: 120, contrast: 90, saturate: 85, sepia: 20 } },
     { name: 'Invert', values: { invert: 100 } },
-    { name: 'Technicolor', values: { brightness: 115, contrast: 130, saturate: 140, hue: 180 } },
+    { name: 'Technicolor', values: { brightness: 115, contrast: 130, saturate: 140 } },
     { name: 'Cool', values: { brightness: 105, contrast: 95, saturate: 90 } },
     { name: 'Warm', values: { brightness: 105, saturate: 110, sepia: 25 } },
 ];
@@ -55,9 +53,7 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
     { label: 'Saturation', field: 'saturate', min: 0, max: 200, unit: '%' },
     { label: 'Grayscale', field: 'grayscale', min: 0, max: 100, unit: '%' },
     { label: 'Sepia', field: 'sepia', min: 0, max: 100, unit: '%' },
-    { label: 'Hue', field: 'hue', min: 0, max: 360, unit: '°' },
     { label: 'Invert', field: 'invert', min: 0, max: 100, unit: '%' },
-    { label: 'Blur', field: 'blur', min: 0, max: 20, unit: 'px' },
   ] as const;
 
 
@@ -89,7 +85,7 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
                 onValueChange={([val]) => handleAdjustmentChange(field, val)}
                 min={min}
                 max={max}
-                step={field === 'blur' ? 0.1 : 1}
+                step={1}
               />
             </div>
           ))}

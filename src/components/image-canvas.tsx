@@ -20,18 +20,13 @@ type Interaction =
   | 'move' | 'tl' | 't' | 'tr' | 'l' | 'r' | 'bl' | 'b' | 'br' 
   | 'text' | null;
 
-const getFilterString = (adjustments: ImageSettings['adjustments']) => {
-  const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
-  const filters = [];
-  if (brightness !== 100) filters.push(`brightness(${brightness}%)`);
-  if (contrast !== 100) filters.push(`contrast(${contrast}%)`);
-  if (saturate !== 100) filters.push(`saturate(${saturate}%)`);
-  if (grayscale !== 0) filters.push(`grayscale(${grayscale}%)`);
-  if (sepia !== 0) filters.push(`sepia(${sepia}%)`);
-  if (hue !== 0) filters.push(`hue-rotate(${hue}deg)`);
-  if (invert !== 0) filters.push(`invert(${invert}%)`);
-  if (blur !== 0) filters.push(`blur(${blur}px)`);
-  return filters.length > 0 ? filters.join(' ') : '';
+const initialAdjustments: ImageSettings['adjustments'] = {
+    brightness: 100,
+    contrast: 100,
+    saturate: 100,
+    grayscale: 0,
+    sepia: 0,
+    invert: 0,
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -65,7 +60,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const getCanvasAndContext = useCallback(() => {
     const canvas = internalCanvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext('2d', { willReadFrequently: true });
     return { canvas, ctx };
   }, []);
 
@@ -101,24 +96,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-        
-        // Use a temporary canvas to apply filters for better browser support
-        const tempFilteredCanvas = document.createElement('canvas');
-        const tempFilteredCtx = tempFilteredCanvas.getContext('2d');
-        if (!tempFilteredCtx) return;
 
-        tempFilteredCanvas.width = canvas.width;
-        tempFilteredCanvas.height = canvas.height;
-
-        const filterString = getFilterString(settings.adjustments);
-        if (filterString) {
-            tempFilteredCtx.filter = filterString;
-        }
-
-        tempFilteredCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Draw the filtered result to the main canvas
-        ctx.drawImage(tempFilteredCanvas, 0, 0);
+        // Draw the image without filters for crop preview
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         // Now draw crop overlay on top
         const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
@@ -167,25 +147,45 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = width;
         canvas.height = height;
 
-        // Create a temporary canvas to bake in filters for better browser compatibility
-        const filterCanvas = document.createElement('canvas');
-        const filterCtx = filterCanvas.getContext('2d');
-        if (!filterCtx) return;
+        // Use an intermediate canvas for adjustments to ensure Safari compatibility
+        const adjustedCanvas = document.createElement('canvas');
+        const adjustedCtx = adjustedCanvas.getContext('2d', { willReadFrequently: true });
+        if (!adjustedCtx) return;
 
         const cropData = crop || { x: 0, y: 0, width: img.width, height: img.height };
-        filterCanvas.width = cropData.width;
-        filterCanvas.height = cropData.height;
-        
-        const filterString = getFilterString(adjustments);
-        if (filterString) {
-            filterCtx.filter = filterString;
-        }
+        adjustedCanvas.width = cropData.width;
+        adjustedCanvas.height = cropData.height;
 
-        filterCtx.drawImage(img,
+        adjustedCtx.drawImage(img,
             cropData.x, cropData.y, cropData.width, cropData.height,
             0, 0,
             cropData.width, cropData.height
         );
+        
+        // Apply pixel-level adjustments only if they have changed
+        if (Object.values(adjustments).some((v, i) => v !== Object.values(initialAdjustments)[i])) {
+            let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
+            const data = imageData.data;
+            const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i + 1], b = data[i + 2];
+
+                if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+                if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+                if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+                
+                const tempR = r, tempG = g, tempB = b;
+                if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+                if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+                if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i+1] = Math.max(0, Math.min(255, g));
+                data[i+2] = Math.max(0, Math.min(255, b));
+            }
+            adjustedCtx.putImageData(imageData, 0, 0);
+        }
         
         ctx.save();
         
@@ -193,20 +193,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const sin = Math.abs(Math.sin(rad));
         const cos = Math.abs(Math.cos(rad));
         
-        const boundingBoxWidth = filterCanvas.width * cos + filterCanvas.height * sin;
-        const boundingBoxHeight = filterCanvas.width * sin + filterCanvas.height * cos;
+        const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
+        const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
 
         const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
         
-        const drawWidth = filterCanvas.width * scale;
-        const drawHeight = filterCanvas.height * scale;
+        const drawWidth = adjustedCanvas.width * scale;
+        const drawHeight = adjustedCanvas.height * scale;
         
         ctx.translate(width / 2, height / 2);
         if (flipHorizontal) ctx.scale(-1, 1);
         if (flipVertical) ctx.scale(1, -1);
         ctx.rotate(rad);
         
-        ctx.drawImage(filterCanvas, 
+        ctx.drawImage(adjustedCanvas, 
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
         );
 

@@ -42,9 +42,7 @@ export type ImageSettings = {
     saturate: number;
     grayscale: number;
     sepia: number;
-    hue: number;
     invert: number;
-    blur: number;
   };
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'image/bmp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
