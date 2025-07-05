@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Type, Plus, Trash2 } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
-import { Slider } from '@/components/ui/slider';
 
 interface TextTabProps {
   settings: ImageSettings;
@@ -134,18 +133,29 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                         />
                     </div>
                      <div className="grid gap-1.5">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
-                            <span className="text-sm text-muted-foreground">{text.rotation}°</span>
-                        </div>
-                        <Slider
+                        <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
+                        <div className="relative">
+                            <Input
                             id={`text-rotation-${text.id}`}
-                            value={[text.rotation]}
-                            onValueChange={([val]) => updateText(text.id, { rotation: val })}
+                            type="number"
+                            value={Math.round(text.rotation)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                let numericValue = parseInt(value, 10);
+                                if (value === '') {
+                                numericValue = 0;
+                                }
+                                if (!isNaN(numericValue)) {
+                                const clampedValue = Math.max(0, Math.min(numericValue, 360));
+                                updateText(text.id, { rotation: clampedValue });
+                                }
+                            }}
                             min={0}
                             max={360}
-                            step={1}
-                        />
+                            className="pr-6 text-right"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                        </div>
                     </div>
                     <div>
                       <Label>Position (X: {Math.round(text.x)}%, Y: {Math.round(text.y)}%)</Label>
