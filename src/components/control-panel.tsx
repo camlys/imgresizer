@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,13 +40,13 @@ export function ControlPanel({
               <Scan size={16}/>
               <span className="text-xs">Resize</span>
             </TabsTrigger>
-             <TabsTrigger value="rotate" className="flex-col h-auto gap-1 py-2">
-              <RotateCcw size={16}/>
-              <span className="text-xs">Rotate &amp; Flip</span>
-            </TabsTrigger>
             <TabsTrigger value="crop" className="flex-col h-auto gap-1 py-2">
                 <Crop size={16}/>
                 <span className="text-xs">Crop</span>
+            </TabsTrigger>
+             <TabsTrigger value="rotate" className="flex-col h-auto gap-1 py-2">
+              <RotateCcw size={16}/>
+              <span className="text-xs">Rotate &amp; Flip</span>
             </TabsTrigger>
             <TabsTrigger value="text" className="flex-col h-auto gap-1 py-2">
                 <Type size={16}/>
@@ -64,9 +65,6 @@ export function ControlPanel({
               processedSize={processedSize}
             />
           </TabsContent>
-           <TabsContent value="rotate">
-            <RotateFlipTab settings={settings} updateSettings={updateSettings} />
-          </TabsContent>
           <TabsContent value="crop">
             <CropTab 
               settings={settings} 
@@ -76,6 +74,9 @@ export function ControlPanel({
               setPendingCrop={setPendingCrop}
               onTabChange={onTabChange}
             />
+          </TabsContent>
+           <TabsContent value="rotate">
+            <RotateFlipTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
           <TabsContent value="text">
             <TextTab settings={settings} updateSettings={updateSettings} />
