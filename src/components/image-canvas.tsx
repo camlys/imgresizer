@@ -10,7 +10,7 @@ interface ImageCanvasProps {
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   activeTab: string;
   pendingCrop: CropSettings | null;
-  setPendingCrop: (crop: CropSettings) => void;
+  setPendingCrop: (crop: CropSettings | null) => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -19,6 +19,20 @@ const MIN_CROP_SIZE_PX = 20;
 type Interaction = 
   | 'move' | 'tl' | 't' | 'tr' | 'l' | 'r' | 'bl' | 'b' | 'br' 
   | 'text' | null;
+
+const getFilterString = (adjustments: ImageSettings['adjustments']) => {
+  const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
+  const filters = [];
+  if (brightness !== 100) filters.push(`brightness(${brightness}%)`);
+  if (contrast !== 100) filters.push(`contrast(${contrast}%)`);
+  if (saturate !== 100) filters.push(`saturate(${saturate}%)`);
+  if (grayscale !== 0) filters.push(`grayscale(${grayscale}%)`);
+  if (sepia !== 0) filters.push(`sepia(${sepia}%)`);
+  if (hue !== 0) filters.push(`hue-rotate(${hue}deg)`);
+  if (invert !== 0) filters.push(`invert(${invert}%)`);
+  if (blur !== 0) filters.push(`blur(${blur}px)`);
+  return filters.length > 0 ? filters.join(' ') : 'none';
+};
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
   originalImage, 
@@ -76,6 +90,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     const img = imageElement;
     if (!canvas || !ctx || !img) return;
     
+    // Always render with original orientation for cropping
     if (activeTab === 'crop') {
         const container = containerRef.current;
         if (!container) return;
@@ -87,9 +102,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        const { adjustments } = settings;
-        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
+        ctx.filter = getFilterString(settings.adjustments);
         
         ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
 
@@ -102,28 +115,26 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const sHeight = crop.height * scale;
         
         ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.rect(sx, sy, sWidth, sHeight);
+        ctx.fill('evenodd');
+        ctx.restore();
+
+        ctx.save();
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.strokeRect(sx + 1, sy + 1, sWidth, sHeight);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.strokeRect(sx, sy, sWidth, sHeight);
+        ctx.strokeRect(sx + 0.5, sy + 0.5, sWidth, sHeight);
         
         if (sWidth > 30 && sHeight > 30) {
             ctx.beginPath();
             ctx.lineWidth = 0.5;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.moveTo(sx + sWidth / 3 + 1, sy); ctx.lineTo(sx + sWidth / 3 + 1, sy + sHeight);
-            ctx.moveTo(sx + 2 * sWidth / 3 + 1, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 1, sy + sHeight);
-            ctx.moveTo(sx, sy + sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 1);
-            ctx.moveTo(sx, sy + 2 * sHeight / 3 + 1); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 1);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
-            ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
-            ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
-            ctx.moveTo(sx, sy + 2 * sHeight / 3); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
+            ctx.moveTo(sx + sWidth / 3 + 0.5, sy); ctx.lineTo(sx + sWidth / 3 + 0.5, sy + sHeight);
+            ctx.moveTo(sx + 2 * sWidth / 3 + 0.5, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 0.5, sy + sHeight);
+            ctx.moveTo(sx, sy + sHeight / 3 + 0.5); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 0.5);
+            ctx.moveTo(sx, sy + 2 * sHeight / 3 + 0.5); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 0.5);
             ctx.stroke();
         }
         ctx.restore();
@@ -143,8 +154,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         canvas.width = width;
         canvas.height = height;
 
-        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
+        ctx.filter = getFilterString(adjustments);
 
         ctx.save();
         
@@ -312,6 +322,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     if (interaction && startPos) {
         e.preventDefault();
+        if (e.cancelable) e.preventDefault();
+        
         if (interaction === 'text' && draggingTextId && dragStartTextPos) {
             canvas.style.cursor = 'grabbing';
             const dx = pos.x - startPos.x;
@@ -369,13 +381,13 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             let newX2 = interaction.includes('r') ? mouseX : anchorX;
             let newY2 = interaction.includes('b') ? mouseY : anchorY;
             
-            if (interaction === 'l' || interaction === 'r') {
-                newY1 = startCrop.y;
-                newY2 = startCrop.y + startCrop.height;
-            }
-             if (interaction === 't' || interaction === 'b') {
+            if (!interaction.includes('l') && !interaction.includes('r')) {
                 newX1 = startCrop.x;
                 newX2 = startCrop.x + startCrop.width;
+            }
+             if (!interaction.includes('t') && !interaction.includes('b')) {
+                newY1 = startCrop.y;
+                newY2 = startCrop.y + startCrop.height;
             }
 
             newCrop.x = Math.min(newX1, newX2);
@@ -383,11 +395,23 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             newCrop.width = Math.abs(newX1 - newX2);
             newCrop.height = Math.abs(newY1 - newY2);
 
-            if (newCrop.width < minW) newCrop.width = minW;
-            if (newCrop.height < minH) newCrop.height = minH;
+            if (newCrop.width < minW) {
+              newCrop.width = minW;
+              if (newCrop.x === Math.min(newX1, newX2)) { // dragging right
+                newCrop.x = newX2 - minW;
+              }
+            }
+            if (newCrop.height < minH) {
+              newCrop.height = minH;
+               if (newCrop.y === Math.min(newY1, newY2)) { // dragging down
+                newCrop.y = newY2 - minH;
+              }
+            }
 
-            newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
-            newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
+            if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
+            if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
+            if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
+            if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
 
             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
         }
@@ -427,7 +451,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, [interaction]);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center">
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center touch-none">
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"

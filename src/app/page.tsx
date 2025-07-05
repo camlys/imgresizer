@@ -49,8 +49,9 @@ export default function Home() {
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
 
   const handleTabChange = (tab: string) => {
-    if (tab === 'crop' && originalImage && pendingCrop) {
-      if (pendingCrop.width === originalImage.width && pendingCrop.height === originalImage.height) {
+    if (tab === 'crop' && originalImage && !pendingCrop) {
+      const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+       if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
         const newWidth = originalImage.width * 0.8;
         const newHeight = originalImage.height * 0.8;
         const newX = (originalImage.width - newWidth) / 2;
@@ -63,6 +64,8 @@ export default function Home() {
           height: Math.round(newHeight),
         };
         setPendingCrop(centeredCrop);
+      } else {
+        setPendingCrop(currentCrop);
       }
     }
     setActiveTab(tab);
@@ -87,7 +90,7 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                 });
-                setPendingCrop(cropData);
+                setPendingCrop(null);
                 setActiveTab('resize');
                 setProcessedSize(null);
             };
@@ -136,7 +139,7 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                 });
-                setPendingCrop(cropData);
+                setPendingCrop(null);
                 setActiveTab('resize');
                 setProcessedSize(null);
             };
@@ -160,6 +163,9 @@ export default function Home() {
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
+    if (Object.keys(newSettings).some(key => key !== 'crop')) {
+        setPendingCrop(null);
+    }
     if (newSettings.crop) {
       setPendingCrop(newSettings.crop);
     }
@@ -209,6 +215,20 @@ export default function Home() {
         img.src = originalImage.src;
     });
 
+    const getFilterString = (adjustments: ImageSettings['adjustments']) => {
+        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
+        const filters = [];
+        if (brightness !== 100) filters.push(`brightness(${brightness}%)`);
+        if (contrast !== 100) filters.push(`contrast(${contrast}%)`);
+        if (saturate !== 100) filters.push(`saturate(${saturate}%)`);
+        if (grayscale !== 0) filters.push(`grayscale(${grayscale}%)`);
+        if (sepia !== 0) filters.push(`sepia(${sepia}%)`);
+        if (hue !== 0) filters.push(`hue-rotate(${hue}deg)`);
+        if (invert !== 0) filters.push(`invert(${invert}%)`);
+        if (blur !== 0) filters.push(`blur(${blur}px)`);
+        return filters.length > 0 ? filters.join(' ') : 'none';
+    };
+
     try {
         const imageElement = await imageLoadPromise;
         const downloadName = filename || 'camly-export';
@@ -216,9 +236,8 @@ export default function Home() {
         const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
         canvas.width = width;
         canvas.height = height;
-
-        const { brightness, contrast, saturate, grayscale, sepia, hue, invert, blur } = adjustments;
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hue}deg) invert(${invert}%) blur(${blur}px)`;
+        
+        ctx.filter = getFilterString(adjustments);
 
         ctx.save();
         
@@ -362,7 +381,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
+    <div className="flex flex-col h-[100vh] bg-background text-foreground">
       <AppHeader 
         onUpload={handleImageUpload} 
         onDownload={handleDownload}
