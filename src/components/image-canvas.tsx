@@ -101,6 +101,27 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   }, [settings.adjustments, settings.crop, imageElement]);
 
+  const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.font = `${text.size}px ${text.font}`;
+    const metrics = ctx.measureText(text.text);
+    const padding = text.padding || 0;
+    const rectWidth = metrics.width + padding * 2;
+    const rectHeight = text.size + padding * 2;
+    const canvasX = (text.x / 100) * canvas.width;
+    const canvasY = (text.y / 100) * canvas.height;
+    
+    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
+    
+    const handleAngle = (text.rotation - 90) * Math.PI / 180;
+    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
+    const rotationHandle = {
+      x: canvasX + handleDistance * Math.cos(handleAngle),
+      y: canvasY + handleDistance * Math.sin(handleAngle),
+      radius: TEXT_ROTATION_HANDLE_RADIUS,
+    };
+
+    return { boundingBox, rotationHandle };
+  }, []);
 
   useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
@@ -299,28 +320,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       bl: { x: x - hs/2, y: y + h - hs/2, w: hs, h: hs }, b:  { x: x + w/2 - hs/2, y: y + h - hs/2, w: hs, h: hs }, br: { x: x + w - hs/2, y: y + h - hs/2, w: hs, h: hs },
     };
   };
-
-  const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-    ctx.font = `${text.size}px ${text.font}`;
-    const metrics = ctx.measureText(text.text);
-    const padding = text.padding || 0;
-    const rectWidth = metrics.width + padding * 2;
-    const rectHeight = text.size + padding * 2;
-    const canvasX = (text.x / 100) * canvas.width;
-    const canvasY = (text.y / 100) * canvas.height;
-    
-    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
-    
-    const handleAngle = (text.rotation - 90) * Math.PI / 180;
-    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
-    const rotationHandle = {
-      x: canvasX + handleDistance * Math.cos(handleAngle),
-      y: canvasY + handleDistance * Math.sin(handleAngle),
-      radius: TEXT_ROTATION_HANDLE_RADIUS,
-    };
-
-    return { boundingBox, rotationHandle };
-  }, []);
 
   const getCropInteractionType = (mouseX: number, mouseY: number): InteractionType | 'crop-move' | null => {
       const { canvas } = getCanvasAndContext();
@@ -524,5 +523,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
 
     
