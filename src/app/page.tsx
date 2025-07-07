@@ -86,11 +86,13 @@ export default function Home() {
   };
 
   const handleImageUpload = async (file: File) => {
+    const INSET_PX = 19; // Approx 5mm
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
+                const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
                 const cropData = { x: 0, y: 0, width: img.width, height: img.height };
                 setOriginalImage({
                     src: img.src,
@@ -104,10 +106,10 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                     perspectivePoints: {
-                      tl: { x: 0, y: 0 },
-                      tr: { x: img.width, y: 0 },
-                      bl: { x: 0, y: img.height },
-                      br: { x: img.width, y: img.height },
+                      tl: { x: inset, y: inset },
+                      tr: { x: img.width - inset, y: inset },
+                      bl: { x: inset, y: img.height - inset },
+                      br: { x: img.width - inset, y: img.height - inset },
                     },
                 });
                 setPendingCrop(null);
@@ -122,7 +124,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.5 });
+            const viewport = page.getViewport({ scale: 1.0 }); // Reduced scale for faster rendering
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -146,6 +148,7 @@ export default function Home() {
             
             const img = new Image();
             img.onload = () => {
+                const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
                 const cropData = { x: 0, y: 0, width: img.width, height: img.height };
                 setOriginalImage({
                     src: img.src,
@@ -159,10 +162,10 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                     perspectivePoints: {
-                      tl: { x: 0, y: 0 },
-                      tr: { x: img.width, y: 0 },
-                      bl: { x: 0, y: img.height },
-                      br: { x: img.width, y: img.height },
+                      tl: { x: inset, y: inset },
+                      tr: { x: img.width - inset, y: inset },
+                      bl: { x: inset, y: img.height - inset },
+                      br: { x: img.width - inset, y: img.height - inset },
                     },
                 });
                 setPendingCrop(null);
@@ -210,6 +213,8 @@ export default function Home() {
       img.onload = () => {
         const newWidth = img.width;
         const newHeight = img.height;
+        const INSET_PX = 19; // Approx 5mm
+        const inset = Math.min(INSET_PX, newWidth / 4, newHeight / 4);
 
         // Approximating new file size.
         const head = 'data:image/png;base64,';
@@ -229,10 +234,10 @@ export default function Home() {
           height: newHeight,
           crop: { x: 0, y: 0, width: newWidth, height: newHeight },
           perspectivePoints: {
-            tl: { x: 0, y: 0 },
-            tr: { x: newWidth, y: 0 },
-            bl: { x: 0, y: newHeight },
-            br: { x: newWidth, y: newHeight },
+            tl: { x: inset, y: inset },
+            tr: { x: newWidth - inset, y: inset },
+            bl: { x: inset, y: newHeight - inset },
+            br: { x: newWidth - inset, y: newHeight - inset },
           },
         });
         setPendingCrop(null);
