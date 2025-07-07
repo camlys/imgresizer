@@ -10,9 +10,14 @@ import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
-import 'pdfjs-dist/build/pdf.worker.mjs';
 import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform } from '@/lib/utils';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url,
+).toString();
+
 
 const initialSettings: ImageSettings = {
   width: 512,
@@ -48,6 +53,7 @@ export default function Home() {
 
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+  const INSET_PX = 38; // Approx 10mm
 
   useEffect(() => {
     if (!originalImage) return;
@@ -66,18 +72,16 @@ export default function Home() {
     if (tab === 'crop' && originalImage && !pendingCrop) {
       const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
        if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
-        const newWidth = originalImage.width * 0.8;
-        const newHeight = originalImage.height * 0.8;
-        const newX = (originalImage.width - newWidth) / 2;
-        const newY = (originalImage.height - newHeight) / 2;
-        
-        const centeredCrop = {
-          x: Math.round(newX),
-          y: Math.round(newY),
-          width: Math.round(newWidth),
-          height: Math.round(newHeight),
+        const insetX = Math.min(INSET_PX, originalImage.width / 4);
+        const insetY = Math.min(INSET_PX, originalImage.height / 4);
+
+        const insetCrop = {
+          x: Math.round(insetX),
+          y: Math.round(insetY),
+          width: Math.round(originalImage.width - insetX * 2),
+          height: Math.round(originalImage.height - insetY * 2),
         };
-        setPendingCrop(centeredCrop);
+        setPendingCrop(insetCrop);
       } else {
         setPendingCrop(currentCrop);
       }
@@ -86,7 +90,6 @@ export default function Home() {
   };
 
   const handleImageUpload = async (file: File) => {
-    const INSET_PX = 38; // Approx 10mm
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -124,7 +127,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.0 }); // Reduced scale for faster rendering
+            const viewport = page.getViewport({ scale: 1.5 });
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -213,7 +216,6 @@ export default function Home() {
       img.onload = () => {
         const newWidth = img.width;
         const newHeight = img.height;
-        const INSET_PX = 38; // Approx 10mm
         const inset = Math.min(INSET_PX, newWidth / 4, newHeight / 4);
 
         // Approximating new file size.
@@ -250,7 +252,7 @@ export default function Home() {
       console.error(e);
       toast({ title: "Error", description: "Failed to apply perspective transformation.", variant: "destructive" });
     }
-  }, [imageElement, settings.perspectivePoints, toast]);
+  }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
 
   const updateProcessedSize = useCallback(() => {
