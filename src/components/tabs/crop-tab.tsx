@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -180,14 +179,19 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
            
           <div className="grid gap-2">
             <Label className="text-xs text-muted-foreground">Mode</Label>
-            <RadioGroup defaultValue="rect" value={settings.cropMode} onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}>
+            <RadioGroup 
+                defaultValue="rect" 
+                value={settings.cropMode} 
+                onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}
+                className="flex items-center gap-4"
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="rect" id="r-rect" />
-                <Label htmlFor="r-rect">Rectangle</Label>
+                <Label htmlFor="r-rect" className="cursor-pointer">Rectangle</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="perspective" id="r-perspective" />
-                <Label htmlFor="r-perspective">Perspective</Label>
+                <Label htmlFor="r-perspective" className="cursor-pointer">Perspective</Label>
               </div>
             </RadioGroup>
           </div>
