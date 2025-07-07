@@ -89,7 +89,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                       </div>
                        <div className="grid gap-1.5">
                         <Label htmlFor={`text-size-${text.id}`}>Size</Label>
-                        <Input id={`text-size-${text.id}`} type="number" value={text.size} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) })}/>
+                        <Input id={`text-size-${text.id}`} type="number" value={text.size} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) || 0 })}/>
                       </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
@@ -140,15 +140,9 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                             type="number"
                             value={Math.round(text.rotation)}
                             onChange={(e) => {
-                                const value = e.target.value;
-                                let numericValue = parseInt(value, 10);
-                                if (value === '') {
-                                numericValue = 0;
-                                }
-                                if (!isNaN(numericValue)) {
+                                const numericValue = parseInt(e.target.value, 10) || 0;
                                 const clampedValue = Math.max(0, Math.min(numericValue, 360));
                                 updateText(text.id, { rotation: clampedValue });
-                                }
                             }}
                             min={0}
                             max={360}
