@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
@@ -207,9 +206,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.restore();
   
             ctx.save();
-            ctx.setLineDash([6, 3]);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(points.tl.x, points.tl.y);
             ctx.lineTo(points.tr.x, points.tr.y);
@@ -217,6 +215,31 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.lineTo(points.bl.x, points.bl.y);
             ctx.closePath();
             ctx.stroke();
+
+            // Add perspective grid
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+
+            const lerp = (p1: {x:number, y:number}, p2: {x:number, y:number}, t: number) => ({ x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t });
+
+            for (let i = 1; i < 3; i++) {
+                const t = i / 3;
+                // Horizontal grid lines
+                const p1 = lerp(points.tl, points.bl, t);
+                const p2 = lerp(points.tr, points.br, t);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                // Vertical grid lines
+                const p3 = lerp(points.tl, points.tr, t);
+                const p4 = lerp(points.bl, points.br, t);
+                ctx.beginPath();
+                ctx.moveTo(p3.x, p3.y);
+                ctx.lineTo(p4.x, p4.y);
+                ctx.stroke();
+            }
             ctx.restore();
   
             ctx.save();
