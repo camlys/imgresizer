@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -10,10 +11,9 @@ import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
+import 'pdfjs-dist/build/pdf.worker.mjs';
 import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform } from '@/lib/utils';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const initialSettings: ImageSettings = {
   width: 512,
