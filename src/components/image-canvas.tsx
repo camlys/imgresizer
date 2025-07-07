@@ -17,8 +17,8 @@ const CROP_HANDLE_SIZE = 10;
 const MIN_CROP_SIZE_PX = 20;
 const TEXT_ROTATION_HANDLE_RADIUS = 6;
 const TEXT_ROTATION_HANDLE_OFFSET = 20;
-const PERSPECTIVE_HANDLE_RADIUS = 8;
-const PERSPECTIVE_HANDLE_HIT_RADIUS = 15;
+const PERSPECTIVE_HANDLE_RADIUS = 10;
+const PERSPECTIVE_HANDLE_HIT_RADIUS = 25;
 
 
 type InteractionType = 
@@ -448,7 +448,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, settings.cropMode, settings.perspectivePoints, setPendingCrop, getTextHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, settings.cropMode, settings.perspectivePoints, setPendingCrop, getTextHandlePositions, getCropInteractionType]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!interactionState) return;
@@ -558,7 +558,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
-
-    
