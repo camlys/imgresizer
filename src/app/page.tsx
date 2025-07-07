@@ -127,7 +127,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 2.5 });
+            const viewport = page.getViewport({ scale: 3.0 });
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');

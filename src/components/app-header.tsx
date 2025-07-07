@@ -166,9 +166,6 @@ export function AppHeader({
                         value={settings.format}
                         onValueChange={(value) => {
                           const newSettings: Partial<ImageSettings> = { format: value as ImageSettings['format'] };
-                          if (value === 'image/png') {
-                            newSettings.quality = 0.92;
-                          }
                           updateSettings(newSettings);
                           setTimeout(onUpdateProcessedSize, 100);
                         }}
