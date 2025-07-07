@@ -40,7 +40,7 @@ const initialSettings: ImageSettings = {
     invert: 0,
   },
   format: 'image/jpeg',
-  quality: 0.92,
+  quality: 0.98,
 };
 
 export default function Home() {
@@ -127,7 +127,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.5 });
+            const viewport = page.getViewport({ scale: 2.5 });
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
