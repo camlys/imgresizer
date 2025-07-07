@@ -86,7 +86,7 @@ export default function Home() {
   };
 
   const handleImageUpload = async (file: File) => {
-    const INSET_PX = 19; // Approx 5mm
+    const INSET_PX = 38; // Approx 10mm
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -213,7 +213,7 @@ export default function Home() {
       img.onload = () => {
         const newWidth = img.width;
         const newHeight = img.height;
-        const INSET_PX = 19; // Approx 5mm
+        const INSET_PX = 38; // Approx 10mm
         const inset = Math.min(INSET_PX, newWidth / 4, newHeight / 4);
 
         // Approximating new file size.

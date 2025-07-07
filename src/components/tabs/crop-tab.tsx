@@ -72,7 +72,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
         height: originalImage.height
       });
     } else {
-       const INSET_PX = 19; // Approx 5mm
+       const INSET_PX = 38; // Approx 10mm
        const inset = Math.min(INSET_PX, originalImage.width / 4, originalImage.height / 4);
        updateSettings({
         perspectivePoints: {
