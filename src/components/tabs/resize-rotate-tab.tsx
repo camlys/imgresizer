@@ -121,17 +121,17 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                     <CardTitle className="text-base font-medium flex items-center gap-2"><Scan size={18}/> Resize</CardTitle>
                     <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex flex-wrap items-end gap-2">
-                        <div className="grid flex-grow gap-1.5">
+                <CardContent>
+                    <div className="flex flex-wrap items-end gap-x-4 gap-y-4">
+                        <div className="grid flex-grow gap-1.5 min-w-[80px]">
                             <Label htmlFor="width">Width</Label>
                             <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
                         </div>
-                        <div className="grid flex-grow gap-1.5">
+                        <div className="grid flex-grow gap-1.5 min-w-[80px]">
                             <Label htmlFor="height">Height</Label>
                             <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
                         </div>
-                        <div className="grid flex-grow sm:flex-grow-0 w-full sm:w-32 gap-1.5">
+                        <div className="grid w-24 gap-1.5">
                             <Label>Unit</Label>
                             <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
                                 <SelectTrigger><SelectValue/></SelectTrigger>
@@ -143,13 +143,13 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
-                        <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
-                            {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
-                            Keep aspect ratio
-                        </Label>
+                        <div className="flex items-center space-x-2 pb-1">
+                            <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
+                            <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
+                                {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
+                                Keep aspect ratio
+                            </Label>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
