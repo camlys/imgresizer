@@ -72,12 +72,13 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
         height: originalImage.height
       });
     } else {
+       const inset = 10; // A small inset in pixels
        updateSettings({
         perspectivePoints: {
-          tl: { x: 0, y: 0 },
-          tr: { x: originalImage.width, y: 0 },
-          bl: { x: 0, y: originalImage.height },
-          br: { x: originalImage.width, y: originalImage.height },
+          tl: { x: inset, y: inset },
+          tr: { x: originalImage.width - inset, y: inset },
+          bl: { x: inset, y: originalImage.height - inset },
+          br: { x: originalImage.width - inset, y: originalImage.height - inset },
         },
       });
     }

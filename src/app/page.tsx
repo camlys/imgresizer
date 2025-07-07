@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -93,6 +92,7 @@ export default function Home() {
             const img = new Image();
             img.onload = () => {
                 const cropData = { x: 0, y: 0, width: img.width, height: img.height };
+                const inset = 10; // A small inset in pixels
                 setOriginalImage({
                     src: img.src,
                     width: img.width,
@@ -105,10 +105,10 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                     perspectivePoints: {
-                      tl: { x: 0, y: 0 },
-                      tr: { x: img.width, y: 0 },
-                      bl: { x: 0, y: img.height },
-                      br: { x: img.width, y: img.height },
+                      tl: { x: inset, y: inset },
+                      tr: { x: img.width - inset, y: inset },
+                      bl: { x: inset, y: img.height - inset },
+                      br: { x: img.width - inset, y: img.height - inset },
                     },
                 });
                 setPendingCrop(null);
@@ -123,7 +123,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 2.0 });
+            const viewport = page.getViewport({ scale: 1.5 });
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -148,6 +148,7 @@ export default function Home() {
             const img = new Image();
             img.onload = () => {
                 const cropData = { x: 0, y: 0, width: img.width, height: img.height };
+                const inset = 10; // A small inset in pixels
                 setOriginalImage({
                     src: img.src,
                     width: img.width,
@@ -160,10 +161,10 @@ export default function Home() {
                     height: img.height,
                     crop: cropData,
                     perspectivePoints: {
-                      tl: { x: 0, y: 0 },
-                      tr: { x: img.width, y: 0 },
-                      bl: { x: 0, y: img.height },
-                      br: { x: img.width, y: img.height },
+                      tl: { x: inset, y: inset },
+                      tr: { x: img.width - inset, y: inset },
+                      bl: { x: inset, y: img.height - inset },
+                      br: { x: img.width - inset, y: img.height - inset },
                     },
                 });
                 setPendingCrop(null);
@@ -224,16 +225,17 @@ export default function Home() {
         });
 
         // Reset settings for the new image
+        const inset = 10; // A small inset in pixels
         setSettings({
           ...initialSettings,
           width: newWidth,
           height: newHeight,
           crop: { x: 0, y: 0, width: newWidth, height: newHeight },
           perspectivePoints: {
-            tl: { x: 0, y: 0 },
-            tr: { x: newWidth, y: 0 },
-            bl: { x: 0, y: newHeight },
-            br: { x: newWidth, y: newHeight },
+            tl: { x: inset, y: inset },
+            tr: { x: newWidth - inset, y: inset },
+            bl: { x: inset, y: newHeight - inset },
+            br: { x: newWidth - inset, y: newHeight - inset },
           },
         });
         setPendingCrop(null);
