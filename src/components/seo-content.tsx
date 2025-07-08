@@ -56,7 +56,7 @@ export function SeoContent() {
         </div>
         <div>
            <Image
-              src="https://placehold.co/600x400.png"
+              src="https://placehold.co/600x400/2E8B57/FFFFFF.png"
               alt="A demonstration of the online image resizer and crop tool."
               width={600}
               height={400}
@@ -75,7 +75,7 @@ export function SeoContent() {
         </div>
         <div className="order-first md:order-first">
            <Image
-              src="https://placehold.co/700x450.png"
+              src="https://placehold.co/700x450/4B0082/FFFFFF.png"
               alt="Image editor showing advanced color adjustment sliders for brightness, contrast, and saturation."
               width={700}
               height={450}
@@ -94,7 +94,7 @@ export function SeoContent() {
         </div>
         <div>
            <Image
-              src="https://placehold.co/650x420.png"
+              src="https://placehold.co/650x420/2E8B57/FFFFFF.png"
               alt="A user adding custom text with font and color options to an image using the online editor."
               width={650}
               height={420}
