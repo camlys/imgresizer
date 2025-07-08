@@ -61,7 +61,7 @@ export function SeoContent() {
               width={600}
               height={400}
               className="rounded-lg shadow-lg"
-              data-ai-hint="user interface design"
+              data-ai-hint="ui crop"
             />
         </div>
       </section>
@@ -75,12 +75,12 @@ export function SeoContent() {
         </div>
         <div className="order-first md:order-first">
            <Image
-              src="https://placehold.co/600x400.png"
+              src="https://placehold.co/700x450.png"
               alt="Image editor showing advanced color adjustment sliders for brightness, contrast, and saturation."
-              width={600}
-              height={400}
+              width={700}
+              height={450}
               className="rounded-lg shadow-lg"
-              data-ai-hint="photo editing software"
+              data-ai-hint="color filters"
             />
         </div>
       </section>
@@ -94,12 +94,12 @@ export function SeoContent() {
         </div>
         <div>
            <Image
-              src="https://placehold.co/600x400.png"
+              src="https://placehold.co/650x420.png"
               alt="A user adding custom text with font and color options to an image using the online editor."
-              width={600}
-              height={400}
+              width={650}
+              height={420}
               className="rounded-lg shadow-lg"
-              data-ai-hint="graphic design typography"
+              data-ai-hint="text overlay"
             />
         </div>
       </section>
