@@ -147,7 +147,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                             <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
                             <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
                                 {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
-                                Keep aspect ratio
                             </Label>
                         </div>
                     </div>
