@@ -25,7 +25,7 @@ const initialSettings: ImageSettings = {
   height: 512,
   unit: 'px',
   dpi: 96,
-  keepAspectRatio: false,
+  keepAspectRatio: true,
   rotation: 0,
   flipHorizontal: false,
   flipVertical: false,
