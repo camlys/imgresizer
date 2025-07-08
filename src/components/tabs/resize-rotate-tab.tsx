@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -12,22 +11,21 @@ import { Lock, Unlock, Scan } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 
-const DPI = 96;
 const CM_TO_INCH = 0.393701;
 
-const convertToPx = (value: number, unit: Unit): number => {
+const convertToPx = (value: number, unit: Unit, dpi: number): number => {
   if (unit === 'px') return value;
-  if (unit === 'inch') return value * DPI;
-  if (unit === 'cm') return value * CM_TO_INCH * DPI;
-  if (unit === 'mm') return (value / 10) * CM_TO_INCH * DPI;
+  if (unit === 'inch') return value * dpi;
+  if (unit === 'cm') return value * CM_TO_INCH * dpi;
+  if (unit === 'mm') return (value / 10) * CM_TO_INCH * dpi;
   return value;
 };
 
-const convertFromPx = (value: number, unit: Unit): number => {
-  if (unit === 'px') return value;
-  if (unit === 'inch') return value / DPI;
-  if (unit === 'cm') return (value / DPI) / CM_TO_INCH;
-  if (unit === 'mm') return ((value / DPI) / CM_TO_INCH) * 10;
+const convertFromPx = (value: number, unit: Unit, dpi: number): number => {
+  if (unit === 'px') return Math.round(value);
+  if (unit === 'inch') return value / dpi;
+  if (unit === 'cm') return (value / dpi) / CM_TO_INCH;
+  if (unit === 'mm') return ((value / dpi) / CM_TO_INCH) * 10;
   return value;
 };
 
@@ -39,8 +37,8 @@ interface ResizeRotateTabProps {
 }
 
 export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize }: ResizeRotateTabProps) {
-    const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit).toString());
-    const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit).toString());
+    const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit, settings.dpi).toString());
+    const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit, settings.dpi).toString());
     const [unit, setUnit] = useState(settings.unit);
     
     const [aspectRatio, setAspectRatio] = useState(originalImage.width / originalImage.height);
@@ -54,25 +52,23 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     }, [settings.crop, originalImage]);
 
     useEffect(() => {
-        if (parseFloat(width) !== convertFromPx(settings.width, unit)) {
-            setWidth(convertFromPx(settings.width, unit).toFixed(2).replace(/\.00$/, ''));
-        }
-        if (parseFloat(height) !== convertFromPx(settings.height, unit)) {
-            setHeight(convertFromPx(settings.height, unit).toFixed(2).replace(/\.00$/, ''));
-        }
-        if (unit !== settings.unit) {
-            setUnit(settings.unit);
-        }
-    }, [settings.width, settings.height, settings.unit]);
+        const newWidth = convertFromPx(settings.width, settings.unit, settings.dpi);
+        const newHeight = convertFromPx(settings.height, settings.unit, settings.dpi);
+        setWidth(settings.unit === 'px' ? newWidth.toString() : newWidth.toFixed(2).replace(/\.00$/, ''));
+        setHeight(settings.unit === 'px' ? newHeight.toString() : newHeight.toFixed(2).replace(/\.00$/, ''));
+        setUnit(settings.unit);
+    }, [settings.width, settings.height, settings.unit, settings.dpi]);
 
 
     const handleUnitChange = (newUnit: Unit) => {
-        const currentPxWidth = settings.width;
-        
-        setWidth(convertFromPx(currentPxWidth, newUnit).toFixed(2).replace(/\.00$/, ''));
-        setHeight(convertFromPx(settings.height, newUnit).toFixed(2).replace(/\.00$/, ''));
-        setUnit(newUnit);
         updateSettings({ unit: newUnit });
+    };
+
+    const handleDpiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newDpi = parseInt(e.target.value, 10);
+        if (!isNaN(newDpi) && newDpi > 0) {
+            updateSettings({ dpi: newDpi });
+        }
     };
 
     const handleDimensionChange = (valueStr: string, dimension: 'width' | 'height') => {
@@ -86,21 +82,23 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         if (valueStr.trim() === '' || isNaN(numericValue) || numericValue <= 0) {
             return;
         }
+        
+        const currentDpi = settings.dpi;
 
         if (dimension === 'width') {
-            const newPxWidth = convertToPx(numericValue, unit);
+            const newPxWidth = convertToPx(numericValue, unit, currentDpi);
             if (settings.keepAspectRatio) {
                 const newPxHeight = newPxWidth / aspectRatio;
-                setHeight(convertFromPx(newPxHeight, unit).toFixed(2).replace(/\.00$/, ''));
+                setHeight(convertFromPx(newPxHeight, unit, currentDpi).toFixed(2).replace(/\.00$/, ''));
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ width: newPxWidth });
             }
         } else {
-            const newPxHeight = convertToPx(numericValue, unit);
+            const newPxHeight = convertToPx(numericValue, unit, currentDpi);
             if (settings.keepAspectRatio) {
                 const newPxWidth = newPxHeight * aspectRatio;
-                setWidth(convertFromPx(newPxWidth, unit).toFixed(2).replace(/\.00$/, ''));
+                setWidth(convertFromPx(newPxWidth, unit, currentDpi).toFixed(2).replace(/\.00$/, ''));
                 updateSettings({ width: newPxWidth, height: newPxHeight });
             } else {
                 updateSettings({ height: newPxHeight });
@@ -111,7 +109,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const resetDimensions = () => {
         const resetWidth = settings.crop ? settings.crop.width : originalImage.width;
         const resetHeight = settings.crop ? settings.crop.height : originalImage.height;
-        updateSettings({ width: resetWidth, height: resetHeight, unit: 'px' });
+        updateSettings({ width: resetWidth, height: resetHeight, unit: 'px', dpi: 96 });
     };
 
     return (
@@ -142,6 +140,10 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                     <SelectItem value="inch">inch</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                         <div className="grid w-24 gap-1.5">
+                            <Label htmlFor="dpi">DPI</Label>
+                            <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
                         </div>
                         <div className="flex items-center space-x-2 pb-1">
                             <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>

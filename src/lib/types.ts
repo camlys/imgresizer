@@ -38,6 +38,7 @@ export type ImageSettings = {
   width: number;
   height: number;
   unit: Unit;
+  dpi: number;
   keepAspectRatio: boolean;
   rotation: number;
   flipHorizontal: boolean;
