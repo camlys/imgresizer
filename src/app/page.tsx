@@ -8,6 +8,7 @@ import { UploadPlaceholder } from '@/components/upload-placeholder';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
+import { Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SeoContent } from '@/components/seo-content';
@@ -23,7 +24,7 @@ const initialSettings: ImageSettings = {
   width: 512,
   height: 512,
   unit: 'px',
-  keepAspectRatio: true,
+  keepAspectRatio: false,
   rotation: 0,
   flipHorizontal: false,
   flipVertical: false,
@@ -50,6 +51,7 @@ export default function Home() {
   const [processedSize, setProcessedSize] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
@@ -90,6 +92,7 @@ export default function Home() {
   };
 
   const handleImageUpload = async (file: File) => {
+    setIsLoading(true);
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -118,7 +121,12 @@ export default function Home() {
                 setPendingCrop(null);
                 setActiveTab('resize');
                 setProcessedSize(null);
+                setIsLoading(false);
             };
+            img.onerror = () => {
+              toast({ title: "Error", description: "Could not load image file.", variant: "destructive" });
+              setIsLoading(false);
+            }
             img.src = e.target?.result as string;
         };
         reader.readAsDataURL(file);
@@ -137,6 +145,7 @@ export default function Home() {
                     description: "Could not create canvas context to render PDF.",
                     variant: "destructive",
                 });
+                setIsLoading(false);
                 return;
             }
             tempCanvas.width = viewport.width;
@@ -174,7 +183,12 @@ export default function Home() {
                 setPendingCrop(null);
                 setActiveTab('resize');
                 setProcessedSize(null);
+                setIsLoading(false);
             };
+            img.onerror = () => {
+              toast({ title: "Error", description: "Could not load PDF as image.", variant: "destructive" });
+              setIsLoading(false);
+            }
             img.src = tempCanvas.toDataURL('image/png');
         } catch (error) {
             console.error("Error processing PDF:", error);
@@ -183,6 +197,7 @@ export default function Home() {
                 description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
                 variant: "destructive",
             });
+            setIsLoading(false);
         }
     } else {
         toast({
@@ -190,6 +205,7 @@ export default function Home() {
             description: "Please upload a valid image or PDF file.",
             variant: "destructive",
         });
+        setIsLoading(false);
     }
   };
   
@@ -473,7 +489,7 @@ export default function Home() {
         />
         <main className="flex-1 w-full overflow-y-auto">
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
-            <UploadPlaceholder onUpload={handleImageUpload} />
+            <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
           <SeoContent />
         </main>
@@ -519,6 +535,12 @@ export default function Home() {
             pendingCrop={pendingCrop}
             setPendingCrop={setPendingCrop}
           />
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-lg z-10">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+              <p className="text-lg font-medium text-foreground">Loading file...</p>
+            </div>
+          )}
         </div>
       </main>
     </div>
