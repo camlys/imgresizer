@@ -3,9 +3,9 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
 import { Lock, Unlock, Scan } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
@@ -121,12 +121,32 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-1.5">
+                        <div className="flex items-end gap-2">
+                            <div className="grid gap-1.5 flex-1">
                                 <Label htmlFor="width">Width</Label>
                                 <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
                             </div>
-                            <div className="grid gap-1.5">
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="shrink-0"
+                                      onClick={() => updateSettings({ keepAspectRatio: !settings.keepAspectRatio })}
+                                      aria-label="Toggle aspect ratio lock"
+                                  >
+                                      {settings.keepAspectRatio ? <Lock size={16}/> : <Unlock size={16}/>}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Keep aspect ratio</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <div className="grid gap-1.5 flex-1">
                                 <Label htmlFor="height">Height</Label>
                                 <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
                             </div>
@@ -147,12 +167,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                              <div className="grid gap-1.5 flex-1 min-w-[80px]">
                                 <Label htmlFor="dpi">DPI</Label>
                                 <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
-                            </div>
-                            <div className="flex items-center space-x-2 pb-1">
-                                <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
-                                <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
-                                    {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
-                                </Label>
                             </div>
                         </div>
                     </div>
