@@ -120,36 +120,40 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                     <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-wrap items-end gap-x-4 gap-y-4">
-                        <div className="grid flex-grow gap-1.5 min-w-[80px]">
-                            <Label htmlFor="width">Width</Label>
-                            <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="width">Width</Label>
+                                <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="height">Height</Label>
+                                <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
+                            </div>
                         </div>
-                        <div className="grid flex-grow gap-1.5 min-w-[80px]">
-                            <Label htmlFor="height">Height</Label>
-                            <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
-                        </div>
-                        <div className="grid w-24 gap-1.5">
-                            <Label>Unit</Label>
-                            <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="px">px</SelectItem>
-                                    <SelectItem value="cm">cm</SelectItem>
-                                    <SelectItem value="mm">mm</SelectItem>
-                                    <SelectItem value="inch">inch</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="grid w-24 gap-1.5">
-                            <Label htmlFor="dpi">DPI</Label>
-                            <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
-                        </div>
-                        <div className="flex items-center space-x-2 pb-1">
-                            <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
-                            <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
-                                {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
-                            </Label>
+                        <div className="flex flex-wrap items-end gap-4">
+                            <div className="grid gap-1.5 flex-1 min-w-[80px]">
+                                <Label>Unit</Label>
+                                <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="px">px</SelectItem>
+                                        <SelectItem value="cm">cm</SelectItem>
+                                        <SelectItem value="mm">mm</SelectItem>
+                                        <SelectItem value="inch">inch</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="grid gap-1.5 flex-1 min-w-[80px]">
+                                <Label htmlFor="dpi">DPI</Label>
+                                <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
+                            </div>
+                            <div className="flex items-center space-x-2 pb-1">
+                                <Switch id="aspect-ratio" checked={settings.keepAspectRatio} onCheckedChange={(checked) => updateSettings({ keepAspectRatio: checked })}/>
+                                <Label htmlFor="aspect-ratio" className="flex items-center gap-2 cursor-pointer">
+                                    {settings.keepAspectRatio ? <Lock size={14}/> : <Unlock size={14}/>}
+                                </Label>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
