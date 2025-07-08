@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
-import { CheckCircle, Zap, ShieldCheck, LockKeyhole } from 'lucide-react';
+import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type } from 'lucide-react';
 
 export function SeoContent() {
   return (
@@ -55,14 +54,9 @@ export function SeoContent() {
           </p>
         </div>
         <div>
-           <Image
-              src="https://placehold.co/600x400/3CCDAA/3CCDAA.png"
-              alt="A demonstration of the online image resizer and crop tool."
-              width={600}
-              height={400}
-              className="rounded-lg shadow-lg"
-              data-ai-hint="ui crop"
-            />
+            <div className="rounded-lg shadow-lg bg-primary/10 aspect-[3/2] flex items-center justify-center p-8">
+              <Crop className="w-24 h-24 text-primary" />
+            </div>
         </div>
       </section>
       
@@ -74,14 +68,9 @@ export function SeoContent() {
           </p>
         </div>
         <div className="order-first md:order-first">
-           <Image
-              src="https://placehold.co/700x450/5A78F0/5A78F0.png"
-              alt="Image editor showing advanced color adjustment sliders for brightness, contrast, and saturation."
-              width={700}
-              height={450}
-              className="rounded-lg shadow-lg"
-              data-ai-hint="color filters"
-            />
+            <div className="rounded-lg shadow-lg bg-accent/10 aspect-video flex items-center justify-center p-8">
+              <SlidersHorizontal className="w-24 h-24 text-accent" />
+            </div>
         </div>
       </section>
 
@@ -93,14 +82,9 @@ export function SeoContent() {
           </p>
         </div>
         <div>
-           <Image
-              src="https://placehold.co/650x420/A259FF/A259FF.png"
-              alt="A user adding custom text with font and color options to an image using the online editor."
-              width={650}
-              height={420}
-              className="rounded-lg shadow-lg"
-              data-ai-hint="text overlay"
-            />
+            <div className="rounded-lg shadow-lg bg-secondary aspect-[3/2] flex items-center justify-center p-8">
+              <Type className="w-24 h-24 text-primary" />
+            </div>
         </div>
       </section>
       
