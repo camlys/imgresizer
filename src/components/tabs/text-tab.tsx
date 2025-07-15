@@ -22,10 +22,7 @@ const fonts = [
   'Courier New',
   'Georgia',
   'Impact',
-  'Inter',
-  'Lobster',
-  'Montserrat',
-  'Poppins',
+  '"Space Grotesk"',
   'Times New Roman',
   'Verdana',
 ];
@@ -35,7 +32,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
     const newText: TextOverlay = {
       id: Date.now().toString(),
       text: 'Hello World',
-      font: 'Arial',
+      font: '"Space Grotesk"',
       size: 50,
       color: '#000000',
       backgroundColor: '#ffffff',
