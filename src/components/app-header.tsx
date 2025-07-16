@@ -124,8 +124,7 @@ export function AppHeader({
           className="hidden"
         />
         <Button variant="outline" onClick={handleUploadClick}>
-          <Upload className="mr-2" />
-          Upload New
+          <Upload />
         </Button>
          <UploadTypeDialog
           isOpen={isUploadTypeDialogOpen}
