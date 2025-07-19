@@ -5,7 +5,7 @@ export function LogoIcon({ className }: { className?: string }) {
   return (
     <div className={cn("relative size-9", className)}>
       <Image
-        src="/camly-logo.png"
+        src="/logo.png"
         alt="Camly Logo"
         fill
         sizes="36px"

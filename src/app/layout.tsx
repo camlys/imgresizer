@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Camly',
   description: 'A powerful online image editor.',
   icons: {
-    icon: '/camly-logo.png',
+    icon: '/logo.png',
   },
 };
 
