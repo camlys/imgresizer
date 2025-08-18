@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -43,7 +44,7 @@ const initialSettings: ImageSettings = {
     invert: 0,
   },
   format: 'image/jpeg',
-  quality: 0.98,
+  quality: 1.0,
 };
 
 export default function Home() {
@@ -137,7 +138,7 @@ export default function Home() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 3.0 });
+            const viewport = page.getViewport({ scale: 4.0 });
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -549,3 +550,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
