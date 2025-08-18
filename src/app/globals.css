@@ -6,6 +6,27 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@layer utilities {
+  .sun-rays {
+    position: relative;
+    display: inline-block;
+  }
+  .sun-rays::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    padding-bottom: 200%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, hsl(var(--primary) / 0.2), transparent 40%);
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    animation: sun-rays 30s linear infinite;
+    will-change: transform;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 94.1%;
