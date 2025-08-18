@@ -39,7 +39,7 @@ const TabsTrigger = React.forwardRef<
     {props["data-state"] === "active" && (
         <motion.div
             layoutId="active-tab-indicator"
-            className="absolute inset-0 z-0 rounded-sm bg-background shadow-sm"
+            className="absolute inset-0 z-0 rounded-sm bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] shadow-sm animate-gradient-shift"
             transition={{ type: "spring", stiffness: 350, damping: 30 }}
         />
     )}
