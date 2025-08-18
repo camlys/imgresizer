@@ -9,7 +9,8 @@ export function LogoIcon({ className }: { className?: string }) {
         alt="Camly Logo"
         fill
         sizes="48px"
-        className="object-contain"
+        className="object-contain animate-spin"
+        style={{ animationDuration: '10s' }}
       />
     </div>
   );
