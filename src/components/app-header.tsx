@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -113,27 +114,49 @@ export function AppHeader({
   };
 
   const handleShare = async () => {
-    const shareData = {
-      title: 'Camly Image Editor',
-      text: 'Check out this powerful online image editor!',
-      url: 'https://img-resizers.vercel.app/',
+    if (!canvasRef.current) {
+        toast({ title: "Error", description: "Cannot share, canvas not ready.", variant: "destructive" });
+        return;
+    }
+
+    const fallbackShare = async () => {
+        const url = 'https://img-resizers.vercel.app/';
+        await navigator.clipboard.writeText(url);
+        toast({
+            title: "Link Copied!",
+            description: "The website URL has been copied to your clipboard.",
+        });
     };
+
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        toast({
-          title: "Link Copied!",
-          description: "The website URL has been copied to your clipboard.",
-        });
-      }
+        canvasRef.current.toBlob(async (blob) => {
+            if (!blob) {
+                toast({ title: "Error", description: "Could not generate image for sharing.", variant: "destructive" });
+                return;
+            }
+
+            const extension = settings.format.split('/')[1].split('+')[0] || 'png';
+            const filename = `camly-edited-image.${extension}`;
+            const file = new File([blob], filename, { type: settings.format });
+
+            const shareData: ShareData = {
+                title: 'Camly Image Editor',
+                text: 'Check out this image I edited with Camly!',
+                url: 'https://img-resizers.vercel.app/',
+            };
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                shareData.files = [file];
+                await navigator.share(shareData);
+            } else if (navigator.share) {
+                await navigator.share(shareData); // Share without file if not supported
+            } else {
+                await fallbackShare();
+            }
+        }, settings.format, settings.quality);
     } catch (error) {
-       await navigator.clipboard.writeText(shareData.url);
-        toast({
-          title: "Link Copied!",
-          description: "The website URL has been copied to your clipboard as a fallback.",
-        });
+        console.error("Share error:", error);
+        await fallbackShare();
     }
   };
 
@@ -196,6 +219,9 @@ export function AppHeader({
                         value={settings.format}
                         onValueChange={(value) => {
                           const newSettings: Partial<ImageSettings> = { format: value as ImageSettings['format'] };
+                          if (value === 'application/pdf' || value === 'image/svg+xml') {
+                            newSettings.quality = 1.0;
+                          }
                           updateSettings(newSettings);
                           setTimeout(onUpdateProcessedSize, 100);
                         }}
@@ -279,3 +305,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    

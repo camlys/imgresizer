@@ -60,6 +60,8 @@ export default function Home() {
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const INSET_PX = 38; // Approx 10mm
 
+  const finalCanvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
     if (!originalImage) return;
     const img = new Image();
@@ -275,142 +277,125 @@ export default function Home() {
 
 
   const updateProcessedSize = useCallback(() => {
-    if (canvasRef.current) {
-      if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
-        setProcessedSize(null);
-        return;
-      }
-      canvasRef.current.toBlob(
-        (blob) => {
-          if (blob) {
-            setProcessedSize(blob.size);
-          }
-        },
-        settings.format,
-        settings.quality
-      );
+    if (finalCanvasRef.current) {
+        // Redraw the final canvas if needed (or assume it's up-to-date)
+        generateFinalCanvas().then(canvas => {
+            if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
+                setProcessedSize(null);
+                return;
+            }
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) setProcessedSize(blob.size);
+                },
+                settings.format,
+                settings.quality
+            );
+        });
     }
   }, [settings.format, settings.quality]);
 
-  const handleDownload = useCallback(async (filename: string) => {
-    if (!originalImage) return;
-
-    const img = new Image();
-    const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        if (!originalImage.src.startsWith('data:')) {
-            img.crossOrigin = 'anonymous';
-        }
-        img.src = originalImage.src;
-    });
-
-    try {
-        const imageElement = await imageLoadPromise;
-        const downloadName = filename || 'camly-export';
-        const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
-
-        // Create a canvas with the cropped and pixel-adjusted image
-        const adjustedCanvas = document.createElement('canvas');
-        const adjustedCtx = adjustedCanvas.getContext('2d');
-        if (!adjustedCtx) {
-            toast({ title: "Download Error", description: "Could not create a canvas to process the image.", variant: "destructive" });
-            return;
-        }
-
-        const cropData = crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
-        adjustedCanvas.width = cropData.width;
-        adjustedCanvas.height = cropData.height;
-
-        // Draw cropped image
-        adjustedCtx.drawImage(imageElement,
-            cropData.x, cropData.y, cropData.width, cropData.height,
-            0, 0,
-            cropData.width, cropData.height
-        );
+ const generateFinalCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
+    return new Promise(async (resolve, reject) => {
+        if (!originalImage) return reject(new Error("No original image loaded."));
         
-        // Get image data and manipulate pixels for adjustments
-        if (Object.values(adjustments).some((v, i) => v !== Object.values(initialSettings.adjustments)[i])) {
-            let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
-            const data = imageData.data;
-            const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
-
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i + 1], b = data[i + 2];
-
-                if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
-                if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-                if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
-                
-                const tempR = r, tempG = g, tempB = b;
-                if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
-                if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
-                if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
-
-                data[i] = Math.max(0, Math.min(255, r));
-                data[i+1] = Math.max(0, Math.min(255, g));
-                data[i+2] = Math.max(0, Math.min(255, b));
+        const img = new Image();
+        const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            if (!originalImage.src.startsWith('data:')) {
+                img.crossOrigin = 'anonymous';
             }
-            adjustedCtx.putImageData(imageData, 0, 0);
-        }
-        
-        // Create the final canvas for output
-        const finalCanvas = document.createElement('canvas');
-        const finalCtx = finalCanvas.getContext('2d');
-         if (!finalCtx) {
-            toast({ title: "Download Error", description: "Could not create a canvas to generate the image.", variant: "destructive" });
-            return;
-        }
-        finalCanvas.width = width;
-        finalCanvas.height = height;
-        
-        finalCtx.save();
-        
-        const rad = (rotation * Math.PI) / 180;
-        const sin = Math.abs(Math.sin(rad));
-        const cos = Math.abs(Math.cos(rad));
-        const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
-        const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
-
-        const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
-        
-        const drawWidth = adjustedCanvas.width * scale;
-        const drawHeight = adjustedCanvas.height * scale;
-        
-        finalCtx.translate(width / 2, height / 2);
-        if (flipHorizontal) finalCtx.scale(-1, 1);
-        if (flipVertical) finalCtx.scale(1, -1);
-        finalCtx.rotate(rad);
-        
-        finalCtx.drawImage(adjustedCanvas, 
-            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
-        );
-
-        finalCtx.restore();
-
-        texts.forEach(text => {
-            const textX = (text.x / 100) * width;
-            const textY = (text.y / 100) * height;
-
-            finalCtx.font = `${text.size}px ${text.font}`;
-            finalCtx.textAlign = 'center';
-            finalCtx.textBaseline = 'middle';
-            
-            const padding = text.padding || 0;
-            if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
-                const metrics = finalCtx.measureText(text.text);
-                const rectWidth = metrics.width + padding * 2;
-                const rectHeight = text.size + padding * 2;
-                const rectX = textX - rectWidth / 2;
-                const rectY = textY - rectHeight / 2;
-
-                finalCtx.fillStyle = text.backgroundColor;
-                finalCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
-            }
-
-            finalCtx.fillStyle = text.color;
-            finalCtx.fillText(text.text, textX, textY);
+            img.src = originalImage.src;
         });
+
+        try {
+            const imageElement = await imageLoadPromise;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
+
+            const adjustedCanvas = document.createElement('canvas');
+            const adjustedCtx = adjustedCanvas.getContext('2d');
+            if (!adjustedCtx) return reject(new Error("Could not create adjusted canvas context."));
+
+            const cropData = crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
+            adjustedCanvas.width = cropData.width;
+            adjustedCanvas.height = cropData.height;
+
+            adjustedCtx.drawImage(imageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+            
+            if (Object.values(adjustments).some((v, i) => v !== Object.values(initialSettings.adjustments)[i])) {
+                let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
+                const data = imageData.data;
+                const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+                    if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+                    if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+                    const tempR = r, tempG = g, tempB = b;
+                    if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+                    if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+                    if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+                    data[i] = Math.max(0, Math.min(255, r)); data[i+1] = Math.max(0, Math.min(255, g)); data[i+2] = Math.max(0, Math.min(255, b));
+                }
+                adjustedCtx.putImageData(imageData, 0, 0);
+            }
+            
+            const finalCanvas = document.createElement('canvas');
+            const finalCtx = finalCanvas.getContext('2d');
+            if (!finalCtx) return reject(new Error("Could not create final canvas context."));
+            
+            finalCanvas.width = width;
+            finalCanvas.height = height;
+            
+            finalCtx.save();
+            const rad = (rotation * Math.PI) / 180;
+            const sin = Math.abs(Math.sin(rad));
+            const cos = Math.abs(Math.cos(rad));
+            const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
+            const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
+            const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
+            const drawWidth = adjustedCanvas.width * scale;
+            const drawHeight = adjustedCanvas.height * scale;
+            finalCtx.translate(width / 2, height / 2);
+            if (flipHorizontal) finalCtx.scale(-1, 1);
+            if (flipVertical) finalCtx.scale(1, -1);
+            finalCtx.rotate(rad);
+            finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+            finalCtx.restore();
+
+            texts.forEach(text => {
+                const textX = (text.x / 100) * width;
+                const textY = (text.y / 100) * height;
+                finalCtx.font = `${text.size}px ${text.font}`;
+                finalCtx.textAlign = 'center';
+                finalCtx.textBaseline = 'middle';
+                const padding = text.padding || 0;
+                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                    const metrics = finalCtx.measureText(text.text);
+                    const rectWidth = metrics.width + padding * 2;
+                    const rectHeight = text.size + padding * 2;
+                    const rectX = textX - rectWidth / 2;
+                    const rectY = textY - rectHeight / 2;
+                    finalCtx.fillStyle = text.backgroundColor;
+                    finalCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                }
+                finalCtx.fillStyle = text.color;
+                finalCtx.fillText(text.text, textX, textY);
+            });
+            
+            resolve(finalCanvas);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}, [originalImage, settings]);
+
+
+  const handleDownload = useCallback(async (filename: string) => {
+    try {
+        const finalCanvas = await generateFinalCanvas();
+        const downloadName = filename || 'camly-export';
 
         if (settings.format === 'application/pdf') {
             const imgData = finalCanvas.toDataURL('image/png');
@@ -475,7 +460,7 @@ export default function Home() {
             variant: "destructive",
         });
     }
-  }, [originalImage, settings, toast]);
+  }, [generateFinalCanvas, settings.format, settings.quality, toast]);
   
   if (!originalImage) {
     return (
@@ -486,7 +471,7 @@ export default function Home() {
           isImageLoaded={!!originalImage}
           settings={settings}
           updateSettings={updateSettings}
-          canvasRef={canvasRef}
+          canvasRef={finalCanvasRef}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
         />
@@ -510,7 +495,7 @@ export default function Home() {
         isImageLoaded={!!originalImage}
         settings={settings}
         updateSettings={updateSettings}
-        canvasRef={canvasRef}
+        canvasRef={finalCanvasRef}
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
       />
