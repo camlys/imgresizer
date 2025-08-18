@@ -260,18 +260,20 @@ export function AppHeader({
                           {settings.format === 'image/svg+xml' || settings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
-                    <Button onClick={() => onDownload(filename)} className="w-full">
-                        <Download className="mr-2"/>
-                        Download Image
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={() => onDownload(filename)} className="w-full">
+                          <Download className="mr-2"/>
+                          Download
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleShare} className="shrink-0">
+                          <Share2 />
+                      </Button>
+                    </div>
                 </div>
               </div>
             </PopoverContent>
           </Popover>
         )}
-        <Button variant="outline" onClick={handleShare}>
-            <Share2 />
-        </Button>
         <ThemeToggle />
       </div>
     </header>
