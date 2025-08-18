@@ -393,11 +393,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   };
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if ('touches' in e) {
+      e.preventDefault();
+    }
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
-
-    if (e.cancelable) e.preventDefault();
 
     if (activeTab === 'crop') {
         const cropInteractionType = getCropInteractionType(pos.x, pos.y);
@@ -453,7 +454,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!interactionState) return;
     
-    if (e.cancelable) e.preventDefault();
+    if ('touches' in e) {
+      e.preventDefault();
+    }
     const pos = getInteractionPos(e);
     const { canvas } = getCanvasAndContext();
     const img = imageElement;
