@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2 } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,6 +15,7 @@ import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
+import { useToast } from "@/hooks/use-toast"
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -44,6 +45,7 @@ export function AppHeader({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('camly-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -109,6 +111,32 @@ export function AppHeader({
         setIsOptimizing(false);
     }, 100);
   };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Camly Image Editor',
+      text: 'Check out this powerful online image editor!',
+      url: 'https://img-resizers.vercel.app/',
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast({
+          title: "Link Copied!",
+          description: "The website URL has been copied to your clipboard.",
+        });
+      }
+    } catch (error) {
+       await navigator.clipboard.writeText(shareData.url);
+        toast({
+          title: "Link Copied!",
+          description: "The website URL has been copied to your clipboard as a fallback.",
+        });
+    }
+  };
+
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card overflow-hidden">
@@ -241,6 +269,9 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
+        <Button variant="outline" onClick={handleShare}>
+            <Share2 />
+        </Button>
         <ThemeToggle />
       </div>
     </header>
