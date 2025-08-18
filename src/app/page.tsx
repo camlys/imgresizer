@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform } from '@/lib/utils';
+import { HeroSection } from '@/components/hero-section';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -489,6 +490,7 @@ export default function Home() {
           onUpdateProcessedSize={updateProcessedSize}
         />
         <main className="flex-1 w-full overflow-y-auto">
+          <HeroSection onUpload={handleImageUpload} />
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
