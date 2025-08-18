@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Download, Settings, Loader2, Share2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,26 +16,27 @@ import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
-import { useToast } from "@/hooks/use-toast"
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
   onDownload: (filename: string) => void;
+  onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  generateFinalCanvas: () => Promise<HTMLCanvasElement>;
   processedSize: number | null;
   onUpdateProcessedSize: () => void;
 }
 
 export function AppHeader({ 
   onUpload, 
-  onDownload, 
+  onDownload,
+  onShare,
   isImageLoaded,
   settings,
   updateSettings,
-  canvasRef,
+  generateFinalCanvas,
   processedSize,
   onUpdateProcessedSize,
 }: AppHeaderProps) {
@@ -46,7 +47,6 @@ export function AppHeader({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('camly-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -74,25 +74,28 @@ export function AppHeader({
     }
   };
 
-  const getBlobFromCanvas = (quality: number): Promise<Blob | null> => {
+  const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
+      const canvas = await generateFinalCanvas();
       return new Promise((resolve) => {
-          if (!canvasRef.current) {
+          if (!canvas) {
               resolve(null);
               return;
           }
-          canvasRef.current.toBlob((blob) => resolve(blob), settings.format, quality);
+          canvas.toBlob((blob) => resolve(blob), settings.format, quality);
       });
-  };
+  }, [generateFinalCanvas, settings.format]);
+
 
   const handleTargetSize = async () => {
     const numericSize = parseFloat(targetSize);
-    if (!numericSize || numericSize <= 0 || !canvasRef.current) return;
+    if (!numericSize || numericSize <= 0) return;
 
     setIsOptimizing(true);
     const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
     
     let high = 1, low = 0, mid = 0.5, bestQuality = 0.5;
     
+    // Binary search for the best quality setting to meet the target size
     for(let i = 0; i < 10; i++) {
       mid = (low + high) / 2;
       const blob = await getBlobFromCanvas(mid);
@@ -107,57 +110,12 @@ export function AppHeader({
     }
     
     updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+    
+    // Defer the size update to allow the main state to update first
     setTimeout(() => {
         onUpdateProcessedSize();
         setIsOptimizing(false);
     }, 100);
-  };
-
-  const handleShare = async () => {
-    if (!canvasRef.current) {
-        toast({ title: "Error", description: "Cannot share, canvas not ready.", variant: "destructive" });
-        return;
-    }
-
-    const fallbackShare = async () => {
-        const url = 'https://img-resizers.vercel.app/';
-        await navigator.clipboard.writeText(url);
-        toast({
-            title: "Link Copied!",
-            description: "The website URL has been copied to your clipboard.",
-        });
-    };
-
-    try {
-        canvasRef.current.toBlob(async (blob) => {
-            if (!blob) {
-                toast({ title: "Error", description: "Could not generate image for sharing.", variant: "destructive" });
-                return;
-            }
-
-            const extension = settings.format.split('/')[1].split('+')[0] || 'png';
-            const filename = `camly-edited-image.${extension}`;
-            const file = new File([blob], filename, { type: settings.format });
-
-            const shareData: ShareData = {
-                title: 'Camly Image Editor',
-                text: 'Check out this image I edited with Camly!',
-                url: 'https://img-resizers.vercel.app/',
-            };
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                shareData.files = [file];
-                await navigator.share(shareData);
-            } else if (navigator.share) {
-                await navigator.share(shareData); // Share without file if not supported
-            } else {
-                await fallbackShare();
-            }
-        }, settings.format, settings.quality);
-    } catch (error) {
-        console.error("Share error:", error);
-        await fallbackShare();
-    }
   };
 
 
@@ -291,7 +249,7 @@ export function AppHeader({
                           <Download className="mr-2"/>
                           Download
                       </Button>
-                      <Button variant="outline" size="icon" onClick={handleShare} className="shrink-0">
+                      <Button variant="outline" size="icon" onClick={onShare} className="shrink-0">
                           <Share2 />
                       </Button>
                     </div>
@@ -305,5 +263,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    

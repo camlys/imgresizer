@@ -60,8 +60,6 @@ export default function Home() {
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const INSET_PX = 38; // Approx 10mm
 
-  const finalCanvasRef = useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
     if (!originalImage) return;
     const img = new Image();
@@ -276,41 +274,11 @@ export default function Home() {
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
 
-  const updateProcessedSize = useCallback(() => {
-    if (finalCanvasRef.current) {
-        // Redraw the final canvas if needed (or assume it's up-to-date)
-        generateFinalCanvas().then(canvas => {
-            if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
-                setProcessedSize(null);
-                return;
-            }
-            canvas.toBlob(
-                (blob) => {
-                    if (blob) setProcessedSize(blob.size);
-                },
-                settings.format,
-                settings.quality
-            );
-        });
-    }
-  }, [settings.format, settings.quality]);
-
  const generateFinalCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
-        if (!originalImage) return reject(new Error("No original image loaded."));
+        if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
-        const img = new Image();
-        const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            if (!originalImage.src.startsWith('data:')) {
-                img.crossOrigin = 'anonymous';
-            }
-            img.src = originalImage.src;
-        });
-
         try {
-            const imageElement = await imageLoadPromise;
             const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
 
             const adjustedCanvas = document.createElement('canvas');
@@ -389,8 +357,27 @@ export default function Home() {
             reject(error);
         }
     });
-}, [originalImage, settings]);
+}, [originalImage, imageElement, settings]);
 
+  const updateProcessedSize = useCallback(async () => {
+    try {
+        const canvas = await generateFinalCanvas();
+        if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
+            setProcessedSize(null);
+            return;
+        }
+        canvas.toBlob(
+            (blob) => {
+                if (blob) setProcessedSize(blob.size);
+            },
+            settings.format,
+            settings.quality
+        );
+    } catch (error) {
+        console.error("Error updating processed size:", error);
+        setProcessedSize(null);
+    }
+  }, [generateFinalCanvas, settings.format, settings.quality]);
 
   const handleDownload = useCallback(async (filename: string) => {
     try {
@@ -461,6 +448,52 @@ export default function Home() {
         });
     }
   }, [generateFinalCanvas, settings.format, settings.quality, toast]);
+
+  const handleShare = useCallback(async () => {
+    const fallbackShare = async () => {
+        const url = 'https://img-resizers.vercel.app/';
+        await navigator.clipboard.writeText(url);
+        toast({
+            title: "Link Copied!",
+            description: "The website URL has been copied to your clipboard.",
+        });
+    };
+
+    try {
+        const finalCanvas = await generateFinalCanvas();
+        finalCanvas.toBlob(async (blob) => {
+            if (!blob) {
+                toast({ title: "Error", description: "Could not generate image for sharing.", variant: "destructive" });
+                return;
+            }
+
+            const extension = settings.format.split('/')[1].split('+')[0] || 'png';
+            const filename = `camly-edited-image.${extension}`;
+            const file = new File([blob], filename, { type: settings.format });
+
+            const shareData: ShareData = {
+                title: 'Camly Image Editor',
+                text: 'Check out this image I edited with Camly!',
+                url: 'https://img-resizers.vercel.app/',
+            };
+            
+            // Check if files can be shared
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                shareData.files = [file];
+                await navigator.share(shareData);
+            } else if (navigator.share) {
+                // If files cannot be shared, share without the file
+                await navigator.share(shareData);
+            } else {
+                // Fallback if share API is not supported at all
+                await fallbackShare();
+            }
+        }, settings.format, settings.quality);
+    } catch (error) {
+        console.error("Share error:", error);
+        await fallbackShare();
+    }
+  }, [generateFinalCanvas, settings.format, settings.quality, toast]);
   
   if (!originalImage) {
     return (
@@ -471,9 +504,10 @@ export default function Home() {
           isImageLoaded={!!originalImage}
           settings={settings}
           updateSettings={updateSettings}
-          canvasRef={finalCanvasRef}
+          generateFinalCanvas={generateFinalCanvas}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
+          onShare={handleShare}
         />
         <main className="flex-1 w-full overflow-y-auto">
           <HeroSection onUpload={handleImageUpload} />
@@ -495,9 +529,10 @@ export default function Home() {
         isImageLoaded={!!originalImage}
         settings={settings}
         updateSettings={updateSettings}
-        canvasRef={finalCanvasRef}
+        generateFinalCanvas={generateFinalCanvas}
         processedSize={processedSize}
         onUpdateProcessedSize={updateProcessedSize}
+        onShare={handleShare}
       />
       <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
         <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
@@ -535,5 +570,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
