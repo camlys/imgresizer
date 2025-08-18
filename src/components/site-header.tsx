@@ -8,7 +8,7 @@ export function SiteHeader() {
       <div className="container mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <LogoIcon />
-          <h1 className="text-2xl font-bold text-foreground font-headline tracking-tight">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
             Camly
           </h1>
         </Link>
