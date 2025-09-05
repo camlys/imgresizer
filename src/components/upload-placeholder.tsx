@@ -57,13 +57,14 @@ export function UploadPlaceholder({ onUpload, isLoading }: UploadPlaceholderProp
   return (
     <>
       <Card 
-        className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-primary transition-colors duration-300"
+        className="w-full h-full group relative flex items-center justify-center rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-500 ease-in-out"
         onClick={handleContainerClick}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         style={{ cursor: isLoading ? 'default' : 'pointer' }}
       >
-        <CardContent className="text-center p-10">
+        <div className="absolute inset-0 rounded-xl bg-card animated-border-bg group-hover:opacity-100 opacity-0 transition-opacity duration-500 ease-in-out"></div>
+        <CardContent className="text-center p-10 z-10">
           <input
             type="file"
             ref={uploadInputRef}
@@ -82,7 +83,7 @@ export function UploadPlaceholder({ onUpload, isLoading }: UploadPlaceholderProp
           ) : (
             <>
               <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
                   <UploadCloud className="w-10 h-10 text-primary" />
                 </div>
               </div>

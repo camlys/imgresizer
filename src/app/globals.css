@@ -25,6 +25,23 @@ body {
     animation: sun-rays 30s linear infinite;
     will-change: transform;
   }
+   .animated-border-bg {
+    background: conic-gradient(from var(--angle), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.6), hsl(var(--primary) / 0.8));
+    animation: spin 5s linear infinite;
+    --angle: 0deg;
+  }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin {
+  to {
+    --angle: 360deg;
+  }
 }
 
 @layer base {
