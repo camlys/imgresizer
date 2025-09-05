@@ -17,7 +17,7 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
       uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
-      uploadInputRef.current.click();
+      uploadInputdRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
   };
@@ -38,12 +38,23 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
         className="hidden"
       />
       <section className="relative bg-background text-foreground overflow-hidden">
-        <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-accent/30 to-primary/30 bg-[size:200%_200%] animate-gradient-shift blur-3xl"></div>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-secondary bg-[size:200%_200%] animate-gradient-shift opacity-30 [animation-delay:-3s]"></div>
+         <div 
+          className="absolute inset-0 z-0 bg-white"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 70% 30%, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at 20% 80%, hsl(var(--accent) / 0.05), transparent 30%)',
+          }}
+        >
+          <div 
+            className="absolute inset-0"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(128, 128, 128, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128, 128, 128, 0.1) 1px, transparent 1px)',
+              backgroundSize: '2rem 2rem',
+              opacity: 0.5,
+            }}
+          ></div>
         </div>
         <div className="relative container mx-auto px-6 py-24 md:py-32 text-center">
-            <div className="bg-background/70 backdrop-blur-md rounded-xl p-8 inline-block shadow-2xl">
+            <div className="bg-background/80 backdrop-blur-md rounded-xl p-8 inline-block shadow-2xl">
                 <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-foreground to-primary">
                     Transform Your Images Instantly
                 </h1>
@@ -75,3 +86,4 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
     </>
   );
 }
+
