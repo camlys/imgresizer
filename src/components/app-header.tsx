@@ -136,7 +136,7 @@ export function AppHeader({
           onChange={handleFileChange}
           className="hidden"
         />
-        <Button variant="outline" onClick={handleUploadClick}>
+        <Button variant="default" onClick={handleUploadClick} className="transition-transform transform hover:scale-110">
           <Upload />
         </Button>
          <UploadTypeDialog
