@@ -17,7 +17,7 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
       uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
-      uploadInputinputRef.current.click();
+      uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
   };
@@ -40,7 +40,7 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
       <section className="relative bg-background text-foreground overflow-hidden">
         <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-accent/30 to-primary/30 bg-[size:200%_200%] animate-gradient-shift blur-3xl"></div>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-secondary bg-[size:200%_200%] animate-gradient-shift opacity-30"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-secondary bg-[size:200%_200%] animate-gradient-shift opacity-30 [animation-delay:-3s]"></div>
         </div>
         <div className="relative container mx-auto px-6 py-24 md:py-32 text-center">
             <div className="bg-background/70 backdrop-blur-md rounded-xl p-8 inline-block shadow-2xl">
