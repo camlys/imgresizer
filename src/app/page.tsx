@@ -604,6 +604,14 @@ export default function Home() {
           )}
         </div>
       </main>
+       {pdfDoc && (
+          <PdfPageSelectorDialog
+            isOpen={isPdfSelectorOpen}
+            onOpenChange={setIsPdfSelectorOpen}
+            pdfDoc={pdfDoc}
+            onPageSelect={handlePdfPageSelect}
+          />
+        )}
     </div>
   );
 }
