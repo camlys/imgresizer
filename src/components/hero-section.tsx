@@ -17,7 +17,7 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
       uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
-      uploadInputdRef.current.click();
+      uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
   };
@@ -86,5 +86,6 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
     </>
   );
 }
+
 
 
