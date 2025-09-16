@@ -136,7 +136,7 @@ export function AppHeader({
           onChange={handleFileChange}
           className="hidden"
         />
-        <Button variant="default" onClick={handleUploadClick} className="transition-transform transform hover:scale-110">
+        <Button variant="outline" size="icon" onClick={handleUploadClick}>
           <Upload />
         </Button>
          <UploadTypeDialog
@@ -147,7 +147,7 @@ export function AppHeader({
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="default">
+              <Button variant="outline">
                 <Download className="mr-2" />
                 Download
               </Button>
