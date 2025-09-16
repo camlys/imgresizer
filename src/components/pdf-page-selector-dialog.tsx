@@ -66,9 +66,9 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
             className="flex flex-col items-center gap-2 p-2 rounded-lg border border-transparent hover:border-primary hover:bg-primary/10 cursor-pointer transition-all"
             onClick={onSelect}
         >
-            <div className="relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center">
+            <div className="relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden">
                 {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
-                <canvas ref={canvasRef} className={`rounded-md shadow-sm ${isLoading ? 'hidden' : ''}`} />
+                <canvas ref={canvasRef} className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`} />
             </div>
             <p className="text-sm font-medium">Page {pageNumber}</p>
         </div>
