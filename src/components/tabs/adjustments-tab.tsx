@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { SlidersHorizontal, RefreshCcw } from 'lucide-react';
 import type { ImageSettings } from '@/lib/types';
 import React from 'react';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface AdjustmentsTabProps {
   settings: ImageSettings;
