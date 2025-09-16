@@ -93,8 +93,8 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                        <div className="grid gap-1.5">
                         <Label htmlFor={`text-color-${text.id}`}>Color</Label>
                         <div className="relative">
-                          <Input id={`text-color-${text.id}`} type="text" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })}/>
-                          <Input type="color" className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer" value={text.color.startsWith('#') ? text.color : '#000000'} onChange={e => updateText(text.id, { color: e.target.value })}/>
+                          <Input id={`text-color-${text.id}`} type="text" value={text.color} onChange={e => updateText(text.id, { color: e.target.value })} className="pr-10"/>
+                          <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={text.color.startsWith('#') ? text.color : '#000000'} onChange={e => updateText(text.id, { color: e.target.value })}/>
                         </div>
                       </div>
                       <div className="grid gap-1.5">
@@ -108,10 +108,11 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                             value={text.backgroundColor}
                             onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
                             placeholder="e.g. #FFF, transparent"
+                            className="pr-10"
                           />
                           <Input
                             type="color"
-                            className="absolute top-0 right-0 h-full w-10 p-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
                             value={text.backgroundColor.startsWith('#') ? text.backgroundColor : '#ffffff'}
                             onChange={(e) => updateText(text.id, { backgroundColor: e.target.value })}
                             disabled={text.backgroundColor === 'transparent'}
