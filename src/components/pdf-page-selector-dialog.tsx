@@ -45,7 +45,9 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
                 await renderTask.promise;
                 if(isMounted) setIsLoading(false);
             } catch (error) {
-                console.error(`Failed to render page ${pageNumber}`, error);
+                if (error instanceof Error && error.name !== 'RenderingCancelledException') {
+                  console.error(`Failed to render page ${pageNumber}`, error);
+                }
             }
         }
         
@@ -119,4 +121,3 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         </Dialog>
     );
 }
-
