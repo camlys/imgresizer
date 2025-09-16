@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import {
   Dialog,
@@ -9,9 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { Checkbox } from './ui/checkbox';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from './ui/label';
 
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
@@ -20,7 +25,7 @@ interface PdfPageSelectorDialogProps {
   onPageSelect: (pageNumber: number) => void;
 }
 
-function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDocumentProxy, pageNumber: number, onSelect: () => void }) {
+function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelection }: { pdfDoc: pdfjsLib.PDFDocumentProxy, pageNumber: number, onSelect: () => void, isSelected: boolean, onToggleSelection: (pageNumber: number) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +39,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
                     observer.disconnect();
                 }
             },
-            { rootMargin: "200px" } // Pre-load images 200px before they enter the viewport
+            { rootMargin: "200px" } 
         );
 
         if (containerRef.current) {
@@ -90,13 +95,30 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
             }
         }
     }, [pdfDoc, pageNumber, isVisible]);
+    
+    const handleContainerClick = (e: React.MouseEvent) => {
+      // Prevent click from propagating to checkbox and vice-versa
+      if ((e.target as HTMLElement).closest('.checkbox-container')) {
+        return;
+      }
+      onSelect();
+    };
 
     return (
         <div
             ref={containerRef}
-            className="flex flex-col items-center gap-2 p-2 rounded-lg border border-transparent hover:border-primary hover:bg-primary/10 cursor-pointer transition-all"
-            onClick={onSelect}
+            className={`relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer ${isSelected ? 'border-primary' : 'border-transparent hover:border-primary/50'}`}
+            onClick={handleContainerClick}
         >
+             <div className="absolute top-3 right-3 z-10 checkbox-container" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                    id={`select-page-${pageNumber}`}
+                    checked={isSelected}
+                    onCheckedChange={() => onToggleSelection(pageNumber)}
+                    className="h-5 w-5 bg-background"
+                    aria-label={`Select page ${pageNumber}`}
+                />
+            </div>
             <div className="relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden">
                 {(isLoading || !isVisible) && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
                 <canvas 
@@ -113,6 +135,9 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
 export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [pageNumbers, setPageNumbers] = useState<number[]>([]);
+    const [selectedPages, setSelectedPages] = useState<number[]>([]);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (pdfDoc) {
@@ -121,17 +146,116 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
             setPageNumbers(Array.from({ length: numPages }, (_, i) => i + 1));
             setIsLoading(false);
         }
+        // Reset selections when dialog opens with a new doc
+        setSelectedPages([]);
     }, [pdfDoc]);
+    
+    const handleToggleSelection = (pageNumber: number) => {
+        setSelectedPages(prev => 
+            prev.includes(pageNumber) 
+                ? prev.filter(p => p !== pageNumber) 
+                : [...prev, pageNumber]
+        );
+    };
+
+    const handleToggleSelectAll = () => {
+        if (selectedPages.length === pageNumbers.length) {
+            setSelectedPages([]);
+        } else {
+            setSelectedPages(pageNumbers);
+        }
+    };
+    
+    const handleDownloadSelected = async () => {
+        if (!pdfDoc || selectedPages.length === 0) return;
+
+        setIsDownloading(true);
+        toast({
+            title: "Download Started",
+            description: `Preparing ${selectedPages.length} page(s) for download...`
+        });
+
+        const sortedPages = [...selectedPages].sort((a, b) => a - b);
+        
+        for (const pageNum of sortedPages) {
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 4.0 }); // High resolution
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: context, viewport }).promise;
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `page_${pageNum}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                // A small delay to help browsers manage multiple downloads
+                await new Promise(resolve => setTimeout(resolve, 200)); 
+            } catch (error) {
+                console.error(`Failed to download page ${pageNum}`, error);
+                toast({
+                    title: "Download Error",
+                    description: `Could not download page ${pageNum}.`,
+                    variant: "destructive"
+                });
+            }
+        }
+        
+        setIsDownloading(false);
+        toast({
+            title: "Download Complete",
+            description: `${selectedPages.length} page(s) have been downloaded.`,
+        });
+        setSelectedPages([]); // Deselect after download
+    };
+
 
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+          if (!open) setSelectedPages([]);
+          onOpenChange(open);
+        }}>
             <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Select a Page to Edit</DialogTitle>
                     <DialogDescription>
-                        Your PDF has multiple pages. Click on a page preview to select it for editing.
+                        Click on a page to start editing, or select multiple pages to download them as images.
                     </DialogDescription>
                 </DialogHeader>
+                
+                {!isLoading && (
+                     <div className="flex items-center justify-between py-2 border-b">
+                         <div className="flex items-center gap-2">
+                             <Checkbox
+                                id="select-all"
+                                checked={pageNumbers.length > 0 && selectedPages.length === pageNumbers.length}
+                                onCheckedChange={handleToggleSelectAll}
+                             />
+                             <Label htmlFor="select-all" className="cursor-pointer">
+                                {selectedPages.length === pageNumbers.length ? 'Deselect All' : 'Select All'}
+                             </Label>
+                         </div>
+                         <Button onClick={handleDownloadSelected} disabled={selectedPages.length === 0 || isDownloading}>
+                            {isDownloading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download ({selectedPages.length})
+                         </Button>
+                     </div>
+                )}
+               
                 {isLoading ? (
                     <div className="flex-1 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -146,6 +270,8 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                    pdfDoc={pdfDoc!}
                                    pageNumber={pageNum}
                                    onSelect={() => onPageSelect(pageNum)}
+                                   isSelected={selectedPages.includes(pageNum)}
+                                   onToggleSelection={handleToggleSelection}
                                />
                            ))}
                         </div>
