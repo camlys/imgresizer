@@ -1,12 +1,14 @@
+
 "use client";
 
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, RefreshCcw } from 'lucide-react';
 import type { ImageSettings } from '@/lib/types';
 import React from 'react';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface AdjustmentsTabProps {
   settings: ImageSettings;
@@ -39,11 +41,20 @@ const presets = [
 
 export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps) {
   const handleAdjustmentChange = (field: keyof typeof settings.adjustments, value: number) => {
-    updateSettings({ adjustments: { ...settings.adjustments, [field]: value } });
+    const newAdjustments = { ...settings.adjustments, [field]: value };
+    // Applying grayscale should desaturate the image.
+    if (field === 'grayscale' && value > 0) {
+      newAdjustments.saturate = 100;
+    }
+    updateSettings({ adjustments: newAdjustments });
   };
   
-  const resetAdjustments = () => {
+  const resetAllAdjustments = () => {
     updateSettings({ adjustments: initialAdjustments });
+  };
+  
+  const resetSingleAdjustment = (field: keyof typeof initialAdjustments) => {
+    handleAdjustmentChange(field, initialAdjustments[field]);
   };
 
   const applyPreset = (presetValues: Partial<typeof initialAdjustments>) => {
@@ -65,7 +76,7 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-medium flex items-center gap-2"><SlidersHorizontal size={18}/> Adjustments</CardTitle>
-          <Button variant="ghost" size="sm" onClick={resetAdjustments}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={resetAllAdjustments}>Reset All</Button>
         </CardHeader>
         <CardContent className="space-y-4">
            <div>
@@ -79,7 +90,21 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
           {sliders.map(({ label, field, min, max, unit }) => (
             <div key={field} className="grid gap-1.5">
               <div className="flex justify-between items-center">
-                <Label htmlFor={`adj-${field}`}>{label}</Label>
+                 <div className="flex items-center gap-2">
+                    <Label htmlFor={`adj-${field}`}>{label}</Label>
+                    <TooltipProvider>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => resetSingleAdjustment(field)}>
+                               <RefreshCcw size={14} className="text-muted-foreground" />
+                            </Button>
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>Reset {label}</p>
+                         </TooltipContent>
+                       </Tooltip>
+                    </TooltipProvider>
+                 </div>
                 <span className="text-sm text-muted-foreground">{settings.adjustments[field]}{unit}</span>
               </div>
               <Slider
