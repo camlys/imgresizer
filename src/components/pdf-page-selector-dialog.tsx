@@ -22,9 +22,35 @@ interface PdfPageSelectorDialogProps {
 
 function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDocumentProxy, pageNumber: number, onSelect: () => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: "200px" } // Pre-load images 200px before they enter the viewport
+        );
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
+
+        return () => {
+            if (containerRef.current) {
+                observer.unobserve(containerRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
+
         let isMounted = true;
         let renderTask: pdfjsLib.RenderTask | null = null;
         
@@ -34,14 +60,18 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
                 const canvas = canvasRef.current;
                 if (!canvas || !isMounted) return;
 
-                const viewport = page.getViewport({ scale: 1.0 });
+                const desiredWidth = 300;
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = desiredWidth / viewport.width;
+                const scaledViewport = page.getViewport({ scale });
+                
                 const context = canvas.getContext('2d');
                 if (!context) return;
                 
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                canvas.height = scaledViewport.height;
+                canvas.width = scaledViewport.width;
                 
-                renderTask = page.render({ canvasContext: context, viewport: viewport });
+                renderTask = page.render({ canvasContext: context, viewport: scaledViewport });
                 await renderTask.promise;
                 if(isMounted) setIsLoading(false);
             } catch (error) {
@@ -59,16 +89,20 @@ function PagePreview({ pdfDoc, pageNumber, onSelect }: { pdfDoc: pdfjsLib.PDFDoc
                 renderTask.cancel();
             }
         }
-    }, [pdfDoc, pageNumber]);
+    }, [pdfDoc, pageNumber, isVisible]);
 
     return (
         <div
+            ref={containerRef}
             className="flex flex-col items-center gap-2 p-2 rounded-lg border border-transparent hover:border-primary hover:bg-primary/10 cursor-pointer transition-all"
             onClick={onSelect}
         >
             <div className="relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
-                <canvas ref={canvasRef} className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`} />
+                {(isLoading || !isVisible) && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
+                <canvas 
+                  ref={canvasRef} 
+                  className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`}
+                />
             </div>
             <p className="text-sm font-medium">Page {pageNumber}</p>
         </div>
