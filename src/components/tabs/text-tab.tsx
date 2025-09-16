@@ -55,6 +55,11 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
     });
   };
 
+  const toggleBackgroundTransparency = (text: TextOverlay) => {
+    const newColor = text.backgroundColor === 'transparent' ? '#ffffff' : 'transparent';
+    updateText(text.id, { backgroundColor: newColor });
+  };
+
   return (
     <div className="space-y-4 p-1">
       <Card>
@@ -104,12 +109,12 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                            <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateText(text.id, { backgroundColor: 'transparent' })}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleBackgroundTransparency(text)}>
                                   <Ban size={16}/>
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Transparent background</p>
+                                <p>Toggle transparent background</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
