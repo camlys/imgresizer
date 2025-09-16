@@ -13,7 +13,8 @@ interface ImageCanvasProps {
   setPendingCrop: (crop: CropSettings | null) => void;
 }
 
-const CROP_HANDLE_SIZE = 10;
+const CROP_HANDLE_SIZE = 12; // Increased size
+const CROP_HANDLE_HIT_AREA = 24; // Larger touch target
 const MIN_CROP_SIZE_PX = 20;
 const TEXT_ROTATION_HANDLE_RADIUS = 6;
 const TEXT_ROTATION_HANDLE_OFFSET = 20;
@@ -53,6 +54,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const [processedImageCache, setProcessedImageCache] = useState<HTMLCanvasElement | null>(null);
   const [interactionState, setInteractionState] = useState<InteractionState | null>(null);
+  const [cursor, setCursor] = useState('auto');
 
   useImperativeHandle(ref, () => internalCanvasRef.current!, []);
 
@@ -347,16 +349,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }, [getCanvasAndContext]);
 
-  const getCropHandleRects = (x: number, y: number, w: number, h: number) => {
-    const hs = CROP_HANDLE_SIZE;
+  const getCropHandleRects = (x: number, y: number, w: number, h: number, hitArea: boolean = false) => {
+    const size = hitArea ? CROP_HANDLE_HIT_AREA : CROP_HANDLE_SIZE;
+    const offset = (size / 2);
     return {
-      tl: { x: x - hs/2, y: y - hs/2, w: hs, h: hs }, t:  { x: x + w/2 - hs/2, y: y - hs/2, w: hs, h: hs }, tr: { x: x + w - hs/2, y: y - hs/2, w: hs, h: hs },
-      l:  { x: x - hs/2, y: y + h/2 - hs/2, w: hs, h: hs }, r:  { x: x + w - hs/2, y: y + h/2 - hs/2, w: hs, h: hs },
-      bl: { x: x - hs/2, y: y + h - hs/2, w: hs, h: hs }, b:  { x: x + w/2 - hs/2, y: y + h - hs/2, w: hs, h: hs }, br: { x: x + w - hs/2, y: y + h - hs/2, w: hs, h: hs },
+      tl: { x: x - offset, y: y - offset, w: size, h: size, cursor: 'nwse-resize' },
+      t:  { x: x + w/2 - offset, y: y - offset, w: size, h: size, cursor: 'ns-resize' },
+      tr: { x: x + w - offset, y: y - offset, w: size, h: size, cursor: 'nesw-resize' },
+      l:  { x: x - offset, y: y + h/2 - offset, w: size, h: size, cursor: 'ew-resize' },
+      r:  { x: x + w - offset, y: y + h/2 - offset, w: size, h: size, cursor: 'ew-resize' },
+      bl: { x: x - offset, y: y + h - offset, w: size, h: size, cursor: 'nesw-resize' },
+      b:  { x: x + w/2 - offset, y: y + h - offset, w: size, h: size, cursor: 'ns-resize' },
+      br: { x: x + w - offset, y: y + h - offset, w: size, h: size, cursor: 'nwse-resize' },
     };
   };
 
-  const getCropInteractionType = (mouseX: number, mouseY: number): InteractionType | 'crop-move' | null => {
+  const getCropInteractionType = useCallback((mouseX: number, mouseY: number): { type: InteractionType; cursor: string } | null => {
       const { canvas } = getCanvasAndContext();
       const img = imageElement;
       if (!canvas || !img) return null;
@@ -367,7 +375,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         for (const [key, point] of corners) {
             const dist = Math.sqrt(Math.pow(mouseX - point.x * scale, 2) + Math.pow(mouseY - point.y * scale, 2));
             if (dist <= PERSPECTIVE_HANDLE_HIT_RADIUS) {
-                return `perspective-${key}` as InteractionType;
+                return { type: `perspective-${key}` as InteractionType, cursor: 'pointer' };
             }
         }
         return null;
@@ -380,33 +388,35 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const sy = pendingCrop.y * scale;
         const sWidth = pendingCrop.width * scale;
         const sHeight = pendingCrop.height * scale;
-        const handles = getCropHandleRects(sx, sy, sWidth, sHeight);
+        const handles = getCropHandleRects(sx, sy, sWidth, sHeight, true); // Use hit area for detection
+        
         for (const [key, rect] of Object.entries(handles)) {
             if (mouseX >= rect.x && mouseX <= rect.x + rect.w && mouseY >= rect.y && mouseY <= rect.y + rect.h) {
-                return `crop-${key}` as InteractionType;
+                return { type: `crop-${key}` as InteractionType, cursor: rect.cursor };
             }
         }
-        if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) return 'crop-move';
+        if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) {
+          return { type: 'crop-move', cursor: 'move' };
+        }
       }
 
       return null;
-  };
+  }, [getCanvasAndContext, imageElement, settings.cropMode, settings.perspectivePoints, pendingCrop]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('touches' in e) {
-      e.preventDefault();
-    }
+    if ('touches' in e) e.preventDefault();
+
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
 
     if (activeTab === 'crop') {
-        const cropInteractionType = getCropInteractionType(pos.x, pos.y);
-        if (cropInteractionType) {
+        const interaction = getCropInteractionType(pos.x, pos.y);
+        if (interaction) {
             setInteractionState({ 
-              type: cropInteractionType, 
-              startPos: pos, 
-              startCrop: cropInteractionType.startsWith('crop-') ? pendingCrop! : undefined
+              type: interaction.type,
+              startPos: pos,
+              startCrop: interaction.type.startsWith('crop-') ? pendingCrop! : undefined
             });
         } else if (settings.cropMode === 'rect') {
             const scale = canvas.width / imageElement.width;
@@ -449,106 +459,119 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, settings.cropMode, settings.perspectivePoints, setPendingCrop, getTextHandlePositions, getCropInteractionType]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, setPendingCrop, getTextHandlePositions, getCropInteractionType]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!interactionState) return;
-    
-    if ('touches' in e) {
-      e.preventDefault();
-    }
     const pos = getInteractionPos(e);
-    const { canvas } = getCanvasAndContext();
-    const img = imageElement;
-    if (!canvas || !img) return;
-
-    const { type, startPos } = interactionState;
     
-    if (type.startsWith('text-')) {
-        if (type === 'text-move' && interactionState.textId && interactionState.startTextCoords) {
-            const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
-            const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, 
-                x: Math.max(0, Math.min(100, interactionState.startTextCoords!.x + dx_percent)),
-                y: Math.max(0, Math.min(100, interactionState.startTextCoords!.y + dy_percent)),
-            } : t);
-            updateSettings({ texts: newTexts });
-        } else if (type === 'text-rotate' && interactionState.textId && interactionState.textCenter) {
-            const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
-            const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
-            let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
-            const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: newRotation } : t);
-            updateSettings({ texts: newTexts });
-        }
-    } else if (type.startsWith('crop-')) {
-        const { startCrop } = interactionState;
-        if (!startCrop) return;
-        const scale = canvas.width / img.width;
+    if (interactionState) {
+        if ('touches' in e) e.preventDefault();
         
-        if (type === 'crop-move') {
-             const dx = (pos.x - startPos.x) / scale;
-             const dy = (pos.y - startPos.y) / scale;
-             let newCrop = { ...startCrop, x: startCrop.x + dx, y: startCrop.y + dy };
-             newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
-             newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
-             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
-        } else {
-             let newCrop = { ...startCrop };
-             const mouseX = pos.x / scale;
-             const mouseY = pos.y / scale;
-             const minW = MIN_CROP_SIZE_PX / scale;
-             const minH = MIN_CROP_SIZE_PX / scale;
-             
-             const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
-             const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
-             let newX1 = type.includes('l') ? mouseX : anchorX;
-             let newY1 = type.includes('t') ? mouseY : anchorY;
-             let newX2 = type.includes('r') ? mouseX : anchorX;
-             let newY2 = type.includes('b') ? mouseY : anchorY;
-             
-             if (!type.includes('l') && !type.includes('r')) { newX1 = startCrop.x; newX2 = startCrop.x + startCrop.width; }
-             if (!type.includes('t') && !type.includes('b')) { newY1 = startCrop.y; newY2 = startCrop.y + startCrop.height; }
+        const { canvas } = getCanvasAndContext();
+        const img = imageElement;
+        if (!canvas || !img) return;
 
-             newCrop.x = Math.min(newX1, newX2);
-             newCrop.y = Math.min(newY1, newY2);
-             newCrop.width = Math.abs(newX1 - newX2);
-             newCrop.height = Math.abs(newY1 - newY2);
-
-             if (newCrop.width < minW) { newCrop.width = minW; if (newCrop.x === Math.min(newX1, newX2)) { newCrop.x = newX2 - minW; } }
-             if (newCrop.height < minH) { newCrop.height = minH; if (newCrop.y === Math.min(newY1, newY2)) { newCrop.y = newY2 - minH; } }
-             if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
-             if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
-             if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
-             if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
-             setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
-        }
-    } else if (type.startsWith('perspective-')) {
-        const scale = canvas.width / img.width;
-        let newX = pos.x / scale;
-        let newY = pos.y / scale;
-
-        newX = Math.max(0, Math.min(newX, img.width));
-        newY = Math.max(0, Math.min(newY, img.height));
+        const { type, startPos } = interactionState;
         
-        const corner = type.split('-')[1] as keyof CornerPoints;
-        const newPoints = { ...settings.perspectivePoints!, [corner]: { x: newX, y: newY } };
-        updateSettings({ perspectivePoints: newPoints });
+        if (type.startsWith('text-')) {
+            if (type === 'text-move' && interactionState.textId && interactionState.startTextCoords) {
+                const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
+                const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
+                const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, 
+                    x: Math.max(0, Math.min(100, interactionState.startTextCoords!.x + dx_percent)),
+                    y: Math.max(0, Math.min(100, interactionState.startTextCoords!.y + dy_percent)),
+                } : t);
+                updateSettings({ texts: newTexts });
+            } else if (type === 'text-rotate' && interactionState.textId && interactionState.textCenter) {
+                const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
+                const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
+                let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
+                const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: newRotation } : t);
+                updateSettings({ texts: newTexts });
+            }
+        } else if (type.startsWith('crop-')) {
+            const { startCrop } = interactionState;
+            if (!startCrop) return;
+            const scale = canvas.width / img.width;
+            
+            if (type === 'crop-move') {
+                 const dx = (pos.x - startPos.x) / scale;
+                 const dy = (pos.y - startPos.y) / scale;
+                 let newCrop = { ...startCrop, x: startCrop.x + dx, y: startCrop.y + dy };
+                 newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
+                 newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
+                 setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
+            } else {
+                 let newCrop = { ...startCrop };
+                 const mouseX = pos.x / scale;
+                 const mouseY = pos.y / scale;
+                 const minW = MIN_CROP_SIZE_PX / scale;
+                 const minH = MIN_CROP_SIZE_PX / scale;
+                 
+                 const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
+                 const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
+                 let newX1 = type.includes('l') ? mouseX : anchorX;
+                 let newY1 = type.includes('t') ? mouseY : anchorY;
+                 let newX2 = type.includes('r') ? mouseX : anchorX;
+                 let newY2 = type.includes('b') ? mouseY : anchorY;
+                 
+                 if (!type.includes('l') && !type.includes('r')) { newX1 = startCrop.x; newX2 = startCrop.x + startCrop.width; }
+                 if (!type.includes('t') && !type.includes('b')) { newY1 = startCrop.y; newY2 = startCrop.y + startCrop.height; }
+
+                 newCrop.x = Math.min(newX1, newX2);
+                 newCrop.y = Math.min(newY1, newY2);
+                 newCrop.width = Math.abs(newX1 - newX2);
+                 newCrop.height = Math.abs(newY1 - newY2);
+
+                 if (newCrop.width < minW) { newCrop.width = minW; if (newCrop.x === Math.min(newX1, newX2)) { newCrop.x = newX2 - minW; } }
+                 if (newCrop.height < minH) { newCrop.height = minH; if (newCrop.y === Math.min(newY1, newY2)) { newCrop.y = newY2 - minH; } }
+                 if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
+                 if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
+                 if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
+                 if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
+                 setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
+            }
+        } else if (type.startsWith('perspective-')) {
+            const scale = canvas.width / img.width;
+            let newX = pos.x / scale;
+            let newY = pos.y / scale;
+
+            newX = Math.max(0, Math.min(newX, img.width));
+            newY = Math.max(0, Math.min(newY, img.height));
+            
+            const corner = type.split('-')[1] as keyof CornerPoints;
+            const newPoints = { ...settings.perspectivePoints!, [corner]: { x: newX, y: newY } };
+            updateSettings({ perspectivePoints: newPoints });
+        }
+    } else if (activeTab === 'crop') {
+        const interaction = getCropInteractionType(pos.x, pos.y);
+        setCursor(interaction ? interaction.cursor : 'crosshair');
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.perspectivePoints, updateSettings]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.perspectivePoints, updateSettings, activeTab, getCropInteractionType]);
 
   const handleInteractionEnd = useCallback(() => {
-    setInteractionState(null);
-  }, []);
+    if (interactionState) {
+      setInteractionState(null);
+    }
+  }, [interactionState]);
+  
+  const handleMouseLeave = useCallback(() => {
+    if (interactionState) {
+      setInteractionState(null);
+    }
+    setCursor('auto');
+  }, [interactionState]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center touch-none">
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"
+          style={{ cursor: activeTab === 'crop' ? cursor : 'default' }}
           onMouseDown={handleInteractionStart}
           onMouseMove={handleInteractionMove}
           onMouseUp={handleInteractionEnd}
-          onMouseLeave={handleInteractionEnd}
+          onMouseLeave={handleMouseLeave}
           onTouchStart={handleInteractionStart}
           onTouchMove={handleInteractionMove}
           onTouchEnd={handleInteractionEnd}
