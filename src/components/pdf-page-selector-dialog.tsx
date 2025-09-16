@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Loader2, Download } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
@@ -17,6 +16,7 @@ import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
@@ -48,6 +48,8 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
         return () => {
             if (containerRef.current) {
+                // This condition is to prevent errors if the component is unmounted before the observer is set up
+                // eslint-disable-next-line react-hooks/exhaustive-deps
                 observer.unobserve(containerRef.current);
             }
         };
@@ -138,6 +140,8 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
+    const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/png');
+
 
     useEffect(() => {
         if (pdfDoc) {
@@ -176,6 +180,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         });
 
         const sortedPages = [...selectedPages].sort((a, b) => a - b);
+        const extension = downloadFormat.split('/')[1];
         
         for (const pageNum of sortedPages) {
             try {
@@ -191,10 +196,10 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
 
                 await page.render({ canvasContext: context, viewport }).promise;
 
-                const dataUrl = canvas.toDataURL('image/png');
+                const dataUrl = canvas.toDataURL(downloadFormat, 1.0);
                 const link = document.createElement('a');
                 link.href = dataUrl;
-                link.download = `page_${pageNum}.png`;
+                link.download = `page_${pageNum}.${extension}`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -234,7 +239,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 </DialogHeader>
                 
                 {!isLoading && (
-                     <div className="flex items-center justify-between py-2 border-b">
+                     <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b">
                          <div className="flex items-center gap-2">
                              <Checkbox
                                 id="select-all"
@@ -245,14 +250,26 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                 {selectedPages.length === pageNumbers.length ? 'Deselect All' : 'Select All'}
                              </Label>
                          </div>
-                         <Button onClick={handleDownloadSelected} disabled={selectedPages.length === 0 || isDownloading}>
-                            {isDownloading ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Download className="mr-2 h-4 w-4" />
-                            )}
-                            Download ({selectedPages.length})
-                         </Button>
+                         <div className="flex items-center gap-2">
+                            <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp') => setDownloadFormat(v)}>
+                                <SelectTrigger className="w-[120px]">
+                                    <SelectValue placeholder="Format" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="image/png">PNG</SelectItem>
+                                    <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                    <SelectItem value="image/webp">WEBP</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleDownloadSelected} disabled={selectedPages.length === 0 || isDownloading} className="min-w-[160px]">
+                                {isDownloading ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Download className="mr-2 h-4 w-4" />
+                                )}
+                                Download ({selectedPages.length})
+                            </Button>
+                         </div>
                      </div>
                 )}
                
@@ -263,7 +280,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     </div>
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4">
                            {pageNumbers.map(pageNum => (
                                <PagePreview
                                    key={pageNum}
