@@ -65,6 +65,7 @@ export default function Home() {
   const [isPdfSelectorOpen, setIsPdfSelectorOpen] = useState(false);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isFromMultiPagePdf, setIsFromMultiPagePdf] = useState(false);
 
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function Home() {
     setActiveTab(tab);
   };
   
-    const loadPageAsImage = useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number) => {
+    const loadPageAsImage = useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
     setIsLoading(true);
     try {
       const page = await pdfDoc.getPage(pageNum);
@@ -146,6 +147,7 @@ export default function Home() {
         setActiveTab('resize');
         setProcessedSize(null);
         setIsLoading(false);
+        setIsFromMultiPagePdf(isMultiPage);
       };
       img.onerror = () => {
         toast({ title: "Error", description: "Could not load PDF page as image.", variant: "destructive" });
@@ -162,16 +164,18 @@ export default function Home() {
 
   const handlePdfPageSelect = useCallback((pageNum: number) => {
       if (pdfDoc && pdfFile) {
-        loadPageAsImage(pdfDoc, pageNum, pdfFile.size);
+        loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
       }
       setIsPdfSelectorOpen(false);
-      setPdfDoc(null);
-      setPdfFile(null);
   }, [pdfDoc, pdfFile, loadPageAsImage]);
 
 
   const handleImageUpload = async (file: File) => {
     setIsLoading(true);
+    setPdfDoc(null);
+    setPdfFile(null);
+    setIsFromMultiPagePdf(false);
+
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -220,7 +224,9 @@ export default function Home() {
                 setIsPdfSelectorOpen(true);
                 setIsLoading(false);
             } else {
-                loadPageAsImage(doc, 1, file.size);
+                loadPageAsImage(doc, 1, file.size, false);
+                setPdfDoc(doc);
+                setPdfFile(file);
             }
         } catch (error) {
             console.error("Error processing PDF:", error);
@@ -328,7 +334,7 @@ export default function Home() {
                     let r = data[i], g = data[i+1], b = data[i+2];
                     if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
                     if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-                    if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+                    if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (g - gray) * sVal; }
                     const tempR = r, tempG = g, tempB = b;
                     if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
                     if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
@@ -583,6 +589,8 @@ export default function Home() {
             pendingCrop={pendingCrop}
             setPendingCrop={setPendingCrop}
             onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
+            isFromMultiPagePdf={isFromMultiPagePdf}
+            onViewPages={() => setIsPdfSelectorOpen(true)}
           />
         </div>
         <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
@@ -616,3 +624,4 @@ export default function Home() {
   );
 }
 
+    

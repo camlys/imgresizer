@@ -20,6 +20,8 @@ interface ControlPanelProps {
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings | null) => void;
   onApplyPerspectiveCrop: () => void;
+  isFromMultiPagePdf: boolean;
+  onViewPages: () => void;
 }
 
 export function ControlPanel({ 
@@ -32,6 +34,8 @@ export function ControlPanel({
   pendingCrop,
   setPendingCrop,
   onApplyPerspectiveCrop,
+  isFromMultiPagePdf,
+  onViewPages,
 }: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
@@ -65,6 +69,8 @@ export function ControlPanel({
               updateSettings={updateSettings} 
               originalImage={originalImage} 
               processedSize={processedSize}
+              isFromMultiPagePdf={isFromMultiPagePdf}
+              onViewPages={onViewPages}
             />
           </TabsContent>
           <TabsContent value="crop">
@@ -92,3 +98,5 @@ export function ControlPanel({
     </div>
   );
 }
+
+    

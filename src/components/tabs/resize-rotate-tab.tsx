@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit } from '@/lib/types';
-import { Lock, Unlock, Scan } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 
@@ -34,9 +35,11 @@ interface ResizeRotateTabProps {
     updateSettings: (newSettings: Partial<ImageSettings>) => void;
     originalImage: OriginalImage;
     processedSize: number | null;
+    isFromMultiPagePdf: boolean;
+    onViewPages: () => void;
 }
 
-export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize }: ResizeRotateTabProps) {
+export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize, isFromMultiPagePdf, onViewPages }: ResizeRotateTabProps) {
     const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit, settings.dpi).toString());
     const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit, settings.dpi).toString());
     const [unit, setUnit] = useState(settings.unit);
@@ -117,7 +120,23 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-base font-medium flex items-center gap-2"><Scan size={18}/> Resize</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
+                    <div className="flex items-center gap-1">
+                      {isFromMultiPagePdf && (
+                          <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8">
+                                          <BookOpen size={16}/>
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p>View PDF Pages</p>
+                                  </TooltipContent>
+                              </Tooltip>
+                          </TooltipProvider>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -180,3 +199,5 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
+
+    
