@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2 } from 'lucide-react';
+import { Type, Plus, Trash2, Ban } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TextTabProps {
   settings: ImageSettings;
@@ -100,7 +101,18 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                       <div className="grid gap-1.5">
                         <div className="flex justify-between items-center">
                           <Label htmlFor={`text-bgcolor-${text.id}`}>Background</Label>
-                          <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => updateText(text.id, { backgroundColor: 'transparent' })}>Transparent</Button>
+                           <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateText(text.id, { backgroundColor: 'transparent' })}>
+                                  <Ban size={16}/>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Transparent background</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                         <div className="relative">
                           <Input
@@ -164,3 +176,5 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
     </div>
   );
 }
+
+    
