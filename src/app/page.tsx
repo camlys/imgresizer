@@ -15,6 +15,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
+import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -60,6 +61,12 @@ export default function Home() {
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const INSET_PX = 38; // Approx 10mm
 
+  // PDF Page Selection
+  const [isPdfSelectorOpen, setIsPdfSelectorOpen] = useState(false);
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+
+
   useEffect(() => {
     if (!originalImage) return;
     const img = new Image();
@@ -93,6 +100,75 @@ export default function Home() {
     }
     setActiveTab(tab);
   };
+  
+    const loadPageAsImage = useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number) => {
+    setIsLoading(true);
+    try {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 4.0 });
+
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) {
+        toast({ title: "Error", description: "Could not create canvas context to render PDF.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      const renderContext = { canvasContext: tempCtx, viewport: viewport };
+      await page.render(renderContext).promise;
+      
+      const img = new Image();
+      img.onload = () => {
+        const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
+        const cropData = { x: 0, y: 0, width: img.width, height: img.height };
+        setOriginalImage({
+          src: img.src,
+          width: img.width,
+          height: img.height,
+          size: originalFileSize, // Use original file size for info
+        });
+        setSettings({
+          ...initialSettings,
+          width: img.width,
+          height: img.height,
+          crop: cropData,
+          perspectivePoints: {
+            tl: { x: inset, y: inset },
+            tr: { x: img.width - inset, y: inset },
+            bl: { x: inset, y: img.height - inset },
+            br: { x: img.width - inset, y: img.height - inset },
+          },
+        });
+        setPendingCrop(null);
+        setActiveTab('resize');
+        setProcessedSize(null);
+        setIsLoading(false);
+      };
+      img.onerror = () => {
+        toast({ title: "Error", description: "Could not load PDF page as image.", variant: "destructive" });
+        setIsLoading(false);
+      }
+      img.src = tempCanvas.toDataURL('image/png');
+    } catch (error) {
+        console.error("Error processing PDF page:", error);
+        toast({ title: "PDF Error", description: "Could not process the selected PDF page.", variant: "destructive" });
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+
+  const handlePdfPageSelect = useCallback((pageNum: number) => {
+      if (pdfDoc && pdfFile) {
+        loadPageAsImage(pdfDoc, pageNum, pdfFile.size);
+      }
+      setIsPdfSelectorOpen(false);
+      setPdfDoc(null);
+      setPdfFile(null);
+  }, [pdfDoc, pdfFile, loadPageAsImage]);
+
 
   const handleImageUpload = async (file: File) => {
     setIsLoading(true);
@@ -136,63 +212,16 @@ export default function Home() {
     } else if (file.type === 'application/pdf') {
         try {
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 4.0 });
-
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            if (!tempCtx) {
-                toast({
-                    title: "Error",
-                    description: "Could not create canvas context to render PDF.",
-                    variant: "destructive",
-                });
-                setIsLoading(false);
-                return;
-            }
-            tempCanvas.width = viewport.width;
-            tempCanvas.height = viewport.height;
-
-            const renderContext = {
-                canvasContext: tempCtx,
-                viewport: viewport,
-            };
-
-            await page.render(renderContext).promise;
+            const doc = await pdfjsLib.getDocument(arrayBuffer).promise;
             
-            const img = new Image();
-            img.onload = () => {
-                const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
-                const cropData = { x: 0, y: 0, width: img.width, height: img.height };
-                setOriginalImage({
-                    src: img.src,
-                    width: img.width,
-                    height: img.height,
-                    size: file.size,
-                });
-                setSettings({
-                    ...initialSettings,
-                    width: img.width,
-                    height: img.height,
-                    crop: cropData,
-                    perspectivePoints: {
-                      tl: { x: inset, y: inset },
-                      tr: { x: img.width - inset, y: inset },
-                      bl: { x: inset, y: img.height - inset },
-                      br: { x: img.width - inset, y: img.height - inset },
-                    },
-                });
-                setPendingCrop(null);
-                setActiveTab('resize');
-                setProcessedSize(null);
+            if (doc.numPages > 1) {
+                setPdfDoc(doc);
+                setPdfFile(file);
+                setIsPdfSelectorOpen(true);
                 setIsLoading(false);
-            };
-            img.onerror = () => {
-              toast({ title: "Error", description: "Could not load PDF as image.", variant: "destructive" });
-              setIsLoading(false);
+            } else {
+                loadPageAsImage(doc, 1, file.size);
             }
-            img.src = tempCanvas.toDataURL('image/png');
         } catch (error) {
             console.error("Error processing PDF:", error);
             toast({
@@ -517,6 +546,14 @@ export default function Home() {
           <SeoContent />
         </main>
         <SiteFooter />
+        {pdfDoc && (
+          <PdfPageSelectorDialog
+            isOpen={isPdfSelectorOpen}
+            onOpenChange={setIsPdfSelectorOpen}
+            pdfDoc={pdfDoc}
+            onPageSelect={handlePdfPageSelect}
+          />
+        )}
       </div>
     );
   }
@@ -570,3 +607,4 @@ export default function Home() {
     </div>
   );
 }
+
