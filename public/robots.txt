@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://img-resizers.vercel.app/sitemap.xml
+Sitemap: https://imgresizer.xyz/sitemap.xml

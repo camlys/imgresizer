@@ -1,21 +1,21 @@
 {
-    "name": "Camly Image Editor",
-    "short_name": "Camly",
-    "description": "Free and powerful online image and photo editor. Resize, crop, and enhance images right in your browser.",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#2c6e49",
+    "name": "ImgResizer",
+    "short_name": "ImgResizer",
+    "description": "Free Online Image & Photo Resizer. Resize, crop, and edit images and photos for free with ImgResizer.",
     "icons": [
         {
-            "src": "/android-chrome-192x192.png",
+            "src": "/logo.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/android-chrome-512x512.png",
+            "src": "/logo.png",
             "sizes": "512x512",
             "type": "image/png"
         }
-    ]
+    ],
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "start_url": "/"
 }
