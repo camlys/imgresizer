@@ -518,36 +518,30 @@ export default function Home() {
     try {
         const finalCanvas = await generateFinalCanvas();
         finalCanvas.toBlob(async (blob) => {
-            if (!blob) {
-                toast({ title: "Error", description: "Could not generate image for sharing.", variant: "destructive" });
-                return;
-            }
-
-            const extension = settings.format.split('/')[1].split('+')[0] || 'png';
-            const filename = `imgresizer-edited-image.${extension}`;
-            const file = new File([blob], filename, { type: settings.format });
-
             const shareData: ShareData = {
-                title: 'ImgResizer Image Editor',
-                text: 'Check out this image I edited with ImgResizer!',
+                title: 'ImgResizer: Free Online Image Editor',
+                text: 'Check out this image I edited with the free and private ImgResizer web app!',
                 url: 'https://imgresizer.xyz/',
             };
-            
-            // Check if files can be shared
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+            if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: blob.type })] })) {
+                const extension = settings.format.split('/')[1].split('+')[0] || 'png';
+                const filename = `imgresizer-edited-image.${extension}`;
+                const file = new File([blob], filename, { type: settings.format });
                 shareData.files = [file];
-                await navigator.share(shareData);
-            } else if (navigator.share) {
-                // If files cannot be shared, share without the file
+            }
+            
+            if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                // Fallback if share API is not supported at all
                 await fallbackShare();
             }
         }, settings.format, settings.quality);
     } catch (error) {
         console.error("Share error:", error);
-        await fallbackShare();
+        if ((error as Error).name !== 'AbortError') { // Don't show fallback if user cancels share
+          await fallbackShare();
+        }
     }
   }, [generateFinalCanvas, settings.format, settings.quality, toast]);
 
