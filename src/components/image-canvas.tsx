@@ -515,10 +515,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           if (currentTime - lastClickTime.current < 300 && lastClickTarget.current === textId) {
              // Double click
              setEditingTextId(textId);
-             setInteractionState(null);
+             setInteractionState(null); // Explicitly stop any interaction
              lastClickTime.current = 0;
              lastClickTarget.current = null;
-             return;
+             return; // Stop further processing
           }
 
           setInteractionState({ 
@@ -700,3 +700,5 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
