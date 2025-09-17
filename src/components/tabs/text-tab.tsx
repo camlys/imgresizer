@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2, Ban, RotateCcw, RotateCw } from 'lucide-react';
+import { Type, Plus, Trash2, Ban } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 interface TextTabProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
+  selectedTextId: string | null;
+  setSelectedTextId: (id: string | null) => void;
 }
 
 const fonts = [
@@ -28,7 +30,7 @@ const fonts = [
   'Verdana',
 ];
 
-export function TextTab({ settings, updateSettings }: TextTabProps) {
+export function TextTab({ settings, updateSettings, selectedTextId, setSelectedTextId }: TextTabProps) {
   const addText = () => {
     const newText: TextOverlay = {
       id: Date.now().toString(),
@@ -36,17 +38,22 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
       font: '"Space Grotesk"',
       size: 50,
       color: '#000000',
-      backgroundColor: '#ffffff',
+      backgroundColor: 'transparent',
       padding: 10,
       x: 50,
       y: 50,
       rotation: 0,
     };
-    updateSettings({ texts: [...settings.texts, newText] });
+    const newTexts = [...settings.texts, newText];
+    updateSettings({ texts: newTexts });
+    setSelectedTextId(newText.id);
   };
   
   const removeText = (id: string) => {
     updateSettings({ texts: settings.texts.filter(t => t.id !== id) });
+    if (selectedTextId === id) {
+        setSelectedTextId(null);
+    }
   };
 
   const updateText = (id: string, newProps: Partial<TextOverlay>) => {
@@ -60,11 +67,6 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
     updateText(text.id, { backgroundColor: newColor });
   };
 
-  const handleQuickRotate = (text: TextOverlay, angle: number) => {
-    const newRotation = (text.rotation + angle + 360) % 360;
-    updateText(text.id, { rotation: newRotation });
-  };
-
   return (
     <div className="space-y-4 p-1">
       <Card>
@@ -76,10 +78,16 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
           {settings.texts.length === 0 ? (
              <p className="text-sm text-muted-foreground py-4 text-center">No text layers added.</p>
           ) : (
-            <Accordion type="single" collapsible className="w-full" defaultValue={settings.texts[settings.texts.length - 1]?.id}>
+            <Accordion 
+                type="single" 
+                collapsible 
+                className="w-full" 
+                value={selectedTextId || ""}
+                onValueChange={(value) => setSelectedTextId(value || null)}
+            >
               {settings.texts.map((text, index) => (
                 <AccordionItem value={text.id} key={text.id}>
-                  <AccordionTrigger>Text Layer {index + 1}</AccordionTrigger>
+                  <AccordionTrigger onClick={() => setSelectedTextId(text.id === selectedTextId ? null : text.id)}>Text Layer {index + 1}</AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="grid gap-1.5">
                       <Label htmlFor={`text-content-${text.id}`}>Content</Label>
@@ -97,7 +105,7 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                       </div>
                        <div className="grid gap-1.5">
                         <Label htmlFor={`text-size-${text.id}`}>Size</Label>
-                        <Input id={`text-size-${text.id}`} type="number" value={text.size} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) || 0 })}/>
+                        <Input id={`text-size-${text.id}`} type="number" value={Math.round(text.size)} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) || 0 })}/>
                       </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
@@ -153,42 +161,8 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                         />
                     </div>
                     <div className="grid gap-1.5">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
-                            <div className="relative w-24">
-                                <Input
-                                id={`text-rotation-${text.id}`}
-                                type="number"
-                                value={Math.round(text.rotation)}
-                                onChange={(e) => {
-                                    const numericValue = parseInt(e.target.value, 10) || 0;
-                                    const clampedValue = Math.max(0, Math.min(numericValue, 360));
-                                    updateText(text.id, { rotation: clampedValue });
-                                }}
-                                min={0}
-                                max={360}
-                                className="pr-6 text-right"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, -90)}>
-                            <RotateCcw size={16} />
-                            <span className="ml-2 hidden sm:inline">-90°</span>
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, -45)}>-45°</Button>
-                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, 45)}>+45°</Button>
-                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, 90)}>
-                            <RotateCw size={16} />
-                             <span className="ml-2 hidden sm:inline">+90°</span>
-                        </Button>
-                    </div>
-
-                    <div>
-                      <Label>Position (X: {Math.round(text.x)}%, Y: {Math.round(text.y)}%)</Label>
-                      <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
+                      <Label>Position & Rotation</Label>
+                      <p className="text-xs text-muted-foreground">Drag text on canvas to reposition or rotate.</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => removeText(text.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove</Button>
                   </AccordionContent>
@@ -201,5 +175,3 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
     </div>
   );
 }
-
-    

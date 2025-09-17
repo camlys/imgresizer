@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -16,6 +16,7 @@ import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
+import { TextEditor } from '@/components/text-editor';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -67,6 +68,10 @@ export default function Home() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isFromMultiPagePdf, setIsFromMultiPagePdf] = useState(false);
 
+  // Text Editing
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!originalImage) return;
@@ -100,6 +105,10 @@ export default function Home() {
       }
     }
     setActiveTab(tab);
+     if (tab !== 'text') {
+      setSelectedTextId(null);
+      setEditingTextId(null);
+    }
   };
   
     const loadPageAsImage = useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
@@ -247,7 +256,20 @@ export default function Home() {
   };
   
   const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      if (newSettings.texts) {
+        // If texts are being updated, ensure the selected ID still exists
+        const currentSelectedId = selectedTextId;
+        const textExists = newSettings.texts.some(t => t.id === currentSelectedId);
+        if (!textExists) {
+          setSelectedTextId(null);
+          setEditingTextId(null);
+        }
+      }
+      return updated;
+    });
+
     if (Object.keys(newSettings).some(key => key !== 'crop' && key !== 'perspectivePoints')) {
         setPendingCrop(null);
     }
@@ -255,7 +277,7 @@ export default function Home() {
       setPendingCrop(newSettings.crop);
     }
     setProcessedSize(null);
-  }, []);
+  }, [selectedTextId]);
 
   const handleApplyPerspectiveCrop = useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {
@@ -528,6 +550,8 @@ export default function Home() {
         await fallbackShare();
     }
   }, [generateFinalCanvas, settings.format, settings.quality, toast]);
+
+  const editingText = settings.texts.find(t => t.id === editingTextId);
   
   if (!originalImage) {
     return (
@@ -590,6 +614,8 @@ export default function Home() {
             onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
             isFromMultiPagePdf={isFromMultiPagePdf}
             onViewPages={() => setIsPdfSelectorOpen(true)}
+            selectedTextId={selectedTextId}
+            setSelectedTextId={setSelectedTextId}
           />
         </div>
         <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
@@ -602,7 +628,24 @@ export default function Home() {
             activeTab={activeTab}
             pendingCrop={pendingCrop}
             setPendingCrop={setPendingCrop}
+            selectedTextId={selectedTextId}
+            setSelectedTextId={setSelectedTextId}
+            setEditingTextId={setEditingTextId}
           />
+          {editingText && canvasRef.current && (
+            <TextEditor
+                text={editingText}
+                canvas={canvasRef.current}
+                onSave={(newContent) => {
+                    const newTexts = settings.texts.map(t =>
+                        t.id === editingTextId ? { ...t, text: newContent } : t
+                    );
+                    updateSettings({ texts: newTexts });
+                    setEditingTextId(null);
+                }}
+                onCancel={() => setEditingTextId(null)}
+            />
+          )}
           {isLoading && (
             <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-lg z-10">
               <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
@@ -622,7 +665,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    

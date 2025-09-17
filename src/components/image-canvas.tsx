@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
@@ -11,20 +12,26 @@ interface ImageCanvasProps {
   activeTab: string;
   pendingCrop: CropSettings | null;
   setPendingCrop: (crop: CropSettings | null) => void;
+  selectedTextId: string | null;
+  setSelectedTextId: (id: string | null) => void;
+  setEditingTextId: (id: string | null) => void;
 }
 
-const CROP_HANDLE_SIZE = 12; // Increased size
-const CROP_HANDLE_HIT_AREA = 24; // Larger touch target
+const CROP_HANDLE_SIZE = 12;
+const CROP_HANDLE_HIT_AREA = 24;
 const MIN_CROP_SIZE_PX = 20;
-const TEXT_ROTATION_HANDLE_RADIUS = 6;
-const TEXT_ROTATION_HANDLE_OFFSET = 20;
+
 const PERSPECTIVE_HANDLE_RADIUS = 10;
 const PERSPECTIVE_HANDLE_HIT_RADIUS = 25;
+
+const TEXT_ROTATION_HANDLE_OFFSET = 25;
+const TEXT_RESIZE_HANDLE_SIZE = 10;
+const TEXT_HANDLE_HIT_AREA = 20;
 
 
 type InteractionType = 
   | 'crop-move' | 'crop-tl' | 'crop-t' | 'crop-tr' | 'crop-l' | 'crop-r' | 'crop-bl' | 'crop-b' | 'crop-br' | 'crop-new'
-  | 'text-move' | 'text-rotate'
+  | 'text-move' | 'text-rotate' | 'text-resize-tl' | 'text-resize-tr' | 'text-resize-bl' | 'text-resize-br'
   | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br';
 
 type InteractionState = {
@@ -36,8 +43,7 @@ type InteractionState = {
 
   // Text-specific state
   textId?: string;
-  startTextCoords?: { x: number; y: number };
-  startTextRotation?: number;
+  startText?: TextOverlay;
   textCenter?: { x: number; y: number };
 };
 
@@ -48,13 +54,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   updateSettings,
   activeTab, 
   pendingCrop, 
-  setPendingCrop 
+  setPendingCrop,
+  selectedTextId,
+  setSelectedTextId,
+  setEditingTextId,
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [processedImageCache, setProcessedImageCache] = useState<HTMLCanvasElement | null>(null);
   const [interactionState, setInteractionState] = useState<InteractionState | null>(null);
   const [cursor, setCursor] = useState('auto');
+  const lastClickTime = useRef(0);
+  const lastClickTarget = useRef<string | null>(null);
+
 
   useImperativeHandle(ref, () => internalCanvasRef.current!, []);
 
@@ -65,26 +77,56 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, []);
 
   const getTextHandlePositions = useCallback((text: TextOverlay, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.save();
     ctx.font = `${text.size}px ${text.font}`;
     const metrics = ctx.measureText(text.text);
     const padding = text.padding || 0;
+    
+    // Approximate height better
+    const fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
     const rectWidth = metrics.width + padding * 2;
-    const rectHeight = text.size + padding * 2;
-    const canvasX = (text.x / 100) * canvas.width;
-    const canvasY = (text.y / 100) * canvas.height;
+    const rectHeight = fontHeight + padding * 2;
     
-    const boundingBox = { x: canvasX - rectWidth / 2, y: canvasY - rectHeight / 2, width: rectWidth, height: rectHeight };
-    
-    const handleAngle = (text.rotation - 90) * Math.PI / 180;
-    const handleDistance = (rectHeight / 2) + TEXT_ROTATION_HANDLE_OFFSET;
-    const rotationHandle = {
-      x: canvasX + handleDistance * Math.cos(handleAngle),
-      y: canvasY + handleDistance * Math.sin(handleAngle),
-      radius: TEXT_ROTATION_HANDLE_RADIUS,
+    const center = { x: (text.x / 100) * canvas.width, y: (text.y / 100) * canvas.height };
+
+    const getRotatedPoint = (x: number, y: number, angleDeg: number) => {
+        const angleRad = angleDeg * Math.PI / 180;
+        const cos = Math.cos(angleRad);
+        const sin = Math.sin(angleRad);
+        return {
+            x: center.x + x * cos - y * sin,
+            y: center.y + x * sin + y * cos,
+        };
     };
 
-    return { boundingBox, rotationHandle };
-  }, []);
+    const halfW = rectWidth / 2;
+    const halfH = rectHeight / 2;
+
+    const corners = {
+        tl: getRotatedPoint(-halfW, -halfH, text.rotation),
+        tr: getRotatedPoint(halfW, -halfH, text.rotation),
+        bl: getRotatedPoint(-halfW, halfH, text.rotation),
+        br: getRotatedPoint(halfW, halfH, text.rotation),
+    };
+
+    const rotationHandleAngle = (text.rotation - 90) * Math.PI / 180;
+    const rotationHandleDistance = halfH + TEXT_ROTATION_HANDLE_OFFSET;
+
+    const rotationHandle = {
+        x: center.x + rotationHandleDistance * Math.cos(rotationHandleAngle),
+        y: center.y + rotationHandleDistance * Math.sin(rotationHandleAngle),
+    };
+
+    const unrotatedBoundingBox = {
+      x: center.x - halfW,
+      y: center.y - halfH,
+      width: rectWidth,
+      height: rectHeight,
+    };
+    
+    ctx.restore();
+    return { corners, rotationHandle, center, unrotatedBoundingBox };
+}, []);
 
   useEffect(() => {
     if (!imageElement) return;
@@ -296,8 +338,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const padding = text.padding || 0;
             if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
                 const metrics = ctx.measureText(text.text);
+                 const fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
                 const rectWidth = metrics.width + padding * 2;
-                const rectHeight = text.size + padding * 2;
+                const rectHeight = fontHeight + padding * 2;
                 ctx.fillStyle = text.backgroundColor;
                 ctx.fillRect(-rectWidth / 2, -rectHeight / 2, rectWidth, rectHeight);
             }
@@ -307,36 +350,50 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.restore();
         });
         
-        if (activeTab === 'text') {
-            texts.forEach(text => {
-                const { boundingBox, rotationHandle } = getTextHandlePositions(text, canvas, ctx);
-                
-                ctx.save();
-                ctx.translate(boundingBox.x + boundingBox.width / 2, boundingBox.y + boundingBox.height / 2);
-                ctx.rotate(text.rotation * Math.PI / 180);
-                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
-                ctx.lineWidth = 1;
-                ctx.strokeRect(-boundingBox.width / 2, -boundingBox.height / 2, boundingBox.width, boundingBox.height);
-                ctx.restore();
+        if (activeTab === 'text' && selectedTextId) {
+            const selectedText = texts.find(t => t.id === selectedTextId);
+            if (selectedText) {
+                const { corners, rotationHandle } = getTextHandlePositions(selectedText, canvas, ctx);
                 
                 ctx.save();
                 ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
                 ctx.lineWidth = 1;
+
+                // Draw bounding box
                 ctx.beginPath();
-                ctx.moveTo(boundingBox.x + boundingBox.width / 2, boundingBox.y + boundingBox.height / 2);
-                ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                ctx.moveTo(corners.tl.x, corners.tl.y);
+                ctx.lineTo(corners.tr.x, corners.tr.y);
+                ctx.lineTo(corners.br.x, corners.br.y);
+                ctx.lineTo(corners.bl.x, corners.bl.y);
+                ctx.closePath();
                 ctx.stroke();
 
+                // Draw rotation line and handle
                 ctx.beginPath();
-                ctx.arc(rotationHandle.x, rotationHandle.y, rotationHandle.radius, 0, 2 * Math.PI);
+                ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+                ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(rotationHandle.x, rotationHandle.y, TEXT_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
                 ctx.fillStyle = 'white';
                 ctx.fill();
                 ctx.stroke();
+                
+                // Draw resize handles
+                Object.values(corners).forEach(corner => {
+                    ctx.beginPath();
+                    ctx.rect(corner.x - TEXT_RESIZE_HANDLE_SIZE / 2, corner.y - TEXT_RESIZE_HANDLE_SIZE / 2, TEXT_RESIZE_HANDLE_SIZE, TEXT_RESIZE_HANDLE_SIZE);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                
                 ctx.restore();
-            });
+            }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -364,102 +421,135 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     };
   };
 
-  const getCropInteractionType = useCallback((mouseX: number, mouseY: number): { type: InteractionType; cursor: string } | null => {
-      const { canvas } = getCanvasAndContext();
+  const getInteractionType = useCallback((pos: { x: number, y: number }): { type: InteractionType; cursor: string, textId?: string } | null => {
+      const { canvas, ctx } = getCanvasAndContext();
       const img = imageElement;
-      if (!canvas || !img) return null;
+      if (!canvas || !ctx || !img) return null;
 
-      if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
-        const scale = canvas.width / img.width;
-        const corners = Object.entries(settings.perspectivePoints);
-        for (const [key, point] of corners) {
-            const dist = Math.sqrt(Math.pow(mouseX - point.x * scale, 2) + Math.pow(mouseY - point.y * scale, 2));
-            if (dist <= PERSPECTIVE_HANDLE_HIT_RADIUS) {
-                return { type: `perspective-${key}` as InteractionType, cursor: 'pointer' };
+      if (activeTab === 'crop') {
+         if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
+            const scale = canvas.width / img.width;
+            const corners = Object.entries(settings.perspectivePoints);
+            for (const [key, point] of corners) {
+                const dist = Math.sqrt(Math.pow(pos.x - point.x * scale, 2) + Math.pow(pos.y - point.y * scale, 2));
+                if (dist <= PERSPECTIVE_HANDLE_HIT_RADIUS) {
+                    return { type: `perspective-${key}` as InteractionType, cursor: 'pointer' };
+                }
             }
-        }
-        return null;
-      }
+          } else if (settings.cropMode === 'rect' && pendingCrop) {
+            const scale = canvas.width / img.width;
+            const sx = pendingCrop.x * scale;
+            const sy = pendingCrop.y * scale;
+            const sWidth = pendingCrop.width * scale;
+            const sHeight = pendingCrop.height * scale;
+            const handles = getCropHandleRects(sx, sy, sWidth, sHeight, true);
+            
+            for (const [key, rect] of Object.entries(handles)) {
+                if (pos.x >= rect.x && pos.x <= rect.x + rect.w && pos.y >= rect.y && pos.y <= rect.y + rect.h) {
+                    return { type: `crop-${key}` as InteractionType, cursor: rect.cursor };
+                }
+            }
+            if (pos.x >= sx && pos.x <= sx + sWidth && pos.y >= sy && pos.y <= sy + sHeight) {
+              return { type: 'crop-move', cursor: 'move' };
+            }
+          }
+      } else if (activeTab === 'text') {
+          const reversedTexts = [...settings.texts].reverse();
+          for (const text of reversedTexts) {
+              const { corners, rotationHandle, center, unrotatedBoundingBox } = getTextHandlePositions(text, canvas, ctx);
+              
+              const isSelected = text.id === selectedTextId;
 
-      if (settings.cropMode === 'rect') {
-        if (!pendingCrop) return null;
-        const scale = canvas.width / img.width;
-        const sx = pendingCrop.x * scale;
-        const sy = pendingCrop.y * scale;
-        const sWidth = pendingCrop.width * scale;
-        const sHeight = pendingCrop.height * scale;
-        const handles = getCropHandleRects(sx, sy, sWidth, sHeight, true); // Use hit area for detection
-        
-        for (const [key, rect] of Object.entries(handles)) {
-            if (mouseX >= rect.x && mouseX <= rect.x + rect.w && mouseY >= rect.y && mouseY <= rect.y + rect.h) {
-                return { type: `crop-${key}` as InteractionType, cursor: rect.cursor };
-            }
-        }
-        if (mouseX >= sx && mouseX <= sx + sWidth && mouseY >= sy && mouseY <= sy + sHeight) {
-          return { type: 'crop-move', cursor: 'move' };
-        }
+              if (isSelected) {
+                  // Check resize handles first
+                  for (const [key, corner] of Object.entries(corners)) {
+                      if (Math.abs(pos.x - corner.x) < TEXT_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < TEXT_HANDLE_HIT_AREA / 2) {
+                           const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
+                           return { type: `text-resize-${key}` as InteractionType, textId: text.id, cursor: cursorMap[key as keyof typeof cursorMap]};
+                      }
+                  }
+                  // Check rotation handle
+                  if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < TEXT_HANDLE_HIT_AREA / 2) {
+                      return { type: 'text-rotate', textId: text.id, cursor: 'crosshair' };
+                  }
+              }
+
+              // Check for move
+              const translatedX = pos.x - center.x;
+              const translatedY = pos.y - center.y;
+              const angleRad = -text.rotation * Math.PI / 180;
+              const cosVal = Math.cos(angleRad);
+              const sinVal = Math.sin(angleRad);
+              const rotatedX = translatedX * cosVal - translatedY * sinVal;
+              const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+              if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+                  return { type: 'text-move', textId: text.id, cursor: 'move' };
+              }
+          }
       }
 
       return null;
-  }, [getCanvasAndContext, imageElement, settings.cropMode, settings.perspectivePoints, pendingCrop]);
+  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
+    if (e.button === 2) return; // Ignore right-clicks
 
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx || !imageElement) return;
 
-    if (activeTab === 'crop') {
-        const interaction = getCropInteractionType(pos.x, pos.y);
-        if (interaction) {
-            setInteractionState({ 
-              type: interaction.type,
-              startPos: pos,
-              startCrop: interaction.type.startsWith('crop-') ? pendingCrop! : undefined
-            });
-        } else if (settings.cropMode === 'rect') {
-            const scale = canvas.width / imageElement.width;
-            const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
-            setPendingCrop(newCrop);
-            setInteractionState({ type: 'crop-br', startPos: pos, startCrop: newCrop });
+    const interaction = getInteractionType(pos);
+    const currentTime = new Date().getTime();
+    
+    if (interaction?.type.startsWith('text-')) {
+        const textId = interaction.textId!;
+        const clickedText = settings.texts.find(t => t.id === textId);
+
+        if (clickedText) {
+          if (selectedTextId !== textId) {
+            setSelectedTextId(textId);
+          }
+          
+          if (currentTime - lastClickTime.current < 300 && lastClickTarget.current === textId) {
+             // Double click
+             setEditingTextId(textId);
+             setInteractionState(null);
+             lastClickTime.current = 0;
+             lastClickTarget.current = null;
+             return;
+          }
+
+          setInteractionState({ 
+            type: interaction.type,
+            startPos: pos,
+            textId: textId,
+            startText: clickedText,
+            textCenter: getTextHandlePositions(clickedText, canvas, ctx).center,
+          });
         }
-    } else if (activeTab === 'text') {
-        const reversedTexts = [...settings.texts].reverse();
-        for (const text of reversedTexts) {
-            const { boundingBox, rotationHandle } = getTextHandlePositions(text, canvas, ctx);
-            const distToHandle = Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2));
+        lastClickTime.current = currentTime;
+        lastClickTarget.current = textId;
 
-            if (distToHandle <= rotationHandle.radius + 5) {
-                setInteractionState({
-                    type: 'text-rotate', textId: text.id, startPos: pos, startTextRotation: text.rotation,
-                    textCenter: { x: (text.x / 100) * canvas.width, y: (text.y / 100) * canvas.height },
-                });
-                return;
-            }
-
-            const centerX = boundingBox.x + boundingBox.width / 2;
-            const centerY = boundingBox.y + boundingBox.height / 2;
-            const translatedX = pos.x - centerX;
-            const translatedY = pos.y - centerY;
-            const angleRad = -text.rotation * Math.PI / 180;
-            const cosVal = Math.cos(angleRad);
-            const sinVal = Math.sin(angleRad);
-            const rotatedX = translatedX * cosVal - translatedY * sinVal;
-            const rotatedY = translatedX * sinVal + translatedY * cosVal;
-
-            if (Math.abs(rotatedX) <= boundingBox.width / 2 && Math.abs(rotatedY) <= boundingBox.height / 2) {
-                 setInteractionState({
-                    type: 'text-move',
-                    textId: text.id,
-                    startPos: pos,
-                    startTextCoords: { x: text.x, y: text.y },
-                });
-                return;
-            }
-        }
+    } else if (interaction?.type.startsWith('crop-') || interaction?.type.startsWith('perspective-')) {
+        setSelectedTextId(null);
+        setInteractionState({ 
+          type: interaction.type,
+          startPos: pos,
+          startCrop: interaction.type.startsWith('crop-') ? pendingCrop! : undefined
+        });
+    } else if (activeTab === 'crop' && settings.cropMode === 'rect') {
+        setSelectedTextId(null);
+        const scale = canvas.width / imageElement.width;
+        const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
+        setPendingCrop(newCrop);
+        setInteractionState({ type: 'crop-br', startPos: pos, startCrop: newCrop });
+    } else {
+        setSelectedTextId(null);
+        lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, settings.texts, setPendingCrop, getTextHandlePositions, getCropInteractionType]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -467,27 +557,40 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (interactionState) {
         if ('touches' in e) e.preventDefault();
         
-        const { canvas } = getCanvasAndContext();
+        const { canvas, ctx } = getCanvasAndContext();
         const img = imageElement;
-        if (!canvas || !img) return;
+        if (!canvas || !ctx || !img) return;
 
-        const { type, startPos } = interactionState;
+        const { type, startPos, startText } = interactionState;
         
-        if (type.startsWith('text-')) {
-            if (type === 'text-move' && interactionState.textId && interactionState.startTextCoords) {
+        if (type.startsWith('text-') && startText) {
+            if (type === 'text-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-                const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, 
-                    x: Math.max(0, Math.min(100, interactionState.startTextCoords!.x + dx_percent)),
-                    y: Math.max(0, Math.min(100, interactionState.startTextCoords!.y + dy_percent)),
+                const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, 
+                    x: Math.max(0, Math.min(100, startText.x + dx_percent)),
+                    y: Math.max(0, Math.min(100, startText.y + dy_percent)),
                 } : t);
                 updateSettings({ texts: newTexts });
-            } else if (type === 'text-rotate' && interactionState.textId && interactionState.textCenter) {
-                const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
-                const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x) * (180 / Math.PI);
-                let newRotation = interactionState.startTextRotation! + (currentAngle - startAngle);
-                const newTexts = settings.texts.map(t => t.id === interactionState.textId ? { ...t, rotation: newRotation } : t);
+            } else if (type === 'text-rotate' && interactionState.textCenter) {
+                const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, startPos.x - interactionState.textCenter.x);
+                const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x);
+                const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
+                let newRotation = startText.rotation + angleDiff;
+                const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, rotation: newRotation } : t);
                 updateSettings({ texts: newTexts });
+            } else if (type.startsWith('text-resize-') && interactionState.textCenter) {
+                const center = interactionState.textCenter;
+                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
+                const currentDist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
+
+                if (startDist > 0) {
+                    const scaleFactor = currentDist / startDist;
+                    const newSize = Math.max(8, startText.size * scaleFactor); // Min font size of 8
+                    
+                    const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, size: newSize } : t);
+                    updateSettings({ texts: newTexts });
+                }
             }
         } else if (type.startsWith('crop-')) {
             const { startCrop } = interactionState;
@@ -543,31 +646,43 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const newPoints = { ...settings.perspectivePoints!, [corner]: { x: newX, y: newY } };
             updateSettings({ perspectivePoints: newPoints });
         }
-    } else if (activeTab === 'crop') {
-        const interaction = getCropInteractionType(pos.x, pos.y);
-        setCursor(interaction ? interaction.cursor : 'crosshair');
+    } else {
+        const interaction = getInteractionType(pos);
+        if (activeTab === 'crop' && settings.cropMode === 'rect') {
+          setCursor(interaction ? interaction.cursor : 'crosshair');
+        } else {
+          setCursor(interaction ? interaction.cursor : 'default');
+        }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.perspectivePoints, updateSettings, activeTab, getCropInteractionType]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.perspectivePoints, updateSettings, activeTab, getInteractionType]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
+      if (interactionState.type.startsWith('text-resize-') && interactionState.startText) {
+          const newTexts = settings.texts.map(t =>
+              t.id === interactionState.startText!.id
+                  ? { ...t, size: Math.round(t.size) }
+                  : t
+          );
+          updateSettings({ texts: newTexts });
+      }
       setInteractionState(null);
     }
-  }, [interactionState]);
+  }, [interactionState, settings.texts, updateSettings]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {
-      setInteractionState(null);
+      handleInteractionEnd();
     }
     setCursor('auto');
-  }, [interactionState]);
+  }, [interactionState, handleInteractionEnd]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center touch-none">
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"
-          style={{ cursor: activeTab === 'crop' ? cursor : 'default' }}
+          style={{ cursor: cursor }}
           onMouseDown={handleInteractionStart}
           onMouseMove={handleInteractionMove}
           onMouseUp={handleInteractionEnd}
@@ -576,6 +691,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           onTouchMove={handleInteractionMove}
           onTouchEnd={handleInteractionEnd}
           onTouchCancel={handleInteractionEnd}
+          onContextMenu={(e) => e.preventDefault()}
         />
     </div>
   );

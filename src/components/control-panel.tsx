@@ -22,6 +22,8 @@ interface ControlPanelProps {
   onApplyPerspectiveCrop: () => void;
   isFromMultiPagePdf: boolean;
   onViewPages: () => void;
+  selectedTextId: string | null;
+  setSelectedTextId: (id: string | null) => void;
 }
 
 export function ControlPanel({ 
@@ -36,6 +38,8 @@ export function ControlPanel({
   onApplyPerspectiveCrop,
   isFromMultiPagePdf,
   onViewPages,
+  selectedTextId,
+  setSelectedTextId,
 }: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
@@ -88,7 +92,12 @@ export function ControlPanel({
             <RotateFlipTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
           <TabsContent value="text">
-            <TextTab settings={settings} updateSettings={updateSettings} />
+            <TextTab 
+              settings={settings} 
+              updateSettings={updateSettings}
+              selectedTextId={selectedTextId}
+              setSelectedTextId={setSelectedTextId}
+            />
           </TabsContent>
           <TabsContent value="adjustments">
             <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
@@ -98,5 +107,3 @@ export function ControlPanel({
     </div>
   );
 }
-
-    
