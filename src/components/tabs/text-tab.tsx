@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2, Ban } from 'lucide-react';
+import { Type, Plus, Trash2, Ban, RotateCcw, RotateCw } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -60,6 +60,20 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
     updateSettings({
       texts: settings.texts.map(t => (t.id === id ? { ...t, ...newProps } : t)),
     });
+  };
+
+  const handleQuickRotate = (id: string, currentRotation: number, angle: number) => {
+    const newRotation = (currentRotation + angle + 360) % 360;
+    updateText(id, { rotation: newRotation });
+  };
+  
+  const handleRotationInputChange = (id: string, value: string) => {
+    let numericValue = parseInt(value, 10);
+    if (isNaN(numericValue)) {
+        numericValue = 0;
+    }
+    const clampedValue = Math.max(0, Math.min(numericValue, 360));
+    updateText(id, { rotation: clampedValue });
   };
 
   const toggleBackgroundTransparency = (text: TextOverlay) => {
@@ -160,10 +174,29 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
                             onChange={(e) => updateText(text.id, { padding: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                         />
                     </div>
-                    <div className="grid gap-1.5">
-                      <Label>Position & Rotation</Label>
-                      <p className="text-xs text-muted-foreground">Drag text on canvas to reposition or rotate.</p>
+                    <div className="space-y-2">
+                        <Label>Rotation</Label>
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Input
+                                type="number"
+                                value={Math.round(text.rotation)}
+                                onChange={e => handleRotationInputChange(text.id, e.target.value)}
+                                min={0}
+                                max={360}
+                                className="w-full pr-6 text-right"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                            </div>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotate(text.id, text.rotation, -90)}><RotateCcw size={16}/></Button>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotate(text.id, text.rotation, 90)}><RotateCw size={16}/></Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleQuickRotate(text.id, text.rotation, -45)}>-45°</Button>
+                          <Button variant="outline" size="sm" onClick={() => handleQuickRotate(text.id, text.rotation, 45)}>+45°</Button>
+                        </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
                     <Button variant="destructive" size="sm" onClick={() => removeText(text.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove</Button>
                   </AccordionContent>
                 </AccordionItem>
