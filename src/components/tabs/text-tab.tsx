@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2, Ban } from 'lucide-react';
+import { Type, Plus, Trash2, Ban, RotateCcw, RotateCw } from 'lucide-react';
 import type { ImageSettings, TextOverlay } from '@/lib/types';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,6 +58,11 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
   const toggleBackgroundTransparency = (text: TextOverlay) => {
     const newColor = text.backgroundColor === 'transparent' ? '#ffffff' : 'transparent';
     updateText(text.id, { backgroundColor: newColor });
+  };
+
+  const handleQuickRotate = (text: TextOverlay, angle: number) => {
+    const newRotation = (text.rotation + angle + 360) % 360;
+    updateText(text.id, { rotation: newRotation });
   };
 
   return (
@@ -147,25 +152,40 @@ export function TextTab({ settings, updateSettings }: TextTabProps) {
                             onChange={(e) => updateText(text.id, { padding: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                         />
                     </div>
-                     <div className="grid gap-1.5">
-                        <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
-                        <div className="relative">
-                            <Input
-                            id={`text-rotation-${text.id}`}
-                            type="number"
-                            value={Math.round(text.rotation)}
-                            onChange={(e) => {
-                                const numericValue = parseInt(e.target.value, 10) || 0;
-                                const clampedValue = Math.max(0, Math.min(numericValue, 360));
-                                updateText(text.id, { rotation: clampedValue });
-                            }}
-                            min={0}
-                            max={360}
-                            className="pr-6 text-right"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                    <div className="grid gap-1.5">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor={`text-rotation-${text.id}`}>Rotation</Label>
+                            <div className="relative w-24">
+                                <Input
+                                id={`text-rotation-${text.id}`}
+                                type="number"
+                                value={Math.round(text.rotation)}
+                                onChange={(e) => {
+                                    const numericValue = parseInt(e.target.value, 10) || 0;
+                                    const clampedValue = Math.max(0, Math.min(numericValue, 360));
+                                    updateText(text.id, { rotation: clampedValue });
+                                }}
+                                min={0}
+                                max={360}
+                                className="pr-6 text-right"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                            </div>
                         </div>
                     </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, -90)}>
+                            <RotateCcw size={16} />
+                            <span className="ml-2 hidden sm:inline">-90°</span>
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, -45)}>-45°</Button>
+                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, 45)}>+45°</Button>
+                        <Button variant="outline" size="sm" className="h-auto py-2" onClick={() => handleQuickRotate(text, 90)}>
+                            <RotateCw size={16} />
+                             <span className="ml-2 hidden sm:inline">+90°</span>
+                        </Button>
+                    </div>
+
                     <div>
                       <Label>Position (X: {Math.round(text.x)}%, Y: {Math.round(text.y)}%)</Label>
                       <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
