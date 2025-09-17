@@ -416,7 +416,7 @@ export default function Home() {
   const handleDownload = useCallback(async (filename: string) => {
     try {
         const finalCanvas = await generateFinalCanvas();
-        const downloadName = filename || 'camly-export';
+        const downloadName = filename || 'imgresizer-export';
 
         if (settings.format === 'application/pdf') {
             const imgData = finalCanvas.toDataURL('image/png');
@@ -485,7 +485,7 @@ export default function Home() {
 
   const handleShare = useCallback(async () => {
     const fallbackShare = async () => {
-        const url = 'https://img-resizers.vercel.app/';
+        const url = 'https://imgresizer.xyz/';
         await navigator.clipboard.writeText(url);
         toast({
             title: "Link Copied!",
@@ -502,13 +502,13 @@ export default function Home() {
             }
 
             const extension = settings.format.split('/')[1].split('+')[0] || 'png';
-            const filename = `camly-edited-image.${extension}`;
+            const filename = `imgresizer-edited-image.${extension}`;
             const file = new File([blob], filename, { type: settings.format });
 
             const shareData: ShareData = {
-                title: 'Camly Image Editor',
-                text: 'Check out this image I edited with Camly!',
-                url: 'https://img-resizers.vercel.app/',
+                title: 'ImgResizer Image Editor',
+                text: 'Check out this image I edited with ImgResizer!',
+                url: 'https://imgresizer.xyz/',
             };
             
             // Check if files can be shared

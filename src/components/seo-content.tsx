@@ -8,11 +8,11 @@ export function SeoContent() {
       <section className="text-center">
         <Card className="border-none shadow-none bg-transparent">
           <CardHeader>
-            <CardTitle className="text-3xl lg:text-4xl font-bold font-headline">Your Ultimate Free Online Image Editor</CardTitle>
+            <CardTitle className="text-3xl lg:text-4xl font-bold font-headline">Your Ultimate Free Online Image Resizer & Editor</CardTitle>
           </CardHeader>
           <CardContent className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto">
             <p>
-              Welcome to Camly, the all-in-one solution for your image editing needs. Whether you're a professional photographer, a social media enthusiast, or just someone looking to enhance your photos, our powerful and intuitive online editor provides all the tools you need to make your images stand out. No downloads, no subscriptions—just pure, seamless editing right in your browser.
+              Welcome to ImgResizer, the all-in-one solution for your image editing and resizing needs. Whether you're a professional photographer, a social media enthusiast, or just someone looking to resize a photo, our powerful and intuitive online tool provides everything you need. No downloads, no subscriptions—just pure, seamless editing right in your browser.
             </p>
           </CardContent>
         </Card>
@@ -20,7 +20,7 @@ export function SeoContent() {
 
       {/* Features Grid */}
       <section>
-          <h2 className="text-3xl font-bold text-center font-headline mb-12">Why Camly is Your Best Choice</h2>
+          <h2 className="text-3xl font-bold text-center font-headline mb-12">Why ImgResizer is Your Best Choice</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
               <div className="flex flex-col items-center">
                   <ShieldCheck className="w-12 h-12 text-primary mb-4"/>
@@ -40,7 +40,7 @@ export function SeoContent() {
               <div className="flex flex-col items-center">
                   <CheckCircle className="w-12 h-12 text-primary mb-4"/>
                   <h3 className="text-xl font-semibold mb-2">Completely Free</h3>
-                  <p className="text-muted-foreground">Access all our powerful editing tools for free. No hidden costs or premium feature walls.</p>
+                  <p className="text-muted-foreground">Access all our powerful resizing and editing tools for free. No hidden costs or premium feature walls.</p>
               </div>
           </div>
       </section>
@@ -48,9 +48,9 @@ export function SeoContent() {
       {/* Detailed Feature Sections */}
       <section className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
         <div>
-          <h3 className="text-2xl font-bold text-foreground mb-4">Effortless Resizing and Cropping</h3>
+          <h3 className="text-2xl font-bold text-foreground mb-4">Effortless Image Resizing and Cropping</h3>
           <p className="text-muted-foreground mb-4">
-            Need to resize an image for your blog, social media, or printing? Our free image resizer makes it simple. Enter your desired dimensions in pixels, centimeters, or inches. Lock the aspect ratio to prevent distortion or unlock it for custom sizing. The intuitive crop tool lets you frame your subject perfectly for any platform, from Instagram posts to website banners.
+            Need to resize an image for your blog, social media, or for printing? Our free image resizer makes it simple. Enter your desired dimensions in pixels, centimeters, or inches. Lock the aspect ratio to prevent distortion or unlock it for custom sizing. The intuitive crop tool lets you frame your subject perfectly for any platform, from Instagram posts to website banners.
           </p>
         </div>
         <div>

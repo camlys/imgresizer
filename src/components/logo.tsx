@@ -6,7 +6,7 @@ export function LogoIcon({ className }: { className?: string }) {
     <div className={cn("relative size-12", className)}>
       <Image
         src="/logo.png"
-        alt="Camly Logo"
+        alt="ImgResizer Logo"
         fill
         sizes="48px"
         className="object-contain animate-spin"

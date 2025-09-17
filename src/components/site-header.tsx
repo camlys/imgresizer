@@ -10,7 +10,7 @@ export function SiteHeader() {
           <LogoIcon />
           <div className="sun-rays">
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
-                Camly
+                ImgResizer
             </h1>
           </div>
         </Link>

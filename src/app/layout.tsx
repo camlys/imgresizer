@@ -4,21 +4,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://img-resizers.vercel.app'),
-  title: 'Camly: Free Online Image Editor & Photo Resizer',
-  description: 'Edit, resize, crop, and enhance your images and PDFs for free with Camly. Our powerful, privacy-focused online tool works right in your browser. No downloads required.',
-  keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf editor', 'image enhancer'],
+  metadataBase: new URL('https://imgresizer.xyz'),
+  title: 'ImgResizer: Free Online Image & Photo Resizer',
+  description: 'Resize, crop, and edit images and photos for free with ImgResizer. Our powerful, privacy-focused online tool works right in your browser. No downloads required.',
+  keywords: ['image resizer', 'photo resizer', 'online image resizer', 'free image resizer', 'resize image', 'resize photo', 'crop image', 'image editor'],
   openGraph: {
-    title: 'Camly: Free Online Image Editor & Photo Resizer',
-    description: 'The simple, powerful, and privacy-focused online image editor. Edit, resize, crop, and enhance images and PDFs right in your browser.',
-    url: 'https://img-resizers.vercel.app/',
-    siteName: 'Camly',
+    title: 'ImgResizer: Free Online Image & Photo Resizer',
+    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
+    url: 'https://imgresizer.xyz',
+    siteName: 'ImgResizer',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Camly Online Image Editor',
+        alt: 'ImgResizer Online Image Resizer',
       },
     ],
     locale: 'en_US',
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Camly: Free Online Image Editor & Photo Resizer',
-    description: 'The simple, powerful, and privacy-focused online image editor. Edit, resize, crop, and enhance images and PDFs right in your browser.',
+    title: 'ImgResizer: Free Online Image & Photo Resizer',
+    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
      images: ['/og-image.png'],
   },
   icons: {
