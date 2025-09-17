@@ -38,7 +38,7 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
       font: '"Space Grotesk"',
       size: 50,
       color: '#000000',
-      backgroundColor: 'transparent',
+      backgroundColor: '#ffffff',
       padding: 10,
       x: 50,
       y: 50,
@@ -208,3 +208,5 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
     </div>
   );
 }
+
+    
