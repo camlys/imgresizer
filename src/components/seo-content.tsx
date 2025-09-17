@@ -1,5 +1,6 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type } from 'lucide-react';
+import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
 
 export function SeoContent() {
   return (
@@ -87,19 +88,37 @@ export function SeoContent() {
             </div>
         </div>
       </section>
-      
+
+      <section className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+         <div className="md:order-last">
+            <h3 className="text-2xl font-bold text-foreground mb-4">Convert PDFs and Change Image Formats</h3>
+            <p className="text-muted-foreground mb-4">
+              ImgResizer is more than just an editor. Easily convert pages from a PDF document into high-quality images. Need your photo in a different format? Change from JPEG to PNG, WEBP, and more with our simple format converter. You can even optimize file size for web use, all in one place.
+            </p>
+          </div>
+        <div className="order-first md:order-first">
+            <div className="rounded-lg shadow-lg bg-primary/10 aspect-video flex items-center justify-center p-8">
+              <div className="flex items-center gap-4">
+                <FileImage className="w-20 h-20 text-primary" />
+                <GitCompareArrows className="w-12 h-12 text-muted-foreground" />
+                <img src="/camly.png" alt="Image format icon" className="w-20 h-20" />
+              </div>
+            </div>
+        </div>
+      </section>
+
       {/* How it works section */}
       <section className="text-center">
           <h2 className="text-3xl font-bold font-headline mb-12">Get Started in 3 Simple Steps</h2>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <div className="flex flex-col items-center">
                   <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">1</div>
-                  <h3 className="text-xl font-semibold mb-2">Upload Your Image</h3>
-                  <p className="text-muted-foreground">Click the upload button or drag and drop your image or PDF file into the editor.</p>
+                  <h3 className="text-xl font-semibold mb-2">Upload Your Image or PDF</h3>
+                  <p className="text-muted-foreground">Click the upload button or drag and drop your file into the editor to get started instantly.</p>
               </div>
               <div className="flex flex-col items-center">
                   <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">2</div>
-                  <h3 className="text-xl font-semibold mb-2">Edit with Power</h3>
+                  <h3 className="text-xl font-semibold mb-2">Edit with Powerful Tools</h3>
                   <p className="text-muted-foreground">Use our comprehensive toolset to resize, crop, adjust colors, add text, and more.</p>
               </div>
               <div className="flex flex-col items-center">
