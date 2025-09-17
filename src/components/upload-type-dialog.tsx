@@ -17,14 +17,14 @@ interface UploadTypeDialogProps {
 export function UploadTypeDialog({ isOpen, onOpenChange, onSelectType }: UploadTypeDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[90vw] w-full sm:max-w-[425px] rounded-lg">
         <DialogHeader>
           <DialogTitle>Choose upload type</DialogTitle>
           <DialogDescription>
             What kind of file would you like to upload for editing?
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
           <Button variant="outline" className="flex flex-col h-28 items-center justify-center gap-2" onClick={() => onSelectType('image')}>
             <Image className="w-8 h-8" />
             <span className="text-base">Image</span>
