@@ -121,7 +121,7 @@ export function AppHeader({
 
   return (
     <header className="flex items-center justify-between p-4 pl-6 border-b bg-card overflow-hidden">
-      <Link href="/" className="flex items-center gap-2">
+      <Link href="/" className="flex items-center">
         <LogoIcon />
         <div className="sun-rays">
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
