@@ -1,9 +1,8 @@
 import { cn } from "@/lib/utils";
-import Image from 'next/image';
 
 export function LogoIcon({ className }: { className?: string }) {
   return (
-    <Image
+    <img
       src="/logo.png"
       alt="ImgResizer Logo"
       width={64}
