@@ -57,6 +57,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
             if (error instanceof Error && error.name !== 'RenderingCancelledException') {
               console.error(`Failed to render page ${pageNumber}`, error);
             }
+             setIsLoading(false);
         }
     }, [pdfDoc, pageNumber, rotation]);
 
@@ -97,6 +98,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     }, [isVisible, renderPage]);
     
     const handleRotate = (degree: number) => {
+      setIsLoading(true);
       setRotation(prev => (prev + degree + 360) % 360);
     };
 
@@ -146,6 +148,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
 export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
+    const [isPageSelecting, setIsPageSelecting] = useState(false);
     const [pageNumbers, setPageNumbers] = useState<number[]>([]);
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -163,6 +166,15 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         // Reset selections when dialog opens with a new doc
         setSelectedPages([]);
     }, [pdfDoc]);
+
+    const handleSelectPageForEdit = (pageNum: number) => {
+        setIsPageSelecting(true);
+        // A small timeout to allow the spinner to render before the blocking operation starts
+        setTimeout(() => {
+            onPageSelect(pageNum);
+            setIsPageSelecting(false);
+        }, 50);
+    };
     
     const handleToggleSelection = (pageNumber: number) => {
         setSelectedPages(prev => 
@@ -283,10 +295,10 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                      </div>
                 )}
                
-                {isLoading ? (
+                {isLoading || isPageSelecting ? (
                     <div className="flex-1 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="ml-4 text-muted-foreground">Loading page previews...</p>
+                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Loading page for editing...' : 'Loading page previews...'}</p>
                     </div>
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
@@ -296,7 +308,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                    key={pageNum}
                                    pdfDoc={pdfDoc!}
                                    pageNumber={pageNum}
-                                   onSelect={() => onPageSelect(pageNum)}
+                                   onSelect={() => handleSelectPageForEdit(pageNum)}
                                    isSelected={selectedPages.includes(pageNum)}
                                    onToggleSelection={handleToggleSelection}
                                />

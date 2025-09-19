@@ -172,6 +172,7 @@ export default function Home() {
 
 
   const handlePdfPageSelect = useCallback((pageNum: number) => {
+      setIsLoading(true);
       if (pdfDoc && pdfFile) {
         loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
       }
