@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -30,6 +30,34 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     const containerRef = useRef<HTMLDivElement>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
+    const [rotation, setRotation] = useState(0);
+
+    const renderPage = useCallback(async () => {
+        try {
+            const page = await pdfDoc.getPage(pageNumber);
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const desiredWidth = 300;
+            const viewport = page.getViewport({ scale: 1, rotation });
+            const scale = desiredWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale, rotation });
+            
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            
+            canvas.height = scaledViewport.height;
+            canvas.width = scaledViewport.width;
+            
+            const renderTask = page.render({ canvasContext: context, viewport: scaledViewport });
+            await renderTask.promise;
+            setIsLoading(false);
+        } catch (error) {
+            if (error instanceof Error && error.name !== 'RenderingCancelledException') {
+              console.error(`Failed to render page ${pageNumber}`, error);
+            }
+        }
+    }, [pdfDoc, pageNumber, rotation]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -48,7 +76,6 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
         return () => {
             if (containerRef.current) {
-                // This condition is to prevent errors if the component is unmounted before the observer is set up
                 // eslint-disable-next-line react-hooks/exhaustive-deps
                 observer.unobserve(containerRef.current);
             }
@@ -57,50 +84,24 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
     useEffect(() => {
         if (!isVisible) return;
-
         let isMounted = true;
-        let renderTask: pdfjsLib.RenderTask | null = null;
         
-        async function renderPage() {
-            try {
-                const page = await pdfDoc.getPage(pageNumber);
-                const canvas = canvasRef.current;
-                if (!canvas || !isMounted) return;
-
-                const desiredWidth = 300;
-                const viewport = page.getViewport({ scale: 1 });
-                const scale = desiredWidth / viewport.width;
-                const scaledViewport = page.getViewport({ scale });
-                
-                const context = canvas.getContext('2d');
-                if (!context) return;
-                
-                canvas.height = scaledViewport.height;
-                canvas.width = scaledViewport.width;
-                
-                renderTask = page.render({ canvasContext: context, viewport: scaledViewport });
-                await renderTask.promise;
-                if(isMounted) setIsLoading(false);
-            } catch (error) {
-                if (error instanceof Error && error.name !== 'RenderingCancelledException') {
-                  console.error(`Failed to render page ${pageNumber}`, error);
-                }
-            }
+        if (isMounted) {
+          renderPage();
         }
-        
-        renderPage();
 
         return () => {
             isMounted = false;
-            if (renderTask) {
-                renderTask.cancel();
-            }
         }
-    }, [pdfDoc, pageNumber, isVisible]);
+    }, [isVisible, renderPage]);
     
+    const handleRotate = (degree: number) => {
+      setRotation(prev => (prev + degree + 360) % 360);
+    };
+
     const handleContainerClick = (e: React.MouseEvent) => {
-      // Prevent click from propagating to checkbox and vice-versa
-      if ((e.target as HTMLElement).closest('.checkbox-container')) {
+      // Prevent click from propagating if a button was clicked
+      if ((e.target as HTMLElement).closest('button')) {
         return;
       }
       onSelect();
@@ -109,10 +110,10 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     return (
         <div
             ref={containerRef}
-            className={`relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer ${isSelected ? 'border-primary' : 'border-transparent hover:border-primary/50'}`}
+            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer"
             onClick={handleContainerClick}
         >
-             <div className="absolute top-3 right-3 z-10 checkbox-container" onClick={(e) => e.stopPropagation()}>
+             <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                     id={`select-page-${pageNumber}`}
                     checked={isSelected}
@@ -121,7 +122,15 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
                     aria-label={`Select page ${pageNumber}`}
                 />
             </div>
-            <div className="relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden">
+            <div className="absolute top-3 left-3 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                 <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => handleRotate(-90)}>
+                    <RotateCcw size={14} />
+                 </Button>
+                 <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => handleRotate(90)}>
+                    <RotateCw size={14} />
+                 </Button>
+            </div>
+            <div className={`relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden ${isSelected ? 'border-primary border-2' : 'border-transparent border-2 hover:border-primary/50'}`}>
                 {(isLoading || !isVisible) && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
                 <canvas 
                   ref={canvasRef} 
@@ -298,3 +307,5 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         </Dialog>
     );
 }
+
+    
