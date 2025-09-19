@@ -32,7 +32,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     const [isVisible, setIsVisible] = useState(false);
     const [rotation, setRotation] = useState(0);
 
-    const renderPage = useCallback(async () => {
+    const renderPage = useCallback(async (currentRotation: number) => {
         setIsLoading(true);
         try {
             const page = await pdfDoc.getPage(pageNumber);
@@ -40,9 +40,9 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
             if (!canvas) return;
 
             const desiredWidth = 300;
-            const viewport = page.getViewport({ scale: 1, rotation });
+            const viewport = page.getViewport({ scale: 1, rotation: currentRotation });
             const scale = desiredWidth / viewport.width;
-            const scaledViewport = page.getViewport({ scale, rotation });
+            const scaledViewport = page.getViewport({ scale, rotation: currentRotation });
             
             const context = canvas.getContext('2d');
             if (!context) return;
@@ -52,14 +52,14 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
             
             const renderTask = page.render({ canvasContext: context, viewport: scaledViewport });
             await renderTask.promise;
-            setIsLoading(false);
         } catch (error) {
             if (error instanceof Error && error.name !== 'RenderingCancelledException') {
               console.error(`Failed to render page ${pageNumber}`, error);
             }
-             setIsLoading(false);
+        } finally {
+            setIsLoading(false);
         }
-    }, [pdfDoc, pageNumber, rotation]);
+    }, [pdfDoc, pageNumber]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -89,17 +89,20 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
         let isMounted = true;
         
         if (isMounted) {
-          renderPage();
+          renderPage(rotation);
         }
 
         return () => {
             isMounted = false;
         }
-    }, [isVisible, renderPage]);
+    }, [isVisible, rotation, renderPage]);
     
     const handleRotate = (degree: number) => {
-      setIsLoading(true);
-      setRotation(prev => (prev + degree + 360) % 360);
+      setRotation(prev => {
+          const newRotation = (prev + degree + 360) % 360;
+          renderPage(newRotation);
+          return newRotation;
+      });
     };
 
     const handleContainerClick = (e: React.MouseEvent) => {
@@ -172,7 +175,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         // A small timeout to allow the spinner to render before the blocking operation starts
         setTimeout(() => {
             onPageSelect(pageNum);
-            setIsPageSelecting(false);
+            // No need to set isPageSelecting to false, as the dialog will close.
         }, 50);
     };
     
@@ -298,7 +301,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 {isLoading || isPageSelecting ? (
                     <div className="flex-1 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Loading page for editing...' : 'Loading page previews...'}</p>
+                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Loading page for editing...' : 'Loading PDF...'}</p>
                     </div>
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
@@ -320,7 +323,3 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         </Dialog>
     );
 }
-
-    
-
-    

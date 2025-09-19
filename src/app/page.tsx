@@ -17,6 +17,7 @@ import { applyPerspectiveTransform } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
+import { FeatureGrid } from '@/components/feature-grid';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -233,7 +234,6 @@ export default function Home() {
             
             if (doc.numPages > 1) {
                 setIsPdfSelectorOpen(true);
-                setIsLoading(false); // Let the dialog handle its own loading
             } else {
                 loadPageAsImage(doc, 1, file.size, false);
             }
@@ -567,13 +567,19 @@ export default function Home() {
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
+          <FeatureGrid />
           <SeoContent />
         </main>
         <SiteFooter />
         {pdfDoc && (
           <PdfPageSelectorDialog
             isOpen={isPdfSelectorOpen}
-            onOpenChange={setIsPdfSelectorOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setIsLoading(false);
+              }
+              setIsPdfSelectorOpen(isOpen);
+            }}
             pdfDoc={pdfDoc}
             onPageSelect={handlePdfPageSelect}
           />
@@ -652,7 +658,12 @@ export default function Home() {
        {pdfDoc && (
           <PdfPageSelectorDialog
             isOpen={isPdfSelectorOpen}
-            onOpenChange={setIsPdfSelectorOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setIsLoading(false);
+              }
+              setIsPdfSelectorOpen(isOpen);
+            }}
             pdfDoc={pdfDoc}
             onPageSelect={handlePdfPageSelect}
           />
