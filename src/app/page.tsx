@@ -567,6 +567,12 @@ export default function Home() {
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
+          <section className="container mx-auto pb-12 px-4 text-center">
+            <h2 className="text-2xl font-bold font-headline mb-4">A Full Suite of Editing Tools</h2>
+            <p className="max-w-3xl mx-auto text-muted-foreground">
+              Beyond simple resizing, ImgResizer offers a complete set of tools to perfect your images. Crop, rotate, adjust colors, and add text overlays with ease. Our powerful editor works for both images and PDF files, giving you full control over your creative assets—all for free and with complete privacy.
+            </p>
+          </section>
           <FeatureGrid />
           <SeoContent />
         </main>
