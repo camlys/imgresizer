@@ -168,14 +168,15 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         }
         // Reset selections when dialog opens with a new doc
         setSelectedPages([]);
-    }, [pdfDoc]);
+        setIsPageSelecting(false);
+    }, [pdfDoc, isOpen]);
 
     const handleSelectPageForEdit = (pageNum: number) => {
         setIsPageSelecting(true);
         // A small timeout to allow the spinner to render before the blocking operation starts
         setTimeout(() => {
             onPageSelect(pageNum);
-            // No need to set isPageSelecting to false, as the dialog will close.
+            // The dialog will close, but we reset the state in the useEffect on next open.
         }, 50);
     };
     
