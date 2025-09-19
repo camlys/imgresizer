@@ -436,7 +436,7 @@ export default function Home() {
     }
   }, [generateFinalCanvas, settings.format, settings.quality]);
 
-  const handleDownload = useCallback(async (filename: string) => {
+  const handleDownload = useCallback(async (filename: string, pdfPassword?: string) => {
     try {
         const finalCanvas = await generateFinalCanvas();
         const downloadName = filename || 'imgresizer-export';
@@ -450,11 +450,13 @@ export default function Home() {
               format: [finalCanvas.width, finalCanvas.height]
             });
             pdf.addImage(imgData, 'PNG', 0, 0, finalCanvas.width, finalCanvas.height);
-            pdf.save(`${downloadName}.pdf`);
+            pdf.save(`${downloadName}.pdf`, {
+              userPassword: pdfPassword,
+            });
             
             toast({
               title: "Download Started",
-              description: "Your PDF file has started downloading.",
+              description: `Your ${pdfPassword ? 'encrypted' : ''} PDF file has started downloading.`,
             });
             return;
         }

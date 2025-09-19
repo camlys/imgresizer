@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2, Share2 } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2, KeyRound } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,10 +16,11 @@ import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
-  onDownload: (filename: string) => void;
+  onDownload: (filename: string, pdfPassword?: string) => void;
   onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
@@ -41,12 +42,16 @@ export function AppHeader({
   onUpdateProcessedSize,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   const [targetSize, setTargetSize] = useState('');
   const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState('');
+  const [confirmPdfPassword, setConfirmPdfPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -116,6 +121,24 @@ export function AppHeader({
         onUpdateProcessedSize();
         setIsOptimizing(false);
     }, 100);
+  };
+
+  const handleDownloadClick = () => {
+    if (settings.format === 'application/pdf' && pdfPassword) {
+      if (pdfPassword !== confirmPdfPassword) {
+        setPasswordError('Passwords do not match.');
+        toast({
+            title: "Password Mismatch",
+            description: "Please ensure the passwords match.",
+            variant: "destructive"
+        });
+        return;
+      }
+      onDownload(filename, pdfPassword);
+    } else {
+      onDownload(filename);
+    }
+    setPasswordError('');
   };
 
 
@@ -239,13 +262,40 @@ export function AppHeader({
                         </div>
                       </>
                     )}
+                    {settings.format === 'application/pdf' && (
+                        <div className="space-y-4 rounded-md border p-4">
+                            <h5 className="font-medium flex items-center gap-2 text-sm"><KeyRound size={16}/> PDF Password (Optional)</h5>
+                            <div className="grid gap-2">
+                                <Label htmlFor="pdf-password">Password</Label>
+                                <Input 
+                                    id="pdf-password"
+                                    type="password"
+                                    value={pdfPassword}
+                                    onChange={(e) => setPdfPassword(e.target.value)}
+                                />
+                            </div>
+                             <div className="grid gap-2">
+                                <Label htmlFor="pdf-confirm-password">Confirm Password</Label>
+                                <Input 
+                                    id="pdf-confirm-password"
+                                    type="password"
+                                    value={confirmPdfPassword}
+                                    onChange={(e) => {
+                                      setConfirmPdfPassword(e.target.value)
+                                      if(passwordError) setPasswordError('');
+                                    }}
+                                />
+                            </div>
+                            {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+                        </div>
+                    )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
                           {settings.format === 'image/svg+xml' || settings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button onClick={() => onDownload(filename)} className="w-full">
+                      <Button onClick={handleDownloadClick} className="w-full">
                           <Download className="mr-2"/>
                           Download
                       </Button>
