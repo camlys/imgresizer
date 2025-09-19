@@ -33,6 +33,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     const [rotation, setRotation] = useState(0);
 
     const renderPage = useCallback(async () => {
+        setIsLoading(true);
         try {
             const page = await pdfDoc.getPage(pageNumber);
             const canvas = canvasRef.current;
@@ -307,5 +308,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         </Dialog>
     );
 }
+
+    
 
     
