@@ -444,7 +444,7 @@ export default function Home() {
     }
   }, [generateFinalCanvas, settings.format, settings.quality]);
 
-  const handleDownload = useCallback(async (filename: string, pdfPassword?: string) => {
+  const handleDownload = useCallback(async (filename: string) => {
     try {
         const finalCanvas = await generateFinalCanvas();
         const downloadName = filename || 'imgresizer-export';
@@ -458,36 +458,11 @@ export default function Home() {
               format: [finalCanvas.width, finalCanvas.height]
             });
             pdf.addImage(imgData, 'PNG', 0, 0, finalCanvas.width, finalCanvas.height);
-            if (pdfPassword) {
-              // The API for userPassword in jspdf is not as straightforward.
-              // This is a placeholder for where encryption would be added.
-              // Note: The `jspdf` library's password protection capabilities might be limited
-              // or require specific builds/plugins. This is a conceptual implementation.
-              // For a real-world scenario, further research on `jspdf` encryption is needed.
-               try {
-                  pdf.save(`${downloadName}.pdf`, {
-                    userPassword: pdfPassword,
-                  });
-                   toast({
-                    title: "Download Started",
-                    description: `Your encrypted PDF file has started downloading.`,
-                  });
-              } catch(e) {
-                 console.error("PDF encryption error:", e);
-                 toast({
-                    title: "Encryption Failed",
-                    description: "Could not encrypt the PDF. Downloading without password.",
-                    variant: "destructive",
-                  });
-                  pdf.save(`${downloadName}.pdf`);
-              }
-            } else {
-               pdf.save(`${downloadName}.pdf`);
-                toast({
-                  title: "Download Started",
-                  description: "Your PDF file has started downloading.",
-                });
-            }
+            pdf.save(`${downloadName}.pdf`);
+            toast({
+              title: "Download Started",
+              description: "Your PDF file has started downloading.",
+            });
             return;
         }
 

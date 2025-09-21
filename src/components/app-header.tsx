@@ -16,11 +16,10 @@ import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
-import { useToast } from '@/hooks/use-toast';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
-  onDownload: (filename: string, pdfPassword?: string) => void;
+  onDownload: (filename: string) => void;
   onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
@@ -42,16 +41,12 @@ export function AppHeader({
   onUpdateProcessedSize,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const [targetSize, setTargetSize] = useState('');
   const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
-  const [pdfPassword, setPdfPassword] = useState('');
-  const [confirmPdfPassword, setConfirmPdfPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -124,21 +119,7 @@ export function AppHeader({
   };
 
   const handleDownloadClick = () => {
-    if (settings.format === 'application/pdf' && pdfPassword) {
-      if (pdfPassword !== confirmPdfPassword) {
-        setPasswordError('Passwords do not match.');
-        toast({
-            title: "Password Mismatch",
-            description: "Please ensure the passwords match.",
-            variant: "destructive"
-        });
-        return;
-      }
-      onDownload(filename, pdfPassword);
-    } else {
-      onDownload(filename);
-    }
-    setPasswordError('');
+    onDownload(filename);
   };
 
 
@@ -261,33 +242,6 @@ export function AppHeader({
                             </div>
                         </div>
                       </>
-                    )}
-                    {settings.format === 'application/pdf' && (
-                        <div className="space-y-4 rounded-md border p-4">
-                            <h5 className="font-medium flex items-center gap-2 text-sm"><KeyRound size={16}/> PDF Password (Optional)</h5>
-                            <div className="grid gap-2">
-                                <Label htmlFor="pdf-password">Password</Label>
-                                <Input 
-                                    id="pdf-password"
-                                    type="password"
-                                    value={pdfPassword}
-                                    onChange={(e) => setPdfPassword(e.target.value)}
-                                />
-                            </div>
-                             <div className="grid gap-2">
-                                <Label htmlFor="pdf-confirm-password">Confirm Password</Label>
-                                <Input 
-                                    id="pdf-confirm-password"
-                                    type="password"
-                                    value={confirmPdfPassword}
-                                    onChange={(e) => {
-                                      setConfirmPdfPassword(e.target.value)
-                                      if(passwordError) setPasswordError('');
-                                    }}
-                                />
-                            </div>
-                            {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
-                        </div>
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
