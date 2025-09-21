@@ -220,13 +220,14 @@ interface PdfPageSelectorDialogProps {
 export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect, isPageSelecting }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
-    const [deletedPages, setDeletedPages] = useState<number[]>([]);
+    const [deletedPages, setDeletedPages] = useState<Set<number>>(new Set());
+    const [deletionHistory, setDeletionHistory] = useState<number[][]>([]);
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
 
-    const visiblePages = pagesMeta.filter(p => !deletedPages.includes(p.pageNumber));
+    const visiblePages = pagesMeta.filter(p => !deletedPages.has(p.pageNumber));
     const visiblePageNumbers = visiblePages.map(p => p.pageNumber);
 
     useEffect(() => {
@@ -240,20 +241,14 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
             }));
             setPagesMeta(meta);
             setIsLoading(false);
-            setDeletedPages([]);
+            setDeletedPages(new Set());
             setSelectedPages([]);
+            setDeletionHistory([]);
         }
     }, [pdfDoc, isOpen]);
 
     const handleSelectPageForEdit = (pageNum: number) => {
-        // Find rotation for the selected page
-        const pageMeta = pagesMeta.find(p => p.pageNumber === pageNum);
-        if (pageMeta) {
-          // Pass pageNum and rotation to the parent
-          // This part needs to be handled by `onPageSelect` prop.
-          // For now, we just call it with the page number.
-          onPageSelect(pageNum); 
-        }
+        onPageSelect(pageNum); 
     };
     
     const handleToggleSelection = (pageNumber: number) => {
@@ -281,12 +276,27 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     };
 
     const handlePageDelete = (pageNumber: number) => {
-        setDeletedPages(prev => [...prev, pageNumber]);
-        setSelectedPages(prev => prev.filter(p => p !== pageNumber)); // Deselect if deleted
+        setDeletedPages(prev => new Set(prev).add(pageNumber));
+        setSelectedPages(prev => prev.filter(p => p !== pageNumber));
+        setDeletionHistory(prev => [...prev, [pageNumber]]);
+    };
+
+    const handleDeleteSelected = () => {
+        if (selectedPages.length === 0) return;
+        setDeletedPages(prev => new Set([...prev, ...selectedPages]));
+        setDeletionHistory(prev => [...prev, [...selectedPages]]);
+        setSelectedPages([]);
     };
     
-    const handleUndoDelete = (pageNumber: number) => {
-        setDeletedPages(prev => prev.filter(p => p !== pageNumber));
+    const handleUndoDelete = () => {
+        if (deletionHistory.length === 0) return;
+        const lastDeletedGroup = deletionHistory[deletionHistory.length - 1];
+        setDeletedPages(prev => {
+            const newSet = new Set(prev);
+            lastDeletedGroup.forEach(num => newSet.delete(num));
+            return newSet;
+        });
+        setDeletionHistory(prev => prev.slice(0, -1));
     };
 
     const handleNameChange = (pageNumber: number, newName: string) => {
@@ -432,8 +442,10 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
           if (!open) {
+              setPagesMeta([]);
               setSelectedPages([]);
-              setDeletedPages([]);
+              setDeletedPages(new Set());
+              setDeletionHistory([]);
           }
           onOpenChange(open);
         }}>
@@ -458,10 +470,16 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                     {selectedPages.length === visiblePageNumbers.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
                                 </Label>
                              </div>
-                              {deletedPages.length > 0 && (
+                             {selectedPages.length > 0 && (
+                                <Button variant="destructive-outline" size="sm" onClick={handleDeleteSelected}>
+                                    <Trash2 size={16} className="mr-2"/>
+                                    Delete ({selectedPages.length})
+                                </Button>
+                             )}
+                              {deletionHistory.length > 0 && (
                                 <div className="text-sm text-muted-foreground">
-                                    {deletedPages.length} page(s) deleted.
-                                    <Button variant="link" className="p-1 h-auto" onClick={() => handleUndoDelete(deletedPages[deletedPages.length - 1])}>Undo</Button>
+                                    {deletedPages.size} page(s) deleted.
+                                    <Button variant="link" className="p-1 h-auto" onClick={handleUndoDelete}>Undo</Button>
                                 </div>
                             )}
                          </div>
@@ -506,7 +524,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                    isSelected={selectedPages.includes(pageMeta.pageNumber)}
                                    onToggleSelection={handleToggleSelection}
                                    onRotate={handlePageRotate}
-                                   onDelete={handlePageDelete}
+                                   onDelete={() => handlePageDelete(pageMeta.pageNumber)}
                                    onNameChange={handleNameChange}
                                    onDownload={downloadPage}
                                />
@@ -518,3 +536,5 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         </Dialog>
     );
 }
+
+      
