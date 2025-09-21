@@ -679,6 +679,7 @@ export default function Home() {
           )}
       </div>
       <SeoContent />
+      <FeatureGrid />
       <SiteFooter />
     </div>
   );
