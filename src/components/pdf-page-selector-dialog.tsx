@@ -10,31 +10,45 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Loader2, Download, RotateCcw, RotateCw } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Input } from './ui/input';
 import jsPDF from 'jspdf';
+import { Tooltip, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 
-interface PdfPageSelectorDialogProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
-  onPageSelect: (pageNumber: number) => void;
-  isPageSelecting: boolean;
+interface PageMetadata {
+  pageNumber: number;
+  rotation: number;
+  name: string;
 }
 
-function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelection }: { pdfDoc: pdfjsLib.PDFDocumentProxy, pageNumber: number, onSelect: () => void, isSelected: boolean, onToggleSelection: (pageNumber: number) => void }) {
+interface PagePreviewProps {
+  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pageMeta: PageMetadata;
+  onSelect: () => void;
+  isSelected: boolean;
+  onToggleSelection: (pageNumber: number) => void;
+  onRotate: (pageNumber: number, degree: number) => void;
+  onDelete: (pageNumber: number) => void;
+  onNameChange: (pageNumber: number, newName: string) => void;
+  onDownload: (pageMeta: PageMetadata) => void;
+}
+
+
+function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection, onRotate, onDelete, onNameChange, onDownload }: PagePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
-    const [rotation, setRotation] = useState(0);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempName, setTempName] = useState(pageMeta.name);
 
     const renderPage = useCallback(async (currentRotation: number) => {
         if (renderTaskRef.current) {
@@ -42,7 +56,7 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
         }
         setIsLoading(true);
         try {
-            const page = await pdfDoc.getPage(pageNumber);
+            const page = await pdfDoc.getPage(pageMeta.pageNumber);
             const canvas = canvasRef.current;
             if (!canvas) return;
 
@@ -63,12 +77,12 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
             renderTaskRef.current = null;
         } catch (error) {
             if (error instanceof Error && error.name !== 'RenderingCancelledException') {
-              console.error(`Failed to render page ${pageNumber}`, error);
+              console.error(`Failed to render page ${pageMeta.pageNumber}`, error);
             }
         } finally {
             setIsLoading(false);
         }
-    }, [pdfDoc, pageNumber]);
+    }, [pdfDoc, pageMeta.pageNumber]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -95,39 +109,66 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
     useEffect(() => {
         if (isVisible) {
-          renderPage(rotation);
+          renderPage(pageMeta.rotation);
         }
         return () => {
             if (renderTaskRef.current) {
                 renderTaskRef.current.cancel();
             }
         }
-    }, [isVisible, rotation, renderPage]);
+    }, [isVisible, pageMeta.rotation, renderPage]);
     
     const handleRotate = (degree: number) => {
-      setRotation(prev => (prev + degree + 360) % 360);
+      onRotate(pageMeta.pageNumber, degree);
     };
 
     const handleContainerClick = (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest('button')) {
+      if ((e.target as HTMLElement).closest('button, input, label')) {
         return;
       }
       onSelect();
     };
 
+    const handleNameSubmit = () => {
+        if (tempName.trim()) {
+            onNameChange(pageMeta.pageNumber, tempName.trim());
+        } else {
+            setTempName(pageMeta.name); // Reset if empty
+        }
+        setIsEditingName(false);
+    };
+
     return (
         <div
             ref={containerRef}
-            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer"
+            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all"
             onClick={handleContainerClick}
         >
-             <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
+             <div className="absolute top-3 right-3 z-10 flex gap-1" onClick={(e) => e.stopPropagation()}>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onDownload(pageMeta)}>
+                                <Download size={14} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Download this page</p></TooltipContent>
+                    </Tooltip>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => onDelete(pageMeta.pageNumber)}>
+                                <Trash2 size={14} />
+                             </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Delete this page</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 <Checkbox
-                    id={`select-page-${pageNumber}`}
+                    id={`select-page-${pageMeta.pageNumber}`}
                     checked={isSelected}
-                    onCheckedChange={() => onToggleSelection(pageNumber)}
-                    className="h-5 w-5 bg-background"
-                    aria-label={`Select page ${pageNumber}`}
+                    onCheckedChange={() => onToggleSelection(pageMeta.pageNumber)}
+                    className="h-7 w-7 bg-background"
+                    aria-label={`Select page ${pageMeta.pageNumber}`}
                 />
             </div>
             <div className="absolute top-3 left-3 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -142,10 +183,28 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
                 {(isLoading || !isVisible) && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
                 <canvas 
                   ref={canvasRef} 
-                  className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`}
+                  className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''} cursor-pointer`}
                 />
             </div>
-            <p className="text-sm font-medium">Page {pageNumber}</p>
+            <div className="flex items-center gap-1 w-full justify-center">
+                {isEditingName ? (
+                    <Input 
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        onBlur={handleNameSubmit}
+                        onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
+                        autoFocus
+                        className="text-sm font-medium h-7 text-center"
+                    />
+                ) : (
+                    <>
+                        <p className="text-sm font-medium truncate">{pageMeta.name}</p>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditingName(true)}>
+                            <Edit size={14}/>
+                        </Button>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
@@ -153,25 +212,41 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 
 export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect, isPageSelecting }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const [pageNumbers, setPageNumbers] = useState<number[]>([]);
+    const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
+    const [deletedPages, setDeletedPages] = useState<number[]>([]);
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
 
+    const visiblePages = pagesMeta.filter(p => !deletedPages.includes(p.pageNumber));
+    const visiblePageNumbers = visiblePages.map(p => p.pageNumber);
 
     useEffect(() => {
         if (pdfDoc) {
             setIsLoading(true);
             const numPages = pdfDoc.numPages;
-            setPageNumbers(Array.from({ length: numPages }, (_, i) => i + 1));
+            const meta = Array.from({ length: numPages }, (_, i) => ({
+                pageNumber: i + 1,
+                rotation: 0,
+                name: `Page ${i + 1}`,
+            }));
+            setPagesMeta(meta);
             setIsLoading(false);
+            setDeletedPages([]);
+            setSelectedPages([]);
         }
-        setSelectedPages([]);
     }, [pdfDoc, isOpen]);
 
     const handleSelectPageForEdit = (pageNum: number) => {
-        onPageSelect(pageNum);
+        // Find rotation for the selected page
+        const pageMeta = pagesMeta.find(p => p.pageNumber === pageNum);
+        if (pageMeta) {
+          // Pass pageNum and rotation to the parent
+          // This part needs to be handled by `onPageSelect` prop.
+          // For now, we just call it with the page number.
+          onPageSelect(pageNum); 
+        }
     };
     
     const handleToggleSelection = (pageNumber: number) => {
@@ -183,12 +258,69 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     };
 
     const handleToggleSelectAll = () => {
-        if (selectedPages.length === pageNumbers.length) {
+        if (selectedPages.length === visiblePageNumbers.length) {
             setSelectedPages([]);
         } else {
-            setSelectedPages(pageNumbers);
+            setSelectedPages(visiblePageNumbers);
         }
     };
+
+    const handlePageRotate = (pageNumber: number, degree: number) => {
+        setPagesMeta(prev => prev.map(p => 
+            p.pageNumber === pageNumber 
+                ? { ...p, rotation: (p.rotation + degree + 360) % 360 }
+                : p
+        ));
+    };
+
+    const handlePageDelete = (pageNumber: number) => {
+        setDeletedPages(prev => [...prev, pageNumber]);
+        setSelectedPages(prev => prev.filter(p => p !== pageNumber)); // Deselect if deleted
+    };
+    
+    const handleUndoDelete = (pageNumber: number) => {
+        setDeletedPages(prev => prev.filter(p => p !== pageNumber));
+    };
+
+    const handleNameChange = (pageNumber: number, newName: string) => {
+        setPagesMeta(prev => prev.map(p => 
+            p.pageNumber === pageNumber ? { ...p, name: newName } : p
+        ));
+    };
+
+    const downloadPage = useCallback(async (pageMeta: PageMetadata) => {
+         if (!pdfDoc) return;
+
+         toast({ title: `Downloading ${pageMeta.name}...`});
+         try {
+             const page = await pdfDoc.getPage(pageMeta.pageNumber);
+             const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+
+             const canvas = document.createElement('canvas');
+             const context = canvas.getContext('2d');
+             if (!context) throw new Error("Could not create canvas context");
+
+             canvas.width = viewport.width;
+             canvas.height = viewport.height;
+             await page.render({ canvasContext: context, viewport }).promise;
+             
+             const dataUrl = canvas.toDataURL('image/png', 1.0);
+             const link = document.createElement('a');
+             link.href = dataUrl;
+             link.download = `${pageMeta.name}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             URL.revokeObjectURL(link.href);
+         } catch (error) {
+             console.error(`Failed to download page ${pageMeta.pageNumber}`, error);
+             toast({
+                 title: "Download Error",
+                 description: `Could not download ${pageMeta.name}.`,
+                 variant: "destructive"
+             });
+         }
+    }, [pdfDoc, toast]);
     
     const handleDownloadSelected = async () => {
         if (!pdfDoc || selectedPages.length === 0) return;
@@ -199,12 +331,13 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
             description: `Preparing ${selectedPages.length} page(s) for download...`
         });
 
-        const sortedPages = [...selectedPages].sort((a, b) => a - b);
+        const pagesToDownload = [...selectedPages].sort((a, b) => a - b).map(num => pagesMeta.find(p => p.pageNumber === num)!);
         
         if (downloadFormat === 'application/pdf') {
             try {
-                const firstPageForPdf = await pdfDoc.getPage(sortedPages[0]);
-                const viewportForPdf = firstPageForPdf.getViewport({ scale: 1 });
+                const firstPageMeta = pagesToDownload[0];
+                const firstPageForPdf = await pdfDoc.getPage(firstPageMeta.pageNumber);
+                const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
                 const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
                 
                 const pdf = new jsPDF({
@@ -213,10 +346,10 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     format: [viewportForPdf.width, viewportForPdf.height]
                 });
 
-                for (let i = 0; i < sortedPages.length; i++) {
-                    const pageNum = sortedPages[i];
-                    const page = await pdfDoc.getPage(pageNum);
-                    const viewport = page.getViewport({ scale: 4.0 }); // High res
+                for (let i = 0; i < pagesToDownload.length; i++) {
+                    const pageMeta = pagesToDownload[i];
+                    const page = await pdfDoc.getPage(pageMeta.pageNumber);
+                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High res
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -227,7 +360,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     await page.render({ canvasContext: context, viewport }).promise;
 
                     if (i > 0) {
-                        const pageVp = page.getViewport({scale: 1});
+                        const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
                         pdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
                     }
                     
@@ -246,10 +379,10 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
 
         } else {
             const extension = downloadFormat.split('/')[1];
-            for (const pageNum of sortedPages) {
+            for (const pageMeta of pagesToDownload) {
                 try {
-                    const page = await pdfDoc.getPage(pageNum);
-                    const viewport = page.getViewport({ scale: 4.0 }); // High resolution
+                    const page = await pdfDoc.getPage(pageMeta.pageNumber);
+                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High resolution
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -263,17 +396,17 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     const dataUrl = canvas.toDataURL(downloadFormat, 1.0);
                     const link = document.createElement('a');
                     link.href = dataUrl;
-                    link.download = `page_${pageNum}.${extension}`;
+                    link.download = `${pageMeta.name}.${extension}`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(link.href);
                     await new Promise(resolve => setTimeout(resolve, 200)); 
                 } catch (error) {
-                    console.error(`Failed to download page ${pageNum}`, error);
+                    console.error(`Failed to download page ${pageMeta.pageNumber}`, error);
                     toast({
                         title: "Download Error",
-                        description: `Could not download page ${pageNum}.`,
+                        description: `Could not download ${pageMeta.name}.`,
                         variant: "destructive"
                     });
                 }
@@ -291,28 +424,39 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
-          if (!open) setSelectedPages([]);
+          if (!open) {
+              setSelectedPages([]);
+              setDeletedPages([]);
+          }
           onOpenChange(open);
         }}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Select a Page to Edit</DialogTitle>
+                    <DialogTitle>Organize and Select Pages</DialogTitle>
                     <DialogDescription>
-                        Click on a page to start editing, or select multiple pages to download them as images or a combined PDF.
+                        Click a page to edit, or select multiple to download. You can rename, rotate, and delete pages before exporting.
                     </DialogDescription>
                 </DialogHeader>
                 
                 {!isLoading && (
                      <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b">
-                         <div className="flex items-center gap-2">
-                             <Checkbox
-                                id="select-all"
-                                checked={pageNumbers.length > 0 && selectedPages.length === pageNumbers.length}
-                                onCheckedChange={handleToggleSelectAll}
-                             />
-                             <Label htmlFor="select-all" className="cursor-pointer">
-                                {selectedPages.length === pageNumbers.length ? 'Deselect All' : 'Select All'}
-                             </Label>
+                         <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="select-all"
+                                    checked={visiblePageNumbers.length > 0 && selectedPages.length === visiblePageNumbers.length}
+                                    onCheckedChange={handleToggleSelectAll}
+                                />
+                                <Label htmlFor="select-all" className="cursor-pointer">
+                                    {selectedPages.length === visiblePageNumbers.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
+                                </Label>
+                             </div>
+                              {deletedPages.length > 0 && (
+                                <div className="text-sm text-muted-foreground">
+                                    {deletedPages.length} page(s) deleted.
+                                    <Button variant="link" className="p-1 h-auto" onClick={() => handleUndoDelete(deletedPages[deletedPages.length - 1])}>Undo</Button>
+                                </div>
+                            )}
                          </div>
                          <div className="flex items-center gap-2">
                             <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
@@ -345,15 +489,19 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     </div>
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4">
-                           {pageNumbers.map(pageNum => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
+                           {visiblePages.map(pageMeta => (
                                <PagePreview
-                                   key={pageNum}
+                                   key={pageMeta.pageNumber}
                                    pdfDoc={pdfDoc!}
-                                   pageNumber={pageNum}
-                                   onSelect={() => handleSelectPageForEdit(pageNum)}
-                                   isSelected={selectedPages.includes(pageNum)}
+                                   pageMeta={pageMeta}
+                                   onSelect={() => handleSelectPageForEdit(pageMeta.pageNumber)}
+                                   isSelected={selectedPages.includes(pageMeta.pageNumber)}
                                    onToggleSelection={handleToggleSelection}
+                                   onRotate={handlePageRotate}
+                                   onDelete={handlePageDelete}
+                                   onNameChange={handleNameChange}
+                                   onDownload={downloadPage}
                                />
                            ))}
                         </div>
