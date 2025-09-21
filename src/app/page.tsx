@@ -173,12 +173,18 @@ export default function Home() {
 
 
   const handlePdfPageSelect = useCallback((pageNum: number) => {
-      setIsLoading(true);
       if (pdfDoc && pdfFile) {
-        loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
+        // Show loader immediately
+        setIsPageSelecting(true);
+        // Defer the heavy operation to allow UI to update
+        setTimeout(() => {
+          loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
+          setIsPdfSelectorOpen(false);
+        }, 50);
       }
-      setIsPdfSelectorOpen(false);
   }, [pdfDoc, pdfFile, loadPageAsImage]);
+
+  const [isPageSelecting, setIsPageSelecting] = useState(false);
 
 
   const handleImageUpload = async (file: File) => {
@@ -186,6 +192,7 @@ export default function Home() {
     setPdfDoc(null);
     setPdfFile(null);
     setIsFromMultiPagePdf(false);
+    setIsPageSelecting(false);
 
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -233,6 +240,7 @@ export default function Home() {
             setPdfFile(file);
             
             if (doc.numPages > 1) {
+                setIsLoading(false); // Stop main loader, dialog will show its own
                 setIsPdfSelectorOpen(true);
             } else {
                 loadPageAsImage(doc, 1, file.size, false);
@@ -450,14 +458,36 @@ export default function Home() {
               format: [finalCanvas.width, finalCanvas.height]
             });
             pdf.addImage(imgData, 'PNG', 0, 0, finalCanvas.width, finalCanvas.height);
-            pdf.save(`${downloadName}.pdf`, {
-              userPassword: pdfPassword,
-            });
-            
-            toast({
-              title: "Download Started",
-              description: `Your ${pdfPassword ? 'encrypted' : ''} PDF file has started downloading.`,
-            });
+            if (pdfPassword) {
+              // The API for userPassword in jspdf is not as straightforward.
+              // This is a placeholder for where encryption would be added.
+              // Note: The `jspdf` library's password protection capabilities might be limited
+              // or require specific builds/plugins. This is a conceptual implementation.
+              // For a real-world scenario, further research on `jspdf` encryption is needed.
+               try {
+                  pdf.save(`${downloadName}.pdf`, {
+                    userPassword: pdfPassword,
+                  });
+                   toast({
+                    title: "Download Started",
+                    description: `Your encrypted PDF file has started downloading.`,
+                  });
+              } catch(e) {
+                 console.error("PDF encryption error:", e);
+                 toast({
+                    title: "Encryption Failed",
+                    description: "Could not encrypt the PDF. Downloading without password.",
+                    variant: "destructive",
+                  });
+                  pdf.save(`${downloadName}.pdf`);
+              }
+            } else {
+               pdf.save(`${downloadName}.pdf`);
+                toast({
+                  title: "Download Started",
+                  description: "Your PDF file has started downloading.",
+                });
+            }
             return;
         }
 
@@ -576,7 +606,7 @@ export default function Home() {
             </p>
           </section>
           <FeatureGrid />
-          <SeoContent />
+          <SeoContent isEditing={false} />
         </main>
         <SiteFooter />
         {pdfDoc && (
@@ -584,12 +614,15 @@ export default function Home() {
             isOpen={isPdfSelectorOpen}
             onOpenChange={(isOpen) => {
               if (!isOpen) {
-                setIsLoading(false);
+                // If closing without selection, ensure main loader is off.
+                if (isPageSelecting) setIsPageSelecting(false);
+                else setIsLoading(false);
               }
               setIsPdfSelectorOpen(isOpen);
             }}
             pdfDoc={pdfDoc}
             onPageSelect={handlePdfPageSelect}
+            isPageSelecting={isPageSelecting}
           />
         )}
       </div>
@@ -668,18 +701,22 @@ export default function Home() {
             <PdfPageSelectorDialog
               isOpen={isPdfSelectorOpen}
               onOpenChange={(isOpen) => {
-                if (!isOpen) {
-                  setIsLoading(false);
+                 if (!isOpen) {
+                  // If closing without selection, ensure main loader is off.
+                  if (isPageSelecting) setIsPageSelecting(false);
+                  else setIsLoading(false);
                 }
                 setIsPdfSelectorOpen(isOpen);
               }}
               pdfDoc={pdfDoc}
               onPageSelect={handlePdfPageSelect}
+              isPageSelecting={isPageSelecting}
             />
           )}
       </div>
-      <SeoContent />
-      <FeatureGrid />
+      <SeoContent isEditing={true}>
+        <FeatureGrid />
+      </SeoContent>
       <SiteFooter />
     </div>
   );

@@ -1,52 +1,72 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
+import React from 'react';
 
-export function SeoContent() {
+interface SeoContentProps {
+  isEditing: boolean;
+  children?: React.ReactNode;
+}
+
+export function SeoContent({ isEditing, children }: SeoContentProps) {
+  if (isEditing) {
+    return (
+      <div className="container mx-auto py-16 px-6 space-y-20 bg-background">
+        <section>
+            <h2 className="text-3xl font-bold text-center font-headline mb-12">Why ImgResizer is Your Best Choice for Editing</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+                <div className="flex flex-col items-center">
+                    <ShieldCheck className="w-12 h-12 text-primary mb-4"/>
+                    <h3 className="text-xl font-semibold mb-2">Total Privacy</h3>
+                    <p className="text-muted-foreground">Your images are processed locally in your browser. Nothing is ever stored on our servers, guaranteeing your work remains yours alone.</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <Zap className="w-12 h-12 text-primary mb-4"/>
+                    <h3 className="text-xl font-semibold mb-2">Instant Previews</h3>
+                    <p className="text-muted-foreground">See your edits in real-time. Our fast and responsive editor ensures a smooth, lag-free creative workflow.</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <LockKeyhole className="w-12 h-12 text-primary mb-4"/>
+                    <h3 className="text-xl font-semibold mb-2">No Sign-Up Needed</h3>
+                    <p className="text-muted-foreground">No accounts, no logins, no interruptions. Dive straight into editing your images without any barriers.</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <CheckCircle className="w-12 h-12 text-primary mb-4"/>
+                    <h3 className="text-xl font-semibold mb-2">Absolutely Free</h3>
+                    <p className="text-muted-foreground">All our professional tools are available for free. Unlock your full potential without any hidden fees or subscriptions.</p>
+                </div>
+            </div>
+        </section>
+        
+        {children}
+
+        <section className="text-center">
+            <h2 className="text-3xl font-bold font-headline mb-12">Perfect Your Image in 3 Simple Steps</h2>
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">1</div>
+                    <h3 className="text-xl font-semibold mb-2">Upload Your Image</h3>
+                    <p className="text-muted-foreground">You've already done this step! Your image is loaded and ready for editing.</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">2</div>
+                    <h3 className="text-xl font-semibold mb-2">Edit Like a Pro</h3>
+                    <p className="text-muted-foreground">Use the intuitive controls on the left to resize, crop, adjust colors, add text, and more.</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">3</div>
+                    <h3 className="text-xl font-semibold mb-2">Download Your Masterpiece</h3>
+                    <p className="text-muted-foreground">Click the "Download" button to choose your format and export your finished creation.</p>
+                </div>
+            </div>
+        </section>
+      </div>
+    );
+  }
+
+  // Content for the home page (when not editing)
   return (
     <div className="container mx-auto py-16 px-6 space-y-20 bg-background">
-      {/* Hero Section */}
-      <section className="text-center">
-        <Card className="border-none shadow-none bg-transparent">
-          <CardHeader>
-            <CardTitle className="text-3xl lg:text-4xl font-bold font-headline">Unlock Your Creativity with Powerful Tools</CardTitle>
-          </CardHeader>
-          <CardContent className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto">
-            <p>
-             You've uploaded your image, now let's make it perfect. ImgResizer gives you a complete suite of professional-grade editing tools right at your fingertips. From precise cropping and scaling to advanced color correction and artistic filters, you have everything you need to transform your vision into reality.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Features Grid */}
-      <section>
-          <h2 className="text-3xl font-bold text-center font-headline mb-12">Why ImgResizer is Your Best Choice for Editing</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-              <div className="flex flex-col items-center">
-                  <ShieldCheck className="w-12 h-12 text-primary mb-4"/>
-                  <h3 className="text-xl font-semibold mb-2">Total Privacy</h3>
-                  <p className="text-muted-foreground">Your images are processed locally in your browser. Nothing is ever stored on our servers, guaranteeing your work remains yours alone.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                  <Zap className="w-12 h-12 text-primary mb-4"/>
-                  <h3 className="text-xl font-semibold mb-2">Instant Previews</h3>
-                  <p className="text-muted-foreground">See your edits in real-time. Our fast and responsive editor ensures a smooth, lag-free creative workflow.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                  <LockKeyhole className="w-12 h-12 text-primary mb-4"/>
-                  <h3 className="text-xl font-semibold mb-2">No Sign-Up Needed</h3>
-                  <p className="text-muted-foreground">No accounts, no logins, no interruptions. Dive straight into editing your images without any barriers.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                  <CheckCircle className="w-12 h-12 text-primary mb-4"/>
-                  <h3 className="text-xl font-semibold mb-2">Absolutely Free</h3>
-                  <p className="text-muted-foreground">All our professional tools are available for free. Unlock your full potential without any hidden fees or subscriptions.</p>
-              </div>
-          </div>
-      </section>
-      
-      {/* Detailed Feature Sections */}
       <section className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
         <div>
           <h3 className="text-2xl font-bold text-foreground mb-4">Precision Resizing and Perspective Correction</h3>
@@ -106,29 +126,8 @@ export function SeoContent() {
             </div>
         </div>
       </section>
-
-      {/* How it works section */}
-      <section className="text-center">
-          <h2 className="text-3xl font-bold font-headline mb-12">Perfect Your Image in 3 Simple Steps</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">1</div>
-                  <h3 className="text-xl font-semibold mb-2">Upload Your Image</h3>
-                  <p className="text-muted-foreground">You've already done this step! Your image is loaded and ready for editing.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">2</div>
-                  <h3 className="text-xl font-semibold mb-2">Edit Like a Pro</h3>
-                  <p className="text-muted-foreground">Use the intuitive controls on the left to resize, crop, adjust colors, add text, and more.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mb-4">3</div>
-                  <h3 className="text-xl font-semibold mb-2">Download Your Masterpiece</h3>
-                  <p className="text-muted-foreground">Click the "Download" button to choose your format and export your finished creation.</p>
-              </div>
-          </div>
-      </section>
-
     </div>
   );
 }
+
+    
