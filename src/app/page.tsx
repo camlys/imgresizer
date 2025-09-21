@@ -597,85 +597,88 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-[100vh] bg-background text-foreground">
-      <AppHeader 
-        onUpload={handleImageUpload} 
-        onDownload={handleDownload}
-        isImageLoaded={!!originalImage}
-        settings={settings}
-        updateSettings={updateSettings}
-        generateFinalCanvas={generateFinalCanvas}
-        processedSize={processedSize}
-        onUpdateProcessedSize={updateProcessedSize}
-        onShare={handleShare}
-      />
-      <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
-        <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
-          <ControlPanel 
-            settings={settings} 
-            updateSettings={updateSettings} 
-            originalImage={originalImage}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            processedSize={processedSize}
-            pendingCrop={pendingCrop}
-            setPendingCrop={setPendingCrop}
-            onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
-            isFromMultiPagePdf={isFromMultiPagePdf}
-            onViewPages={() => setIsPdfSelectorOpen(true)}
-            selectedTextId={selectedTextId}
-            setSelectedTextId={setSelectedTextId}
-          />
-        </div>
-        <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
-          <ImageCanvas
-            ref={canvasRef}
-            originalImage={originalImage}
-            imageElement={imageElement}
-            settings={settings}
-            updateSettings={updateSettings}
-            activeTab={activeTab}
-            pendingCrop={pendingCrop}
-            setPendingCrop={setPendingCrop}
-            selectedTextId={selectedTextId}
-            setSelectedTextId={setSelectedTextId}
-            setEditingTextId={setEditingTextId}
-          />
-          {editingText && canvasRef.current && (
-            <TextEditor
-                text={editingText}
-                canvas={canvasRef.current}
-                onSave={(newContent) => {
-                    const newTexts = settings.texts.map(t =>
-                        t.id === editingTextId ? { ...t, text: newContent } : t
-                    );
-                    updateSettings({ texts: newTexts });
-                    setEditingTextId(null);
-                }}
-                onCancel={() => setEditingTextId(null)}
+    <div className="h-[100vh] overflow-y-auto">
+      <div className="flex flex-col h-full bg-background text-foreground">
+        <AppHeader 
+          onUpload={handleImageUpload} 
+          onDownload={handleDownload}
+          isImageLoaded={!!originalImage}
+          settings={settings}
+          updateSettings={updateSettings}
+          generateFinalCanvas={generateFinalCanvas}
+          processedSize={processedSize}
+          onUpdateProcessedSize={updateProcessedSize}
+          onShare={handleShare}
+        />
+        <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
+          <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
+            <ControlPanel 
+              settings={settings} 
+              updateSettings={updateSettings} 
+              originalImage={originalImage}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              processedSize={processedSize}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+              onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
+              isFromMultiPagePdf={isFromMultiPagePdf}
+              onViewPages={() => setIsPdfSelectorOpen(true)}
+              selectedTextId={selectedTextId}
+              setSelectedTextId={setSelectedTextId}
+            />
+          </div>
+          <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
+            <ImageCanvas
+              ref={canvasRef}
+              originalImage={originalImage}
+              imageElement={imageElement}
+              settings={settings}
+              updateSettings={updateSettings}
+              activeTab={activeTab}
+              pendingCrop={pendingCrop}
+              setPendingCrop={setPendingCrop}
+              selectedTextId={selectedTextId}
+              setSelectedTextId={setSelectedTextId}
+              setEditingTextId={setEditingTextId}
+            />
+            {editingText && canvasRef.current && (
+              <TextEditor
+                  text={editingText}
+                  canvas={canvasRef.current}
+                  onSave={(newContent) => {
+                      const newTexts = settings.texts.map(t =>
+                          t.id === editingTextId ? { ...t, text: newContent } : t
+                      );
+                      updateSettings({ texts: newTexts });
+                      setEditingTextId(null);
+                  }}
+                  onCancel={() => setEditingTextId(null)}
+              />
+            )}
+            {isLoading && (
+              <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-lg z-10">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                <p className="text-lg font-medium text-foreground">Loading file...</p>
+              </div>
+            )}
+          </div>
+        </main>
+         {pdfDoc && (
+            <PdfPageSelectorDialog
+              isOpen={isPdfSelectorOpen}
+              onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                  setIsLoading(false);
+                }
+                setIsPdfSelectorOpen(isOpen);
+              }}
+              pdfDoc={pdfDoc}
+              onPageSelect={handlePdfPageSelect}
             />
           )}
-          {isLoading && (
-            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-lg z-10">
-              <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-              <p className="text-lg font-medium text-foreground">Loading file...</p>
-            </div>
-          )}
-        </div>
-      </main>
-       {pdfDoc && (
-          <PdfPageSelectorDialog
-            isOpen={isPdfSelectorOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                setIsLoading(false);
-              }
-              setIsPdfSelectorOpen(isOpen);
-            }}
-            pdfDoc={pdfDoc}
-            onPageSelect={handlePdfPageSelect}
-          />
-        )}
+      </div>
+      <SiteFooter />
     </div>
   );
 }
