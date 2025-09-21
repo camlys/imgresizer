@@ -23,16 +23,21 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   onPageSelect: (pageNumber: number) => void;
+  isPageSelecting: boolean;
 }
 
 function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelection }: { pdfDoc: pdfjsLib.PDFDocumentProxy, pageNumber: number, onSelect: () => void, isSelected: boolean, onToggleSelection: (pageNumber: number) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
     const [rotation, setRotation] = useState(0);
 
     const renderPage = useCallback(async (currentRotation: number) => {
+        if (renderTaskRef.current) {
+            renderTaskRef.current.cancel();
+        }
         setIsLoading(true);
         try {
             const page = await pdfDoc.getPage(pageNumber);
@@ -50,8 +55,10 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
             canvas.height = scaledViewport.height;
             canvas.width = scaledViewport.width;
             
-            const renderTask = page.render({ canvasContext: context, viewport: scaledViewport });
-            await renderTask.promise;
+            const task = page.render({ canvasContext: context, viewport: scaledViewport });
+            renderTaskRef.current = task;
+            await task.promise;
+            renderTaskRef.current = null;
         } catch (error) {
             if (error instanceof Error && error.name !== 'RenderingCancelledException') {
               console.error(`Failed to render page ${pageNumber}`, error);
@@ -85,28 +92,21 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
     }, []);
 
     useEffect(() => {
-        if (!isVisible) return;
-        let isMounted = true;
-        
-        if (isMounted) {
+        if (isVisible) {
           renderPage(rotation);
         }
-
         return () => {
-            isMounted = false;
+            if (renderTaskRef.current) {
+                renderTaskRef.current.cancel();
+            }
         }
     }, [isVisible, rotation, renderPage]);
     
     const handleRotate = (degree: number) => {
-      setRotation(prev => {
-          const newRotation = (prev + degree + 360) % 360;
-          renderPage(newRotation);
-          return newRotation;
-      });
+      setRotation(prev => (prev + degree + 360) % 360);
     };
 
     const handleContainerClick = (e: React.MouseEvent) => {
-      // Prevent click from propagating if a button was clicked
       if ((e.target as HTMLElement).closest('button')) {
         return;
       }
@@ -149,9 +149,8 @@ function PagePreview({ pdfDoc, pageNumber, onSelect, isSelected, onToggleSelecti
 }
 
 
-export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect }: PdfPageSelectorDialogProps) {
+export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect, isPageSelecting }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const [isPageSelecting, setIsPageSelecting] = useState(false);
     const [pageNumbers, setPageNumbers] = useState<number[]>([]);
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -166,18 +165,11 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
             setPageNumbers(Array.from({ length: numPages }, (_, i) => i + 1));
             setIsLoading(false);
         }
-        // Reset selections when dialog opens with a new doc
         setSelectedPages([]);
-        setIsPageSelecting(false);
     }, [pdfDoc, isOpen]);
 
     const handleSelectPageForEdit = (pageNum: number) => {
-        setIsPageSelecting(true);
-        // A small timeout to allow the spinner to render before the blocking operation starts
-        setTimeout(() => {
-            onPageSelect(pageNum);
-            // The dialog will close, but we reset the state in the useEffect on next open.
-        }, 50);
+        onPageSelect(pageNum);
     };
     
     const handleToggleSelection = (pageNumber: number) => {
@@ -230,7 +222,6 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(link.href);
-                // A small delay to help browsers manage multiple downloads
                 await new Promise(resolve => setTimeout(resolve, 200)); 
             } catch (error) {
                 console.error(`Failed to download page ${pageNum}`, error);

@@ -68,6 +68,7 @@ export default function Home() {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isFromMultiPagePdf, setIsFromMultiPagePdf] = useState(false);
+  const [isPageSelecting, setIsPageSelecting] = useState(false);
 
   // Text Editing
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -174,17 +175,15 @@ export default function Home() {
 
   const handlePdfPageSelect = useCallback((pageNum: number) => {
       if (pdfDoc && pdfFile) {
-        // Show loader immediately
         setIsPageSelecting(true);
-        // Defer the heavy operation to allow UI to update
+        // Defer heavy operation to allow UI to update
         setTimeout(() => {
           loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
           setIsPdfSelectorOpen(false);
+          setIsPageSelecting(false);
         }, 50);
       }
   }, [pdfDoc, pdfFile, loadPageAsImage]);
-
-  const [isPageSelecting, setIsPageSelecting] = useState(false);
 
 
   const handleImageUpload = async (file: File) => {
@@ -240,7 +239,7 @@ export default function Home() {
             setPdfFile(file);
             
             if (doc.numPages > 1) {
-                setIsLoading(false); // Stop main loader, dialog will show its own
+                setIsLoading(false);
                 setIsPdfSelectorOpen(true);
             } else {
                 loadPageAsImage(doc, 1, file.size, false);
@@ -589,9 +588,8 @@ export default function Home() {
             isOpen={isPdfSelectorOpen}
             onOpenChange={(isOpen) => {
               if (!isOpen) {
-                // If closing without selection, ensure main loader is off.
-                if (isPageSelecting) setIsPageSelecting(false);
-                else setIsLoading(false);
+                 if (isPageSelecting) setIsPageSelecting(false);
+                 else setIsLoading(false);
               }
               setIsPdfSelectorOpen(isOpen);
             }}
@@ -677,7 +675,6 @@ export default function Home() {
               isOpen={isPdfSelectorOpen}
               onOpenChange={(isOpen) => {
                  if (!isOpen) {
-                  // If closing without selection, ensure main loader is off.
                   if (isPageSelecting) setIsPageSelecting(false);
                   else setIsLoading(false);
                 }
