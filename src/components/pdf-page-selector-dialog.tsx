@@ -19,7 +19,7 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
 import jsPDF from 'jspdf';
-import { Tooltip, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 
 
 interface PageMetadata {
@@ -209,6 +209,13 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
     );
 }
 
+interface PdfPageSelectorDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
+  onPageSelect: (pageNum: number) => void;
+  isPageSelecting: boolean;
+}
 
 export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect, isPageSelecting }: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
