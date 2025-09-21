@@ -17,6 +17,8 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import jsPDF from 'jspdf';
+
 
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
@@ -155,7 +157,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
-    const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/png');
+    const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
 
 
     useEffect(() => {
@@ -198,38 +200,83 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         });
 
         const sortedPages = [...selectedPages].sort((a, b) => a - b);
-        const extension = downloadFormat.split('/')[1];
         
-        for (const pageNum of sortedPages) {
+        if (downloadFormat === 'application/pdf') {
             try {
-                const page = await pdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: 4.0 }); // High resolution
+                const firstPageForPdf = await pdfDoc.getPage(sortedPages[0]);
+                const viewportForPdf = firstPageForPdf.getViewport({ scale: 1 });
+                const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
+                
+                const pdf = new jsPDF({
+                    orientation,
+                    unit: 'pt',
+                    format: [viewportForPdf.width, viewportForPdf.height]
+                });
 
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                if (!context) continue;
+                for (let i = 0; i < sortedPages.length; i++) {
+                    const pageNum = sortedPages[i];
+                    const page = await pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 4.0 }); // High res
 
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    if (!context) continue;
 
-                await page.render({ canvasContext: context, viewport }).promise;
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: context, viewport }).promise;
 
-                const dataUrl = canvas.toDataURL(downloadFormat, 1.0);
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = `page_${pageNum}.${extension}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-                await new Promise(resolve => setTimeout(resolve, 200)); 
+                    if (i > 0) {
+                        const pageVp = page.getViewport({scale: 1});
+                        pdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
+                    }
+                    
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+                }
+                pdf.save('imgresizer-pages.pdf');
             } catch (error) {
-                console.error(`Failed to download page ${pageNum}`, error);
+                 console.error(`Failed to generate PDF`, error);
                 toast({
                     title: "Download Error",
-                    description: `Could not download page ${pageNum}.`,
+                    description: `Could not generate PDF.`,
                     variant: "destructive"
                 });
+            }
+
+        } else {
+            const extension = downloadFormat.split('/')[1];
+            for (const pageNum of sortedPages) {
+                try {
+                    const page = await pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 4.0 }); // High resolution
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    if (!context) continue;
+
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: context, viewport }).promise;
+
+                    const dataUrl = canvas.toDataURL(downloadFormat, 1.0);
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = `page_${pageNum}.${extension}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    await new Promise(resolve => setTimeout(resolve, 200)); 
+                } catch (error) {
+                    console.error(`Failed to download page ${pageNum}`, error);
+                    toast({
+                        title: "Download Error",
+                        description: `Could not download page ${pageNum}.`,
+                        variant: "destructive"
+                    });
+                }
             }
         }
         
@@ -251,7 +298,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 <DialogHeader>
                     <DialogTitle>Select a Page to Edit</DialogTitle>
                     <DialogDescription>
-                        Click on a page to start editing, or select multiple pages to download them as images.
+                        Click on a page to start editing, or select multiple pages to download them as images or a combined PDF.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -268,11 +315,12 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                              </Label>
                          </div>
                          <div className="flex items-center gap-2">
-                            <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp') => setDownloadFormat(v)}>
+                            <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
                                 <SelectTrigger className="w-[120px]">
                                     <SelectValue placeholder="Format" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="application/pdf">PDF</SelectItem>
                                     <SelectItem value="image/png">PNG</SelectItem>
                                     <SelectItem value="image/jpeg">JPEG</SelectItem>
                                     <SelectItem value="image/webp">WEBP</SelectItem>
