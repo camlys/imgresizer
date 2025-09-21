@@ -10,6 +10,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
@@ -226,12 +236,16 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
+    
+    // State for delete confirmation
+    const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
+    const [pagesToDelete, setPagesToDelete] = useState<number[] | null>(null);
 
     const visiblePages = pagesMeta.filter(p => !deletedPages.has(p.pageNumber));
     const visiblePageNumbers = visiblePages.map(p => p.pageNumber);
 
     useEffect(() => {
-        if (pdfDoc) {
+        if (pdfDoc && isOpen) {
             setIsLoading(true);
             const numPages = pdfDoc.numPages;
             const meta = Array.from({ length: numPages }, (_, i) => ({
@@ -275,17 +289,17 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         ));
     };
 
-    const handlePageDelete = (pageNumber: number) => {
-        setDeletedPages(prev => new Set(prev).add(pageNumber));
-        setSelectedPages(prev => prev.filter(p => p !== pageNumber));
-        setDeletionHistory(prev => [...prev, [pageNumber]]);
+    const confirmDelete = (pageNumbers: number[]) => {
+        setPagesToDelete(pageNumbers);
+        setIsConfirmDeleteDialogOpen(true);
     };
 
-    const handleDeleteSelected = () => {
-        if (selectedPages.length === 0) return;
-        setDeletedPages(prev => new Set([...prev, ...selectedPages]));
-        setDeletionHistory(prev => [...prev, [...selectedPages]]);
-        setSelectedPages([]);
+    const executeDelete = () => {
+        if (!pagesToDelete) return;
+        setDeletedPages(prev => new Set([...prev, ...pagesToDelete]));
+        setDeletionHistory(prev => [...prev, pagesToDelete]);
+        setSelectedPages(prev => prev.filter(p => !pagesToDelete.includes(p)));
+        setPagesToDelete(null);
     };
     
     const handleUndoDelete = () => {
@@ -362,6 +376,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     unit: 'pt',
                     format: [viewportForPdf.width, viewportForPdf.height]
                 });
+                pdf.deletePage(1); // remove default page
 
                 for (let i = 0; i < pagesToDownload.length; i++) {
                     const pageMeta = pagesToDownload[i];
@@ -376,10 +391,9 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     canvas.height = viewport.height;
                     await page.render({ canvasContext: context, viewport }).promise;
 
-                    if (i > 0) {
-                        const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
-                        pdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
-                    }
+                    
+                    const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                    pdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
                     
                     const imgData = canvas.toDataURL('image/png');
                     pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
@@ -471,7 +485,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                 </Label>
                              </div>
                              {selectedPages.length > 0 && (
-                                <Button variant="destructive-outline" size="sm" onClick={handleDeleteSelected}>
+                                <Button variant="destructive-outline" size="sm" onClick={() => confirmDelete(selectedPages)}>
                                     <Trash2 size={16} className="mr-2"/>
                                     Delete ({selectedPages.length})
                                 </Button>
@@ -524,7 +538,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                                    isSelected={selectedPages.includes(pageMeta.pageNumber)}
                                    onToggleSelection={handleToggleSelection}
                                    onRotate={handlePageRotate}
-                                   onDelete={() => handlePageDelete(pageMeta.pageNumber)}
+                                   onDelete={() => confirmDelete([pageMeta.pageNumber])}
                                    onNameChange={handleNameChange}
                                    onDownload={downloadPage}
                                />
@@ -532,9 +546,21 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                         </div>
                     </ScrollArea>
                 )}
+                 <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will hide {pagesToDelete?.length} page(s). You can undo this action, but they will be excluded from downloads unless restored.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={executeDelete}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </DialogContent>
         </Dialog>
     );
 }
-
-      
