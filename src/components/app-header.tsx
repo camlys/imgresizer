@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2, Share2, KeyRound } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -262,6 +262,16 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon">
+              <LayoutGrid />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[375px] h-[667px] p-0 overflow-hidden rounded-lg">
+            <iframe src="https://camly.site" className="w-full h-full border-0" title="Camly.site"></iframe>
+          </PopoverContent>
+        </Popover>
         <ThemeToggle />
       </div>
     </header>
