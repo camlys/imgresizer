@@ -29,7 +29,7 @@ export function SiteHeader() {
                   <LayoutGrid />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none [&>button]:hidden">
+              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none">
                 <DialogTitle className="sr-only">Embedded App</DialogTitle>
                 <iframe src="https://camly.site" className="w-full h-full border-0" title="Camly.site"></iframe>
               </DialogContent>
