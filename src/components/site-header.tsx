@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { ThemeToggle } from './theme-toggle';
 import { LogoIcon } from './logo';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from './ui/button';
 import { LayoutGrid } from 'lucide-react';
 
@@ -18,16 +22,16 @@ export function SiteHeader() {
           </div>
         </Link>
         <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
+            <Dialog>
+              <DialogTrigger asChild>
                 <Button variant="outline" size="icon">
                   <LayoutGrid />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[375px] h-[667px] p-0 overflow-hidden rounded-lg">
+              </DialogTrigger>
+              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none [&>button]:hidden">
                 <iframe src="https://camly.site" className="w-full h-full border-0" title="Camly.site"></iframe>
-              </PopoverContent>
-            </Popover>
+              </DialogContent>
+            </Dialog>
           <ThemeToggle />
         </div>
       </div>

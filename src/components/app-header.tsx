@@ -16,6 +16,11 @@ import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -262,16 +267,16 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
-        <Popover>
-          <PopoverTrigger asChild>
+        <Dialog>
+          <DialogTrigger asChild>
             <Button variant="outline" size="icon">
               <LayoutGrid />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[375px] h-[667px] p-0 overflow-hidden rounded-lg">
+          </DialogTrigger>
+          <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none [&>button]:hidden">
             <iframe src="https://camly.site" className="w-full h-full border-0" title="Camly.site"></iframe>
-          </PopoverContent>
-        </Popover>
+          </DialogContent>
+        </Dialog>
         <ThemeToggle />
       </div>
     </header>
