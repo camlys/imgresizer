@@ -2,13 +2,7 @@
 "use client"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const apps = [
-    { name: 'Camly', url: 'https://camly.site' },
-    { name: 'Calput', url: 'https://calput.vercel.app/' },
-    { name: 'Favic', url: 'https://favic.vercel.app/' },
-    { name: 'Qrick', url: 'https://qrick.vercel.app/' },
-]
+import { apps } from "./app-hub-card";
 
 export function AppHub() {
     return (

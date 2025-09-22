@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { AppHub } from './app-hub';
+import { AppHubCard } from './app-hub-card';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -269,17 +269,16 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
-        <Dialog>
-          <DialogTrigger asChild>
+        <Popover>
+          <PopoverTrigger asChild>
             <Button variant="outline" size="icon">
               <LayoutGrid />
             </Button>
-          </DialogTrigger>
-          <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none flex flex-col">
-            <DialogTitle className="sr-only">App Hub</DialogTitle>
-            <AppHub />
-          </DialogContent>
-        </Dialog>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 bg-background/80 backdrop-blur-md border-primary/20">
+            <AppHubCard />
+          </PopoverContent>
+        </Popover>
         <ThemeToggle />
       </div>
     </header>

@@ -1,15 +1,10 @@
 import Link from 'next/link';
 import { ThemeToggle } from './theme-toggle';
 import { LogoIcon } from './logo';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Button } from './ui/button';
 import { LayoutGrid } from 'lucide-react';
-import { AppHub } from './app-hub';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { AppHubCard } from './app-hub-card';
 
 export function SiteHeader() {
   return (
@@ -24,17 +19,16 @@ export function SiteHeader() {
           </div>
         </Link>
         <div className="flex items-center gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <LayoutGrid />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none flex flex-col">
-                <DialogTitle className="sr-only">App Hub</DialogTitle>
-                <AppHub />
-              </DialogContent>
-            </Dialog>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon">
+                <LayoutGrid />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 bg-background/80 backdrop-blur-md border-primary/20">
+              <AppHubCard />
+            </PopoverContent>
+          </Popover>
           <ThemeToggle />
         </div>
       </div>
