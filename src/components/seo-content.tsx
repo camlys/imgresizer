@@ -126,8 +126,52 @@ export function SeoContent({ isEditing, children }: SeoContentProps) {
             </div>
         </div>
       </section>
+      
+      <section>
+        <h2 className="text-3xl font-bold text-center font-headline mb-12">Frequently Asked Questions</h2>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Is ImgResizer really free to use?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Yes, absolutely. All features of ImgResizer, from resizing and cropping to color adjustments and format conversion, are completely free. We believe everyone should have access to powerful image editing tools without any cost.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>How does ImgResizer protect my privacy?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Your privacy is our top priority. ImgResizer is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>What file formats can I upload and download?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">You can upload most common image formats, including JPEG, PNG, WEBP, and BMP, as well as PDF files. You can then download your edited work as a JPEG, PNG, WEBP, GIF, BMP, SVG, or even a PDF document.</p>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+              <CardTitle>What is the difference between PNG, JPEG, and WEBP?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">JPEG is great for photos and offers excellent compression, but doesn't support transparency. PNG is ideal for graphics, logos, and images requiring transparency, offering lossless quality at a larger file size. WEBP is a modern format that provides superior compression for both photos and graphics, supports transparency, and is excellent for web use.</p>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+              <CardTitle>How do I resize an image to a specific file size?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">In the "Download" popover, you'll find an option to set a target file size (e.g., 500 KB). Our tool will automatically adjust the image quality (for JPEG or WEBP formats) to get as close as possible to your desired size, making it easy to meet file size requirements for emails or online forms.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }
-
-    
