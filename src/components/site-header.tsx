@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from './ui/button';
 import { LayoutGrid } from 'lucide-react';
+import { AppHub } from './app-hub';
 
 export function SiteHeader() {
   return (
@@ -29,9 +30,9 @@ export function SiteHeader() {
                   <LayoutGrid />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none">
-                <DialogTitle className="sr-only">Embedded App</DialogTitle>
-                <iframe src="https://camly.site" className="w-full h-full border-0" title="Camly.site"></iframe>
+              <DialogContent className="w-screen h-screen max-w-full p-0 border-0 overflow-hidden !rounded-none flex flex-col">
+                <DialogTitle className="sr-only">App Hub</DialogTitle>
+                <AppHub />
               </DialogContent>
             </Dialog>
           <ThemeToggle />
