@@ -15,15 +15,8 @@ function AppHubContent() {
     const defaultTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
     
     return (
-        <Tabs defaultValue={defaultTab} className="w-full h-full flex flex-col">
-            <div className="flex-shrink-0 border-b flex items-center justify-between pr-2">
-                <TabsList className="bg-transparent p-0 m-2 rounded-md">
-                    {apps.map((app) => (
-                        <TabsTrigger key={app.id} value={app.id} className="data-[state=active]:bg-muted data-[state=inactive]:hover:bg-muted/50 rounded-sm">
-                            {app.name}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
+        <Tabs defaultValue={defaultTab} className="w-full h-full flex flex-col relative">
+            <div className="absolute top-2 right-2 z-10">
                 <Link href="/" passHref>
                     <Button variant="ghost" size="icon">
                         <X />
