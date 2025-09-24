@@ -153,7 +153,7 @@ export function TextTab({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
+    <div className="grid md:grid-cols-2 gap-4 p-1">
       <input
         type="file"
         ref={fileInputRef}
@@ -163,7 +163,7 @@ export function TextTab({
       />
       
         <Card>
-          <CardHeader className="flex flex-row items-start md:items-center justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
             <Button variant="outline" size="sm" onClick={addText}><Plus size={16} className="mr-2"/> Add</Button>
           </CardHeader>
@@ -175,7 +175,7 @@ export function TextTab({
                   type="single" 
                   collapsible 
                   className="w-full" 
-                  value={selectedTextId || ""}
+                  value={selectedTextId ?? ""}
                   onValueChange={(value) => {
                     setSelectedTextId(value || null);
                     if (value) setSelectedSignatureId(null);
@@ -285,7 +285,7 @@ export function TextTab({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-start md:items-center justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Pencil size={18} /> Signature Overlays
             </CardTitle>
@@ -301,7 +301,7 @@ export function TextTab({
                 type="single"
                 collapsible
                 className="w-full"
-                value={selectedSignatureId || ""}
+                value={selectedSignatureId ?? ""}
                 onValueChange={(value) => {
                   setSelectedSignatureId(value || null);
                   if (value) setSelectedTextId(null);
@@ -366,5 +366,7 @@ export function TextTab({
     </div>
   );
 }
+
+    
 
     
