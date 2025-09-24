@@ -1,16 +1,21 @@
 {
-    "name": "ImgResizer: Free Online Image & Photo Resizer",
-    "short_name": "ImgResizer",
-    "description": "Resize, crop, and edit images and photos for free with ImgResizer. Our powerful, privacy-focused online tool works right in your browser. No downloads required.",
-    "icons": [
-        {
-            "src": "/logo.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        }
-    ],
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#10b981"
+  "name": "ImgResizer",
+  "short_name": "ImgResizer",
+  "description": "Edit, resize, crop, convert, and enhance images and photos for free. ImgResizer is a powerful, privacy-focused online tool that works right in your browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#468246",
+  "icons": [
+    {
+      "src": "/camly.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/camly.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
