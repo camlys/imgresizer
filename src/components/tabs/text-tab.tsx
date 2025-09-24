@@ -162,7 +162,7 @@ export function TextTab({
         className="hidden"
         accept="image/*"
       />
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
