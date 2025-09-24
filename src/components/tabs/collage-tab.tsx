@@ -23,10 +23,17 @@ interface CollageTabProps {
 const canvasSizes = [
     { name: 'A4 Portrait', width: 595, height: 842 },
     { name: 'A4 Landscape', width: 842, height: 595 },
+    { name: 'A5 Portrait', width: 420, height: 595 },
+    { name: 'A5 Landscape', width: 595, height: 420 },
     { name: 'US Letter Portrait', width: 612, height: 792 },
     { name: 'US Letter Landscape', width: 792, height: 612 },
-    { name: 'Square (1080x1080)', width: 1080, height: 1080 },
-    { name: 'IG Story (1080x1920)', width: 1080, height: 1920 },
+    { name: 'Instagram Story', width: 1080, height: 1920 },
+    { name: 'Instagram Post (Square)', width: 1080, height: 1080 },
+    { name: 'Instagram Post (Portrait)', width: 1080, height: 1350 },
+    { name: 'Facebook Post', width: 1200, height: 630 },
+    { name: 'Twitter Post', width: 1600, height: 900 },
+    { name: 'Pinterest Pin', width: 1000, height: 1500 },
+    { name: 'YouTube Thumbnail', width: 1280, height: 720 },
 ];
 
 export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId }: CollageTabProps) {
@@ -193,5 +200,3 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
-
-    
