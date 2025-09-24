@@ -24,7 +24,7 @@ export function AppHubCard() {
             <div className="grid grid-cols-2 gap-2">
                 {apps.map((app) => (
                      <Link href={`/hub?app=${app.id}`} key={app.name}>
-                        <div className="group rounded-lg p-3 hover:bg-accent transition-colors">
+                        <div className="group rounded-lg p-3 hover:bg-accent transition-colors border">
                             <div className="flex items-center gap-3 mb-1">
                                 <div className="p-2 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                                     {app.icon}
