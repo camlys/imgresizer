@@ -1,0 +1,21 @@
+{
+  "name": "ImgResizer - Free Image Editor",
+  "short_name": "ImgResizer",
+  "description": "Edit, resize, crop, and enhance images for free. A powerful, privacy-focused online tool that works in your browser.",
+  "icons": [
+    {
+      "src": "/camly.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/camly.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#22c55e"
+}
