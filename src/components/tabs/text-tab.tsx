@@ -164,7 +164,7 @@ export function TextTab({
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
+          <CardHeader className="flex-col items-start sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
             <Button variant="outline" size="sm" onClick={addText} className="w-full sm:w-auto"><Plus size={16} className="mr-2"/> Add</Button>
           </CardHeader>
@@ -286,7 +286,7 @@ export function TextTab({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
+          <CardHeader className="flex-col items-start sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Pencil size={18} /> Signature Overlays
             </CardTitle>
