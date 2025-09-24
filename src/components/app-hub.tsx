@@ -7,18 +7,33 @@ import { apps } from "./app-hub-card";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Menu } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { AppHubCard } from "./app-hub-card";
+import { useRouter } from "next/navigation";
 
 function AppHubContent() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const appParam = searchParams.get('app');
-    const defaultTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
+    const initialTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
+    const [activeTab, setActiveTab] = useState(initialTab);
+    
+    useEffect(() => {
+        const newTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
+        if (newTab !== activeTab) {
+            setActiveTab(newTab);
+        }
+    }, [appParam, activeTab]);
+    
+    const handleValueChange = (value: string) => {
+        setActiveTab(value);
+        router.push(`/hub?app=${value}`);
+    };
     
     return (
-        <Tabs defaultValue={defaultTab} className="w-full h-full flex flex-col relative">
+        <Tabs value={activeTab} onValueChange={handleValueChange} className="w-full h-full flex flex-col relative">
             <motion.div 
                 className="absolute top-4 right-4 z-20"
                 drag
