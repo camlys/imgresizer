@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { ImageSettings } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
-import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
@@ -279,7 +278,6 @@ export function AppHeader({
             <AppHubCard />
           </PopoverContent>
         </Popover>
-        <ThemeToggle />
       </div>
     </header>
   );

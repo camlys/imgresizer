@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Sparkles, QrCode } from "lucide-react";
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 export const apps = [
     { name: 'Camly', id: 'camly', url: 'https://camly.site', icon: <img src="/camly.png" alt="Camly" className="w-6 h-6" />, description: 'The current app' },
@@ -13,9 +14,12 @@ export const apps = [
 export function AppHubCard() {
     return (
         <div>
-            <div className="mb-4">
-                <h4 className="font-bold text-lg">App Hub</h4>
-                <p className="text-sm text-muted-foreground">Explore other useful tools.</p>
+            <div className="mb-4 flex justify-between items-center">
+                <div>
+                  <h4 className="font-bold text-lg">App Hub</h4>
+                  <p className="text-sm text-muted-foreground">Explore other useful tools.</p>
+                </div>
+                <ThemeToggle />
             </div>
             <div className="grid grid-cols-2 gap-2">
                 {apps.map((app) => (

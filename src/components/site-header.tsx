@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ThemeToggle } from './theme-toggle';
 import { LogoIcon } from './logo';
 import { Button } from './ui/button';
 import { LayoutGrid } from 'lucide-react';
@@ -29,7 +28,6 @@ export function SiteHeader() {
               <AppHubCard />
             </PopoverContent>
           </Popover>
-          <ThemeToggle />
         </div>
       </div>
     </header>
