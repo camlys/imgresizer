@@ -24,7 +24,7 @@ export function SiteFooter() {
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:col-span-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 md:col-span-3 gap-8">
             <div>
               <h4 className="font-semibold text-foreground">Company</h4>
               <ul className="mt-4 space-y-2 text-sm">
