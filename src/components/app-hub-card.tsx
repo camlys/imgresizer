@@ -1,4 +1,6 @@
 
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Sparkles, QrCode } from "lucide-react";
 import Link from "next/link";
@@ -11,7 +13,17 @@ export const apps = [
     { name: 'Qrick', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'QR & Barcode generator' },
 ];
 
-export function AppHubCard() {
+interface AppHubCardProps {
+    onAppSelect?: (appId: string) => void;
+}
+
+export function AppHubCard({ onAppSelect }: AppHubCardProps) {
+    const handleAppClick = (e: React.MouseEvent, appId: string) => {
+        if (onAppSelect) {
+            e.preventDefault();
+            onAppSelect(appId);
+        }
+    };
     return (
         <div>
             <div className="mb-4 flex justify-between items-center">
@@ -23,7 +35,7 @@ export function AppHubCard() {
             </div>
             <div className="grid grid-cols-2 gap-2">
                 {apps.map((app) => (
-                     <Link href={`/hub?app=${app.id}`} key={app.name} className="flex">
+                     <Link href={`/hub?app=${app.id}`} key={app.name} className="flex" onClick={(e) => handleAppClick(e, app.id)}>
                         <div className="group rounded-lg p-3 hover:bg-accent transition-colors border w-full flex flex-col">
                             <div className="flex items-center gap-3 mb-1">
                                 <div className="p-2 bg-primary/10 text-primary rounded-full flex items-center justify-center">

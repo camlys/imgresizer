@@ -19,6 +19,7 @@ function AppHubContent() {
     const appParam = searchParams.get('app');
     const initialTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
     const [activeTab, setActiveTab] = useState(initialTab);
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     
     useEffect(() => {
         const newTab = appParam && apps.some(app => app.id === appParam) ? appParam : apps[0].id;
@@ -31,6 +32,11 @@ function AppHubContent() {
         setActiveTab(value);
         router.push(`/hub?app=${value}`);
     };
+
+    const handleAppSelect = (appId: string) => {
+        handleValueChange(appId);
+        setIsPopoverOpen(false);
+    };
     
     return (
         <Tabs value={activeTab} onValueChange={handleValueChange} className="w-full h-full flex flex-col relative">
@@ -39,14 +45,14 @@ function AppHubContent() {
                 drag
                 dragMomentum={false}
             >
-                <Popover>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                     <PopoverTrigger asChild>
                          <Button variant="outline" size="icon" className="cursor-grab active:cursor-grabbing shadow-lg">
                             <Menu />
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 bg-background/80 backdrop-blur-md border-primary/20">
-                        <AppHubCard />
+                        <AppHubCard onAppSelect={handleAppSelect} />
                         <div className="mt-4">
                              <Link href="/" passHref>
                                 <Button variant="ghost" className="w-full">
