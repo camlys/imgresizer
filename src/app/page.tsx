@@ -111,7 +111,7 @@ export default function Home() {
   const handleTabChange = (tab: string) => {
     if (tab === 'collage' && editorMode !== 'collage') {
         setEditorMode('collage');
-        if (originalImage) {
+        if (originalImage && collageSettings.layers.length === 0) {
             const newLayer: ImageLayer = {
                 id: Date.now().toString(),
                 src: originalImage.src,
@@ -127,6 +127,8 @@ export default function Home() {
             setCollageSettings(prev => ({ ...prev, layers: [newLayer] }));
             setSelectedLayerId(newLayer.id);
         }
+    } else if (tab !== 'collage' && editorMode !== 'single') {
+        setEditorMode('single');
     }
 
     if (tab === 'crop' && originalImage && !pendingCrop) {
@@ -874,9 +876,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    

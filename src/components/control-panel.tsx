@@ -75,7 +75,7 @@ export function ControlPanel({
         <div className="w-full overflow-x-auto whitespace-nowrap p-2">
           <TabsList className="h-auto p-1 inline-flex">
             {allTabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2" disabled={editorMode === 'collage' && tab.value !== 'collage'}>
+              <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
                 <tab.icon size={16}/>
                 <span className="text-sm">{tab.label}</span>
               </TabsTrigger>
@@ -134,4 +134,3 @@ export function ControlPanel({
     </div>
   );
 }
-
