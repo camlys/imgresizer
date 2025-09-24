@@ -289,7 +289,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (editorMode === 'collage') {
-        const { width, height, backgroundColor, layers, sheet } = collageSettings;
+        const { width, height, backgroundColor, pages, activePageIndex } = collageSettings;
+        const activePage = pages[activePageIndex];
+        if (!activePage) return;
+
+        const { layers, sheet } = activePage;
         canvas.width = width;
         canvas.height = height;
 
@@ -694,7 +698,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       if (!canvas || !ctx) return null;
       
       if (editorMode === 'collage') {
-          const reversedLayers = [...collageSettings.layers].reverse();
+          const activePage = collageSettings.pages[collageSettings.activePageIndex];
+          if (!activePage) return null;
+
+          const reversedLayers = [...activePage.layers].reverse();
           for (const layer of reversedLayers) {
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
             const isSelected = layer.id === selectedLayerId;
@@ -835,10 +842,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     const interaction = getInteractionType(pos);
     const currentTime = new Date().getTime();
+    const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
-    if (interaction?.type.startsWith('layer-')) {
+    if (interaction?.type.startsWith('layer-') && activePage) {
         const layerId = interaction.layerId!;
-        const clickedLayer = collageSettings.layers.find(l => l.id === layerId);
+        const clickedLayer = activePage.layers.find(l => l.id === layerId);
 
         if (clickedLayer) {
             if (selectedLayerId !== layerId) {
@@ -926,7 +934,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedLayerId(null);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings.layers, selectedLayerId, setSelectedLayerId, getLayerHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, collageSettings, selectedLayerId, setSelectedLayerId, getLayerHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -940,21 +948,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const { type, startPos, startText, startSignature, startLayer } = interactionState;
 
         if (type.startsWith('layer-') && startLayer) {
+            const activePage = collageSettings.pages[collageSettings.activePageIndex];
+            if (!activePage) return;
+
+            const updateLayer = (newProps: Partial<ImageLayer>) => {
+                const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
+                const newPages = [...collageSettings.pages];
+                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
+                updateCollageSettings({ pages: newPages });
+            };
+
             if (type === 'layer-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-                const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l,
+                updateLayer({
                     x: Math.max(0, Math.min(100, startLayer.x + dx_percent)),
                     y: Math.max(0, Math.min(100, startLayer.y + dy_percent)),
-                } : l);
-                updateCollageSettings({ layers: newLayers });
+                });
             } else if (type === 'layer-rotate' && interactionState.layerCenter) {
                 const startAngle = Math.atan2(startPos.y - interactionState.layerCenter.y, startPos.x - interactionState.layerCenter.x);
                 const currentAngle = Math.atan2(pos.y - interactionState.layerCenter.y, pos.x - interactionState.layerCenter.x);
                 const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
                 const newRotation = startLayer.rotation + angleDiff;
-                const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l, rotation: newRotation } : l);
-                updateCollageSettings({ layers: newLayers });
+                updateLayer({ rotation: newRotation });
             } else if (type.startsWith('layer-resize-') && interactionState.layerCenter) {
                 const center = interactionState.layerCenter;
                 const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
@@ -964,9 +980,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     const scaleFactor = currentDist / startDist;
                     const newWidthPercent = startLayer.width * scaleFactor;
                     const newWidth = Math.max(1, Math.min(200, newWidthPercent));
-                    
-                    const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l, width: newWidth } : l);
-                    updateCollageSettings({ layers: newLayers });
+                    updateLayer({ width: newWidth });
                 }
             }
         } else if (type.startsWith('text-') && startText) {
@@ -1104,16 +1118,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           );
           updateSettings({ texts: newTexts });
       } else if (interactionState.type.startsWith('layer-resize-') && interactionState.startLayer) {
-          const newLayers = collageSettings.layers.map(l =>
+          const activePage = collageSettings.pages[collageSettings.activePageIndex];
+          if (!activePage) return;
+          const newLayers = activePage.layers.map(l =>
               l.id === interactionState.startLayer!.id
                   ? { ...l, width: Math.round(l.width) }
                   : l
           );
-          updateCollageSettings({ layers: newLayers });
+          const newPages = [...collageSettings.pages];
+          newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
+          updateCollageSettings({ pages: newPages });
       }
       setInteractionState(null);
     }
-  }, [interactionState, settings.texts, updateSettings, collageSettings.layers, updateCollageSettings]);
+  }, [interactionState, settings.texts, updateSettings, collageSettings, updateCollageSettings]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {

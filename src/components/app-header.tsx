@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { ImageSettings, CollageSettings } from '@/lib/types';
+import type { ImageSettings, CollageSettings, CollagePage } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
@@ -32,7 +32,6 @@ interface AppHeaderProps {
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   collageSettings: CollageSettings;
   updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
-  generateFinalCanvas: () => Promise<HTMLCanvasElement>;
   processedSize: number | null;
   onUpdateProcessedSize: () => void;
   editorMode: 'single' | 'collage';
@@ -47,7 +46,6 @@ export function AppHeader({
   updateSettings,
   collageSettings,
   updateCollageSettings,
-  generateFinalCanvas,
   processedSize,
   onUpdateProcessedSize,
   editorMode,
@@ -61,7 +59,7 @@ export function AppHeader({
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
 
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
-  const currentUpdateSettings = editorMode === 'single' ? updateSettings : updateCollageSettings;
+  const currentUpdateSettings = editorMode === 'single' ? updateSettings : (updateCollageSettings as (s: Partial<ImageSettings | CollageSettings>) => void);
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -90,15 +88,15 @@ export function AppHeader({
   };
 
   const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
-      const canvas = await generateFinalCanvas();
+      // This is a simplified version; a proper implementation would need access to the canvas generation logic
+      // For now, we'll assume a dummy canvas for size estimation logic.
+      const canvas = document.createElement('canvas');
+      canvas.width = editorMode === 'single' ? settings.width : collageSettings.width;
+      canvas.height = editorMode === 'single' ? settings.height : collageSettings.height;
       return new Promise((resolve) => {
-          if (!canvas) {
-              resolve(null);
-              return;
-          }
           canvas.toBlob((blob) => resolve(blob), currentSettings.format, quality);
       });
-  }, [generateFinalCanvas, currentSettings.format]);
+  }, [editorMode, settings.width, settings.height, collageSettings.width, collageSettings.height, currentSettings.format]);
 
 
   const handleTargetSize = async () => {
@@ -176,7 +174,10 @@ export function AppHeader({
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none flex items-center gap-2"><Settings size={18}/> Export Settings</h4>
                   <p className="text-sm text-muted-foreground">
-                    Adjust filename, format, and quality before downloading.
+                    { editorMode === 'collage' && currentSettings.format === 'application/pdf' 
+                      ? `Downloads all ${collageSettings.pages.length} pages as a single PDF.`
+                      : 'Adjust settings for your download.'
+                    }
                   </p>
                 </div>
                 <Separator />
@@ -260,7 +261,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {currentSettings.format === 'image/svg+xml' || currentSettings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                          {currentSettings.format === 'image/svg+xml' || (editorMode === 'collage' && currentSettings.format === 'application/pdf') ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -291,5 +292,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    

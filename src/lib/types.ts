@@ -96,12 +96,18 @@ export type ImageLayer = {
   originalHeight: number;
 };
 
+export type CollagePage = {
+  id: string;
+  layers: ImageLayer[];
+  sheet: SheetSettings;
+};
+
 export type CollageSettings = {
   width: number;
   height: number;
   backgroundColor: string;
-  layers: ImageLayer[];
-  sheet: SheetSettings;
+  pages: CollagePage[];
+  activePageIndex: number;
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
 };

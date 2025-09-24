@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -52,20 +52,26 @@ const initialSettings: ImageSettings = {
   quality: 1.0,
 };
 
+const initialSheetSettings: SheetSettings = {
+  enabled: false,
+  horizontalLines: true,
+  verticalLines: false,
+  lineColor: '#d1d5db',
+  spacing: 20,
+  marginTop: 20,
+  marginLeft: 20,
+};
+
 const initialCollageSettings: CollageSettings = {
   width: 595, // A4 width in px at 72 DPI
   height: 842, // A4 height in px at 72 DPI
   backgroundColor: '#ffffff',
-  layers: [],
-  sheet: {
-    enabled: false,
-    horizontalLines: true,
-    verticalLines: false,
-    lineColor: '#d1d5db',
-    spacing: 20,
-    marginTop: 20,
-    marginLeft: 20,
-  },
+  pages: [{
+    id: Date.now().toString(),
+    layers: [],
+    sheet: initialSheetSettings,
+  }],
+  activePageIndex: 0,
   format: 'application/pdf',
   quality: 1.0,
 };
@@ -102,7 +108,7 @@ export default function Home() {
 
   // Collage State
   const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(null);
-
+  const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
   React.useEffect(() => {
     if (!originalImage) return;
@@ -120,7 +126,7 @@ export default function Home() {
   const handleTabChange = (tab: string) => {
     if (tab === 'collage' && editorMode !== 'collage') {
         setEditorMode('collage');
-        if (originalImage && collageSettings.layers.length === 0) {
+        if (originalImage && activePage.layers.length === 0) {
             const newLayer: ImageLayer = {
                 id: Date.now().toString(),
                 src: originalImage.src,
@@ -133,7 +139,9 @@ export default function Home() {
                 originalWidth: originalImage.width,
                 originalHeight: originalImage.height,
             };
-            setCollageSettings(prev => ({ ...prev, layers: [newLayer] }));
+            const newPages = [...collageSettings.pages];
+            newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
+            setCollageSettings(prev => ({ ...prev, pages: newPages }));
             setSelectedLayerId(newLayer.id);
         }
     } else if (tab !== 'collage' && editorMode !== 'single') {
@@ -346,7 +354,10 @@ export default function Home() {
                 originalWidth: img.width,
                 originalHeight: img.height,
             };
-            setCollageSettings(prev => ({ ...prev, layers: [...prev.layers, newLayer] }));
+            const newPages = [...collageSettings.pages];
+            const updatedPage = { ...activePage, layers: [...activePage.layers, newLayer] };
+            newPages[collageSettings.activePageIndex] = updatedPage;
+            setCollageSettings(prev => ({ ...prev, pages: newPages }));
             setSelectedLayerId(newLayer.id);
         };
         img.src = e.target?.result as string;
@@ -387,15 +398,16 @@ export default function Home() {
 
   const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
     setCollageSettings(prev => ({ ...prev, ...newSettings }));
-    if (newSettings.layers) {
-        const currentSelectedId = selectedLayerId;
-        const layerExists = newSettings.layers.some(l => l.id === currentSelectedId);
-        if (!layerExists) {
-            setSelectedLayerId(null);
-        }
+    if (newSettings.pages) {
+      const newActivePage = newSettings.pages[newSettings.activePageIndex ?? collageSettings.activePageIndex];
+      const currentSelectedId = selectedLayerId;
+      const layerExists = newActivePage.layers.some(l => l.id === currentSelectedId);
+      if (!layerExists) {
+          setSelectedLayerId(null);
+      }
     }
     setProcessedSize(null);
-  }, [selectedLayerId]);
+  }, [selectedLayerId, collageSettings.activePageIndex]);
 
   const handleApplyPerspectiveCrop = React.useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {
@@ -447,15 +459,15 @@ export default function Home() {
     }
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
-
- const generateFinalCanvas = React.useCallback(async (): Promise<HTMLCanvasElement> => {
+ const generateFinalCanvas = React.useCallback(async (pageToRender: CollagePage): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
         if (editorMode === 'collage') {
           const finalCanvas = document.createElement('canvas');
           const finalCtx = finalCanvas.getContext('2d');
           if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
 
-          const { width, height, backgroundColor, layers, sheet } = collageSettings;
+          const { width, height, backgroundColor } = collageSettings;
+          const { layers, sheet } = pageToRender;
           finalCanvas.width = width;
           finalCanvas.height = height;
 
@@ -608,7 +620,8 @@ export default function Home() {
 
   const updateProcessedSize = React.useCallback(async () => {
     try {
-        const canvas = await generateFinalCanvas();
+        const pageToRender = editorMode === 'collage' ? activePage : undefined;
+        const canvas = await generateFinalCanvas(pageToRender!);
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
@@ -627,37 +640,50 @@ export default function Home() {
         console.error("Error updating processed size:", error);
         setProcessedSize(null);
     }
-  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings.format, collageSettings.quality]);
+  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings.format, collageSettings.quality, activePage]);
 
   const handleDownload = React.useCallback(async (filename: string) => {
     try {
-        const finalCanvas = await generateFinalCanvas();
         const downloadName = filename || 'imgresizer-export';
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
-
         if (currentFormat === 'application/pdf') {
-            const imgData = finalCanvas.toDataURL('image/png');
-            const orientation = finalCanvas.width > finalCanvas.height ? 'l' : 'p';
+            const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
+            if (pagesToRender.length === 0) {
+              toast({ title: "Empty Project", description: "There are no pages to download.", variant: "destructive" });
+              return;
+            }
+            
+            const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
+            const orientation = firstPageCanvas.width > firstPageCanvas.height ? 'l' : 'p';
             const pdf = new jsPDF({
               orientation: orientation,
               unit: 'px',
-              format: [finalCanvas.width, finalCanvas.height]
+              format: [firstPageCanvas.width, firstPageCanvas.height]
             });
-            pdf.addImage(imgData, 'PNG', 0, 0, finalCanvas.width, finalCanvas.height);
+            pdf.deletePage(1);
+
+            for (const page of pagesToRender) {
+                const canvas = await generateFinalCanvas(page);
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addPage([canvas.width, canvas.height], canvas.width > canvas.height ? 'l' : 'p');
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            }
+
             pdf.save(`${downloadName}.pdf`);
             toast({
               title: "Download Started",
-              description: "Your PDF file has started downloading.",
+              description: `Your ${pagesToRender.length}-page PDF file has started downloading.`,
             });
             return;
         }
 
+        const canvasToDownload = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined!);
         if (currentFormat === 'image/svg+xml') {
-            const dataUrl = finalCanvas.toDataURL('image/png');
-            const svgContent = `<svg width="${finalCanvas.width}" height="${finalCanvas.height}" xmlns="http://www.w3.org/2000/svg">
-<image href="${dataUrl}" width="${finalCanvas.width}" height="${finalCanvas.height}" />
+            const dataUrl = canvasToDownload.toDataURL('image/png');
+            const svgContent = `<svg width="${canvasToDownload.width}" height="${canvasToDownload.height}" xmlns="http://www.w3.org/2000/svg">
+<image href="${dataUrl}" width="${canvasToDownload.width}" height="${canvasToDownload.height}" />
 </svg>`;
             const blob = new Blob([svgContent], { type: 'image/svg+xml' });
             const link = document.createElement('a');
@@ -674,7 +700,7 @@ export default function Home() {
             return;
         }
 
-        finalCanvas.toBlob((blob) => {
+        canvasToDownload.toBlob((blob) => {
             if (blob) {
               const link = document.createElement('a');
               link.href = URL.createObjectURL(blob);
@@ -699,7 +725,7 @@ export default function Home() {
             variant: "destructive",
         });
     }
-  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, toast]);
+  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings, activePage, toast]);
 
   const handleShare = React.useCallback(async () => {
     const fallbackShare = async () => {
@@ -712,11 +738,11 @@ export default function Home() {
     };
 
     try {
-        const finalCanvas = await generateFinalCanvas();
+        const canvasToShare = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined!);
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
-        finalCanvas.toBlob(async (blob) => {
+        canvasToShare.toBlob(async (blob) => {
             const shareData: ShareData = {
                 title: 'ImgResizer: Free Online Image Editor',
                 text: 'Check out this image I edited with the free and private ImgResizer web app!',
@@ -742,7 +768,7 @@ export default function Home() {
           await fallbackShare();
         }
     }
-  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, toast]);
+  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, activePage, toast]);
 
   const editingText = settings.texts.find(t => t.id === editingTextId);
   
@@ -757,7 +783,6 @@ export default function Home() {
           updateSettings={updateSettings}
           collageSettings={collageSettings}
           updateCollageSettings={updateCollageSettings}
-          generateFinalCanvas={generateFinalCanvas}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
           onShare={handleShare}
@@ -808,7 +833,6 @@ export default function Home() {
           updateSettings={updateSettings}
           collageSettings={collageSettings}
           updateCollageSettings={updateCollageSettings}
-          generateFinalCanvas={generateFinalCanvas}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
           onShare={handleShare}
