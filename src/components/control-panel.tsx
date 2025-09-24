@@ -70,67 +70,65 @@ export function ControlPanel({
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full flex flex-col h-full">
-        <div className="w-full overflow-x-auto whitespace-nowrap p-2">
-          <TabsList className="h-auto p-1 inline-flex">
-            {allTabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
-                <tab.icon size={16}/>
-                <span className="text-sm">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        <ScrollArea className="flex-grow p-2 pt-0">
-          <TabsContent value="resize">
-            <ResizeRotateTab 
-              settings={settings} 
-              updateSettings={updateSettings} 
-              originalImage={originalImage!} 
-              processedSize={processedSize}
-              isFromMultiPagePdf={isFromMultiPagePdf}
-              onViewPages={onViewPages}
-            />
-          </TabsContent>
-          <TabsContent value="crop">
-            <CropTab 
-              settings={settings} 
-              updateSettings={updateSettings} 
-              originalImage={originalImage!}
-              pendingCrop={pendingCrop}
-              setPendingCrop={setPendingCrop}
-              onTabChange={onTabChange}
-              onApplyPerspectiveCrop={onApplyPerspectiveCrop}
-            />
-          </TabsContent>
-           <TabsContent value="rotate">
-            <RotateFlipTab settings={settings} updateSettings={updateSettings} />
-          </TabsContent>
-          <TabsContent value="text">
-            <TextTab 
-              settings={settings} 
-              updateSettings={updateSettings}
-              selectedTextId={selectedTextId}
-              setSelectedTextId={setSelectedTextId}
-              selectedSignatureId={selectedSignatureId}
-              setSelectedSignatureId={setSelectedSignatureId}
-            />
-          </TabsContent>
-          <TabsContent value="adjustments">
-            <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
-          </TabsContent>
-          <TabsContent value="collage">
-            <CollageTab
-              settings={collageSettings}
-              updateSettings={updateCollageSettings}
-              onAddImage={onAddImageToCollage}
-              selectedLayerId={selectedLayerId}
-              setSelectedLayerId={setSelectedLayerId}
-            />
-          </TabsContent>
-        </ScrollArea>
-      </Tabs>
-    </div>
+    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full flex flex-col h-full overflow-hidden">
+      <div className="w-full overflow-x-auto whitespace-nowrap p-2 border-b">
+        <TabsList className="h-auto p-1 inline-flex">
+          {allTabs.map(tab => (
+            <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
+              <tab.icon size={16}/>
+              <span className="text-sm">{tab.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+      <ScrollArea className="flex-1 p-2">
+        <TabsContent value="resize" className="mt-0">
+          <ResizeRotateTab 
+            settings={settings} 
+            updateSettings={updateSettings} 
+            originalImage={originalImage!} 
+            processedSize={processedSize}
+            isFromMultiPagePdf={isFromMultiPagePdf}
+            onViewPages={onViewPages}
+          />
+        </TabsContent>
+        <TabsContent value="crop" className="mt-0">
+          <CropTab 
+            settings={settings} 
+            updateSettings={updateSettings} 
+            originalImage={originalImage!}
+            pendingCrop={pendingCrop}
+            setPendingCrop={setPendingCrop}
+            onTabChange={onTabChange}
+            onApplyPerspectiveCrop={onApplyPerspectiveCrop}
+          />
+        </TabsContent>
+        <TabsContent value="rotate" className="mt-0">
+          <RotateFlipTab settings={settings} updateSettings={updateSettings} />
+        </TabsContent>
+        <TabsContent value="text" className="mt-0">
+          <TextTab 
+            settings={settings} 
+            updateSettings={updateSettings}
+            selectedTextId={selectedTextId}
+            setSelectedTextId={setSelectedTextId}
+            selectedSignatureId={selectedSignatureId}
+            setSelectedSignatureId={setSelectedSignatureId}
+          />
+        </TabsContent>
+        <TabsContent value="adjustments" className="mt-0">
+          <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
+        </TabsContent>
+        <TabsContent value="collage" className="mt-0">
+          <CollageTab
+            settings={collageSettings}
+            updateSettings={updateCollageSettings}
+            onAddImage={onAddImageToCollage}
+            selectedLayerId={selectedLayerId}
+            setSelectedLayerId={setSelectedLayerId}
+          />
+        </TabsContent>
+      </ScrollArea>
+    </Tabs>
   );
 }
