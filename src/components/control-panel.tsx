@@ -79,7 +79,7 @@ export function ControlPanel({
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <ScrollArea className="w-full whitespace-nowrap">
+          <div className="w-full overflow-x-auto whitespace-nowrap">
             <TabsList className="h-auto p-1 inline-flex">
               {availableTabs.map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
@@ -88,7 +88,7 @@ export function ControlPanel({
                 </TabsTrigger>
               ))}
             </TabsList>
-          </ScrollArea>
+          </div>
           <TabsContent value="resize">
             <ResizeRotateTab 
               settings={settings} 
