@@ -1,11 +1,100 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 
 interface SeoContentProps {
   isEditing: boolean;
   children?: React.ReactNode;
+}
+
+const faqs = [
+  {
+    id: "faq-1",
+    question: "Is ImgResizer really free to use?",
+    answer: "Yes, absolutely. All features of ImgResizer, from resizing and cropping to color adjustments and format conversion, are completely free. We believe everyone should have access to powerful image editing tools without any cost."
+  },
+  {
+    id: "faq-2",
+    question: "How does ImgResizer protect my privacy?",
+    answer: "Your privacy is our top priority. ImgResizer is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure."
+  },
+  {
+    id: "faq-3",
+    question: "What file formats can I upload and download?",
+    answer: "You can upload most common image formats, including JPEG, PNG, WEBP, and BMP, as well as PDF files. You can then download your edited work as a JPEG, PNG, WEBP, GIF, BMP, SVG, or even a PDF document."
+  },
+  {
+    id: "faq-4",
+    question: "What is the difference between PNG, JPEG, and WEBP?",
+    answer: "JPEG is great for photos and offers excellent compression, but doesn't support transparency. PNG is ideal for graphics, logos, and images requiring transparency, offering lossless quality at a larger file size. WEBP is a modern format that provides superior compression for both photos and graphics, supports transparency, and is excellent for web use."
+  },
+  {
+    id: "faq-5",
+    question: "How do I resize an image to a specific file size?",
+    answer: "In the \"Download\" popover, you'll find an option to set a target file size (e.g., 500 KB). Our tool will automatically adjust the image quality (for JPEG or WEBP formats) to get as close as possible to your desired size, making it easy to meet file size requirements for emails or online forms."
+  },
+];
+
+
+function FaqSection() {
+    const [activeFaq, setActiveFaq] = useState(faqs[0].id);
+
+    return (
+        <section>
+            <h2 className="text-3xl font-bold text-center font-headline mb-12">Frequently Asked Questions</h2>
+            
+            {/* Mobile View: Standard Accordion */}
+            <div className="max-w-4xl mx-auto space-y-4 md:hidden">
+              <Accordion type="single" collapsible defaultValue={faqs[0].id}>
+                  {faqs.map(faq => (
+                      <AccordionItem value={faq.id} key={faq.id} className="border-b-0">
+                          <Card>
+                            <AccordionTrigger className="text-left p-6 hover:no-underline">
+                              <CardTitle className="text-base font-semibold">{faq.question}</CardTitle>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6">
+                              <p className="text-muted-foreground">{faq.answer}</p>
+                            </AccordionContent>
+                          </Card>
+                      </AccordionItem>
+                  ))}
+              </Accordion>
+            </div>
+
+            {/* Desktop View: Two-Column Layout */}
+            <div className="hidden md:grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <div className="flex flex-col gap-4">
+                    {faqs.map(faq => (
+                        <button
+                            key={faq.id}
+                            onClick={() => setActiveFaq(faq.id)}
+                            className={`p-6 rounded-lg text-left transition-all duration-300 ${activeFaq === faq.id ? 'bg-primary/10 border-primary border text-primary' : 'bg-muted/50 hover:bg-muted'}`}
+                        >
+                            <h4 className="text-lg font-semibold">{faq.question}</h4>
+                        </button>
+                    ))}
+                </div>
+                <div className="relative">
+                    <Card className="sticky top-24 p-8 min-h-[300px] shadow-lg">
+                        {faqs.map(faq => (
+                             <div key={faq.id} className={`transition-opacity duration-300 ${activeFaq === faq.id ? 'opacity-100' : 'opacity-0 absolute'}`}>
+                                <h3 className="text-xl font-bold text-foreground mb-4">{faq.question}</h3>
+                                <p className="text-muted-foreground text-lg leading-relaxed">{faq.answer}</p>
+                            </div>
+                        ))}
+                    </Card>
+                </div>
+            </div>
+        </section>
+    );
 }
 
 export function SeoContent({ isEditing, children }: SeoContentProps) {
@@ -127,51 +216,7 @@ export function SeoContent({ isEditing, children }: SeoContentProps) {
         </div>
       </section>
       
-      <section>
-        <h2 className="text-3xl font-bold text-center font-headline mb-12">Frequently Asked Questions</h2>
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Is ImgResizer really free to use?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Yes, absolutely. All features of ImgResizer, from resizing and cropping to color adjustments and format conversion, are completely free. We believe everyone should have access to powerful image editing tools without any cost.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>How does ImgResizer protect my privacy?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Your privacy is our top priority. ImgResizer is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>What file formats can I upload and download?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">You can upload most common image formats, including JPEG, PNG, WEBP, and BMP, as well as PDF files. You can then download your edited work as a JPEG, PNG, WEBP, GIF, BMP, SVG, or even a PDF document.</p>
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader>
-              <CardTitle>What is the difference between PNG, JPEG, and WEBP?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">JPEG is great for photos and offers excellent compression, but doesn't support transparency. PNG is ideal for graphics, logos, and images requiring transparency, offering lossless quality at a larger file size. WEBP is a modern format that provides superior compression for both photos and graphics, supports transparency, and is excellent for web use.</p>
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader>
-              <CardTitle>How do I resize an image to a specific file size?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">In the "Download" popover, you'll find an option to set a target file size (e.g., 500 KB). Our tool will automatically adjust the image quality (for JPEG or WEBP formats) to get as close as possible to your desired size, making it easy to meet file size requirements for emails or online forms.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <FaqSection />
     </div>
   );
 }
