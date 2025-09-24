@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -39,6 +39,15 @@ const initialSettings: ImageSettings = {
   perspectivePoints: null,
   texts: [],
   signatures: [],
+  sheet: {
+    enabled: false,
+    horizontalLines: true,
+    verticalLines: false,
+    lineColor: '#d1d5db',
+    spacing: 20,
+    marginTop: 20,
+    marginLeft: 20,
+  },
   adjustments: {
     brightness: 100,
     contrast: 100,
@@ -475,7 +484,7 @@ export default function Home() {
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = settings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, sheet } = settings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -515,6 +524,27 @@ export default function Home() {
             if (backgroundColor !== 'transparent') {
                 finalCtx.fillStyle = backgroundColor;
                 finalCtx.fillRect(0, 0, width, height);
+            }
+
+            if (sheet.enabled) {
+              finalCtx.strokeStyle = sheet.lineColor;
+              finalCtx.lineWidth = 1;
+              if (sheet.horizontalLines) {
+                  for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(sheet.marginLeft, y);
+                      finalCtx.lineTo(width, y);
+                      finalCtx.stroke();
+                  }
+              }
+              if (sheet.verticalLines) {
+                  for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(x, sheet.marginTop);
+                      finalCtx.lineTo(x, height);
+                      finalCtx.stroke();
+                  }
+              }
             }
             
             finalCtx.save();

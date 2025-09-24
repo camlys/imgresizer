@@ -46,6 +46,16 @@ export type CornerPoints = {
   br: { x: number; y: number };
 };
 
+export type SheetSettings = {
+  enabled: boolean;
+  horizontalLines: boolean;
+  verticalLines: boolean;
+  lineColor: string;
+  spacing: number;
+  marginTop: number;
+  marginLeft: number;
+};
+
 export type ImageSettings = {
   width: number;
   height: number;
@@ -58,6 +68,7 @@ export type ImageSettings = {
   crop: CropSettings | null;
   texts: TextOverlay[];
   signatures: SignatureOverlay[];
+  sheet: SheetSettings;
   adjustments: {
     brightness: number;
     contrast: number;
@@ -94,5 +105,3 @@ export type CollageSettings = {
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
 };
-
-    

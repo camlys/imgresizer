@@ -485,28 +485,53 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         }
 
     } else {
-        if (!processedImageCache) return;
-        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures } = settings;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures, backgroundColor, sheet } = settings;
         canvas.width = width;
         canvas.height = height;
 
-        ctx.save();
-        const rad = (rotation * Math.PI) / 180;
-        const sin = Math.abs(Math.sin(rad));
-        const cos = Math.abs(Math.cos(rad));
-        const boundingBoxWidth = processedImageCache.width * cos + processedImageCache.height * sin;
-        const boundingBoxHeight = processedImageCache.width * sin + processedImageCache.height * cos;
-        const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
-        const drawWidth = processedImageCache.width * scale;
-        const drawHeight = processedImageCache.height * scale;
-        
-        ctx.translate(width / 2, height / 2);
-        if (flipHorizontal) ctx.scale(-1, 1);
-        if (flipVertical) ctx.scale(1, -1);
-        ctx.rotate(rad);
-        
-        ctx.drawImage(processedImageCache, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-        ctx.restore();
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+
+        if (sheet.enabled) {
+          ctx.strokeStyle = sheet.lineColor;
+          ctx.lineWidth = 1;
+          if (sheet.horizontalLines) {
+            for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
+              ctx.beginPath();
+              ctx.moveTo(sheet.marginLeft, y);
+              ctx.lineTo(width, y);
+              ctx.stroke();
+            }
+          }
+          if (sheet.verticalLines) {
+            for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
+              ctx.beginPath();
+              ctx.moveTo(x, sheet.marginTop);
+              ctx.lineTo(x, height);
+              ctx.stroke();
+            }
+          }
+        }
+
+        if (processedImageCache) {
+          ctx.save();
+          const rad = (rotation * Math.PI) / 180;
+          const sin = Math.abs(Math.sin(rad));
+          const cos = Math.abs(Math.cos(rad));
+          const boundingBoxWidth = processedImageCache.width * cos + processedImageCache.height * sin;
+          const boundingBoxHeight = processedImageCache.width * sin + processedImageCache.height * cos;
+          const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
+          const drawWidth = processedImageCache.width * scale;
+          const drawHeight = processedImageCache.height * scale;
+          
+          ctx.translate(width / 2, height / 2);
+          if (flipHorizontal) ctx.scale(-1, 1);
+          if (flipVertical) ctx.scale(1, -1);
+          ctx.rotate(rad);
+          
+          ctx.drawImage(processedImageCache, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+          ctx.restore();
+        }
 
         signatures.forEach(sig => {
           if (sig.img) {
@@ -1120,5 +1145,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
