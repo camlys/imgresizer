@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
             <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.</p>
 
             <h2 className="text-xl font-semibold text-foreground pt-4">7. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:camlysales@gmail.com" className="text-primary hover:underline">camlysales@gmail.com</a>.</p>
+            <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:imgresizersales@gmail.com" className="text-primary hover:underline">imgresizersales@gmail.com</a>.</p>
           </CardContent>
         </Card>
       </main>

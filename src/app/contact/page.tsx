@@ -29,8 +29,8 @@ export default function ContactPage() {
                   <p className="text-muted-foreground mt-1">
                     For sales, support, and general feedback, please email us.
                   </p>
-                  <a href="mailto:camlysales@gmail.com" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
-                    camlysales@gmail.com
+                  <a href="mailto:imgresizersales@gmail.com" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
+                    imgresizersales@gmail.com
                   </a>
                 </div>
               </div>
