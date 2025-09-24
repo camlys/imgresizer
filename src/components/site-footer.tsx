@@ -8,18 +8,18 @@ export function SiteFooter() {
       <div className="container mx-auto py-12 px-6">
         <div className="grid md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
-            <h3 className="text-xl font-bold font-headline">Camly</h3>
+            <h3 className="text-xl font-bold font-headline">ImgResizer</h3>
             <p className="text-sm text-muted-foreground mt-2">
               The simple, powerful, and private online image editor.
             </p>
             <div className="flex space-x-4 mt-4">
-              <Link href="https://twitter.com/camly" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+              <Link href="https://twitter.com/imgresizer" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                 <Twitter size={20} />
               </Link>
-              <Link href="https://github.com/your-repo/camly" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+              <Link href="https://github.com/your-repo/imgresizer" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                 <Github size={20} />
               </Link>
-              <Link href="https://facebook.com/camly" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+              <Link href="https://facebook.com/imgresizer" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                 <Facebook size={20} />
               </Link>
             </div>
@@ -50,7 +50,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Camly. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} ImgResizer. All rights reserved.</p>
         </div>
       </div>
     </footer>

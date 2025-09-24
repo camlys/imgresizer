@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: 'https://imgresizer.app/sitemap.xml',
+    sitemap: 'https://imgresizer.xyz/sitemap.xml',
   }
 }

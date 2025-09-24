@@ -14,7 +14,7 @@ export function SiteHeader() {
           <LogoIcon className="absolute top-1/2 -translate-y-1/2 left-1 md:left-4 opacity-20 size-10 md:size-16" />
           <div className="sun-rays pl-4">
             <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
-                Camly
+                ImgResizer
             </h1>
           </div>
         </Link>

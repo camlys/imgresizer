@@ -6,29 +6,29 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://camly.app'),
+  metadataBase: new URL('https://imgresizer.xyz'),
   title: {
-    default: 'Camly: Free, Private Online Image & Photo Editor',
-    template: '%s | Camly',
+    default: 'ImgResizer: Free, Private Online Image & Photo Editor',
+    template: '%s | ImgResizer',
   },
-  description: 'Edit, resize, crop, convert, and enhance images and photos for free. Camly is a powerful, privacy-focused online tool that works right in your browser. No downloads, no sign-ups, no watermarks.',
+  description: 'Edit, resize, crop, convert, and enhance images and photos for free. ImgResizer is a powerful, privacy-focused online tool that works right in your browser. No downloads, no sign-ups, no watermarks.',
   keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf to image converter', 'change image format', 'compress image', 'add text to image', 'perspective crop', 'photo effects', 'image manipulation'],
   
-  authors: [{ name: 'Camly Team', url: 'https://camly.app/about' }],
-  creator: 'Camly',
-  publisher: 'Camly',
+  authors: [{ name: 'ImgResizer Team', url: 'https://imgresizer.xyz/about' }],
+  creator: 'ImgResizer',
+  publisher: 'ImgResizer',
 
   openGraph: {
-    title: 'Camly: Free, Private Online Image & Photo Editor',
+    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
-    url: 'https://camly.app',
-    siteName: 'Camly',
+    url: 'https://imgresizer.xyz',
+    siteName: 'ImgResizer',
     images: [
       {
         url: '/og-image.png', // Ensure you have this file in your /public folder
         width: 1200,
         height: 630,
-        alt: 'Camly - Free Online Image and Photo Editor',
+        alt: 'ImgResizer - Free Online Image and Photo Editor',
       },
     ],
     locale: 'en_US',
@@ -37,9 +37,9 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Camly: Free, Private Online Image & Photo Editor',
+    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
-    creator: '@Camly', // Replace with your actual Twitter handle
+    creator: '@ImgResizer', // Replace with your actual Twitter handle
     images: ['/og-image.png'], // Ensure you have this file in your /public folder
   },
 
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: 'https://camly.app',
+    canonical: 'https://imgresizer.xyz',
   },
 };
 
@@ -76,8 +76,8 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'Camly',
-    url: 'https://camly.app',
+    name: 'ImgResizer',
+    url: 'https://imgresizer.xyz',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
     description: 'A free, privacy-focused online tool to resize, crop, and edit images and photos directly in your browser.',
@@ -101,8 +101,8 @@ export default function RootLayout({
     },
     creator: {
       '@type': 'Organization',
-      name: 'Camly',
-      url: 'https://camly.app'
+      name: 'ImgResizer',
+      url: 'https://imgresizer.xyz'
     }
   };
 

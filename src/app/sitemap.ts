@@ -2,7 +2,7 @@
 import { MetadataRoute } from 'next'
  
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://camly.app';
+  const baseUrl = 'https://imgresizer.xyz';
 
   return [
     {

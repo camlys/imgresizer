@@ -5,7 +5,7 @@ export function LogoIcon({ className }: { className?: string }) {
   return (
     <img
       src="/camly.png"
-      alt="Camly Logo"
+      alt="ImgResizer Logo"
       className={cn(className)}
     />
   );

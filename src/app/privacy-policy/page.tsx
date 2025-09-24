@@ -15,10 +15,10 @@ export default function PrivacyPolicyPage() {
           <CardContent className="space-y-6 text-muted-foreground">
             <p className="text-sm">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             
-            <p>Camly ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information in connection with the Camly web application (the "Service").</p>
+            <p>ImgResizer ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information in connection with the ImgResizer web application (the "Service").</p>
 
             <h2 className="text-xl font-semibold text-foreground pt-4">1. Information We Collect</h2>
-            <p>Camly is designed to be a client-side application. This means that all image processing occurs directly in your web browser. We do not upload, store, or collect the images you edit on our servers.</p>
+            <p>ImgResizer is designed to be a client-side application. This means that all image processing occurs directly in your web browser. We do not upload, store, or collect the images you edit on our servers.</p>
 
             <h2 className="text-xl font-semibold text-foreground pt-4">2. How We Use Information</h2>
             <p>Since we do not collect your images or personal data associated with them, we do not use them for any purpose. Any information, such as image data, remains on your local device and is processed by your browser.</p>
@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
             <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.</p>
 
             <h2 className="text-xl font-semibold text-foreground pt-4">7. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:camlysales@gmail.com" className="text-primary hover:underline">camlysales@gmail.com</a>.</p>
+            <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:imgresizersales@gmail.com" className="text-primary hover:underline">imgresizersales@gmail.com</a>.</p>
           </CardContent>
         </Card>
       </main>
