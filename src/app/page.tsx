@@ -1,12 +1,12 @@
 
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React from 'react';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -52,35 +52,50 @@ const initialSettings: ImageSettings = {
   quality: 1.0,
 };
 
-export default function Home() {
-  const [originalImage, setOriginalImage] = useState<OriginalImage | null>(null);
-  const [settings, setSettings] = useState<ImageSettings>(initialSettings);
-  const [activeTab, setActiveTab] = useState('resize');
-  const [processedSize, setProcessedSize] = useState<number | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+const initialCollageSettings: CollageSettings = {
+  width: 595, // A4 width in px at 72 DPI
+  height: 842, // A4 height in px at 72 DPI
+  backgroundColor: '#ffffff',
+  layers: [],
+  format: 'application/pdf',
+  quality: 1.0,
+};
 
-  const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
-  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+
+export default function Home() {
+  const [originalImage, setOriginalImage] = React.useState<OriginalImage | null>(null);
+  const [settings, setSettings] = React.useState<ImageSettings>(initialSettings);
+  const [collageSettings, setCollageSettings] = React.useState<CollageSettings>(initialCollageSettings);
+  const [editorMode, setEditorMode] = React.useState<'single' | 'collage'>('single');
+  const [activeTab, setActiveTab] = React.useState('resize');
+  const [processedSize, setProcessedSize] = React.useState<number | null>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const [pendingCrop, setPendingCrop] = React.useState<CropSettings | null>(null);
+  const [imageElement, setImageElement] = React.useState<HTMLImageElement | null>(null);
   const INSET_PX = 38; // Approx 10mm
 
   // PDF Page Selection
-  const [isPdfSelectorOpen, setIsPdfSelectorOpen] = useState(false);
-  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [isFromMultiPagePdf, setIsFromMultiPagePdf] = useState(false);
-  const [isPageSelecting, setIsPageSelecting] = useState(false);
+  const [isPdfSelectorOpen, setIsPdfSelectorOpen] = React.useState(false);
+  const [pdfDoc, setPdfDoc] = React.useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [pdfFile, setPdfFile] = React.useState<File | null>(null);
+  const [isFromMultiPagePdf, setIsFromMultiPagePdf] = React.useState(false);
+  const [isPageSelecting, setIsPageSelecting] = React.useState(false);
 
   // Text Editing
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [selectedTextId, setSelectedTextId] = React.useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = React.useState<string | null>(null);
 
   // Signature Editing
-  const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
+  const [selectedSignatureId, setSelectedSignatureId] = React.useState<string | null>(null);
+
+  // Collage State
+  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(null);
 
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!originalImage) return;
     const img = new Image();
     if (!originalImage.src.startsWith('data:')) {
@@ -94,6 +109,26 @@ export default function Home() {
 
 
   const handleTabChange = (tab: string) => {
+    if (tab === 'collage' && editorMode !== 'collage') {
+        setEditorMode('collage');
+        if (originalImage) {
+            const newLayer: ImageLayer = {
+                id: Date.now().toString(),
+                src: originalImage.src,
+                img: imageElement!,
+                x: 50,
+                y: 50,
+                width: 50,
+                rotation: 0,
+                opacity: 1,
+                originalWidth: originalImage.width,
+                originalHeight: originalImage.height,
+            };
+            setCollageSettings(prev => ({ ...prev, layers: [newLayer] }));
+            setSelectedLayerId(newLayer.id);
+        }
+    }
+
     if (tab === 'crop' && originalImage && !pendingCrop) {
       const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
        if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
@@ -117,9 +152,12 @@ export default function Home() {
       setEditingTextId(null);
       setSelectedSignatureId(null);
     }
+    if (tab !== 'collage') {
+      setSelectedLayerId(null);
+    }
   };
   
-    const loadPageAsImage = useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
+    const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
     setIsLoading(true);
     try {
       const page = await pdfDoc.getPage(pageNum);
@@ -160,6 +198,7 @@ export default function Home() {
             br: { x: img.width - inset, y: img.height - inset },
           },
         });
+        setEditorMode('single');
         setPendingCrop(null);
         setActiveTab('resize');
         setProcessedSize(null);
@@ -179,7 +218,7 @@ export default function Home() {
   }, [toast]);
 
 
-  const handlePdfPageSelect = useCallback((pageNum: number) => {
+  const handlePdfPageSelect = React.useCallback((pageNum: number) => {
       if (pdfDoc && pdfFile) {
         setIsPageSelecting(true);
         // Defer heavy operation to allow UI to update
@@ -198,6 +237,12 @@ export default function Home() {
     setPdfFile(null);
     setIsFromMultiPagePdf(false);
     setIsPageSelecting(false);
+    
+    // Reset collage mode if a new single file is uploaded
+    setEditorMode('single');
+    setCollageSettings(initialCollageSettings);
+    setSelectedLayerId(null);
+    if (activeTab === 'collage') setActiveTab('resize');
 
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -268,8 +313,37 @@ export default function Home() {
         setIsLoading(false);
     }
   };
-  
-  const updateSettings = useCallback((newSettings: Partial<ImageSettings>) => {
+
+   const addImageToCollage = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+        toast({ title: "Invalid File", description: "Only image files can be added to the collage.", variant: "destructive" });
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const newLayer: ImageLayer = {
+                id: Date.now().toString(),
+                src: img.src,
+                img: img,
+                x: 50,
+                y: 50,
+                width: 30, // Default to 30% of canvas width
+                rotation: 0,
+                opacity: 1,
+                originalWidth: img.width,
+                originalHeight: img.height,
+            };
+            setCollageSettings(prev => ({ ...prev, layers: [...prev.layers, newLayer] }));
+            setSelectedLayerId(newLayer.id);
+        };
+        img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const updateSettings = React.useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => {
       const updated = { ...prev, ...newSettings };
       if (newSettings.texts) {
@@ -300,7 +374,19 @@ export default function Home() {
     setProcessedSize(null);
   }, [selectedTextId, selectedSignatureId]);
 
-  const handleApplyPerspectiveCrop = useCallback(async () => {
+  const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
+    setCollageSettings(prev => ({ ...prev, ...newSettings }));
+    if (newSettings.layers) {
+        const currentSelectedId = selectedLayerId;
+        const layerExists = newSettings.layers.some(l => l.id === currentSelectedId);
+        if (!layerExists) {
+            setSelectedLayerId(null);
+        }
+    }
+    setProcessedSize(null);
+  }, [selectedLayerId]);
+
+  const handleApplyPerspectiveCrop = React.useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {
       toast({ title: "Error", description: "Could not apply perspective crop.", variant: "destructive" });
       return;
@@ -351,8 +437,39 @@ export default function Home() {
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
 
- const generateFinalCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
+ const generateFinalCanvas = React.useCallback(async (): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
+        if (editorMode === 'collage') {
+          const finalCanvas = document.createElement('canvas');
+          const finalCtx = finalCanvas.getContext('2d');
+          if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
+
+          const { width, height, backgroundColor, layers } = collageSettings;
+          finalCanvas.width = width;
+          finalCanvas.height = height;
+
+          finalCtx.fillStyle = backgroundColor;
+          finalCtx.fillRect(0, 0, width, height);
+
+          // Draw layers in order
+          for (const layer of layers) {
+              const layerWidth = (layer.width / 100) * width;
+              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
+              const layerX = (layer.x / 100) * width;
+              const layerY = (layer.y / 100) * height;
+
+              finalCtx.save();
+              finalCtx.translate(layerX, layerY);
+              finalCtx.rotate(layer.rotation * Math.PI / 180);
+              finalCtx.globalAlpha = layer.opacity;
+              finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
+              finalCtx.restore();
+          }
+
+          resolve(finalCanvas);
+          return;
+        }
+
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
@@ -455,12 +572,15 @@ export default function Home() {
             reject(error);
         }
     });
-}, [originalImage, imageElement, settings]);
+}, [originalImage, imageElement, settings, editorMode, collageSettings]);
 
-  const updateProcessedSize = useCallback(async () => {
+  const updateProcessedSize = React.useCallback(async () => {
     try {
         const canvas = await generateFinalCanvas();
-        if (settings.format === 'image/svg+xml' || settings.format === 'application/pdf') {
+        const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
+        const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
+
+        if (currentFormat === 'image/svg+xml' || currentFormat === 'application/pdf') {
             setProcessedSize(null);
             return;
         }
@@ -468,21 +588,24 @@ export default function Home() {
             (blob) => {
                 if (blob) setProcessedSize(blob.size);
             },
-            settings.format,
-            settings.quality
+            currentFormat,
+            currentQuality
         );
     } catch (error) {
         console.error("Error updating processed size:", error);
         setProcessedSize(null);
     }
-  }, [generateFinalCanvas, settings.format, settings.quality]);
+  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings.format, collageSettings.quality]);
 
-  const handleDownload = useCallback(async (filename: string) => {
+  const handleDownload = React.useCallback(async (filename: string) => {
     try {
         const finalCanvas = await generateFinalCanvas();
         const downloadName = filename || 'imgresizer-export';
+        const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
+        const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
-        if (settings.format === 'application/pdf') {
+
+        if (currentFormat === 'application/pdf') {
             const imgData = finalCanvas.toDataURL('image/png');
             const orientation = finalCanvas.width > finalCanvas.height ? 'l' : 'p';
             const pdf = new jsPDF({
@@ -499,7 +622,7 @@ export default function Home() {
             return;
         }
 
-        if (settings.format === 'image/svg+xml') {
+        if (currentFormat === 'image/svg+xml') {
             const dataUrl = finalCanvas.toDataURL('image/png');
             const svgContent = `<svg width="${finalCanvas.width}" height="${finalCanvas.height}" xmlns="http://www.w3.org/2000/svg">
 <image href="${dataUrl}" width="${finalCanvas.width}" height="${finalCanvas.height}" />
@@ -523,7 +646,7 @@ export default function Home() {
             if (blob) {
               const link = document.createElement('a');
               link.href = URL.createObjectURL(blob);
-              const extension = settings.format.split('/')[1].split('+')[0];
+              const extension = currentFormat.split('/')[1].split('+')[0];
               link.download = `${downloadName}.${extension}`;
               document.body.appendChild(link);
               link.click();
@@ -534,7 +657,7 @@ export default function Home() {
                 description: "Your image has started downloading.",
             })
             }
-        }, settings.format, settings.quality);
+        }, currentFormat, currentQuality);
 
     } catch (error) {
         console.error("Error preparing image for download:", error);
@@ -544,9 +667,9 @@ export default function Home() {
             variant: "destructive",
         });
     }
-  }, [generateFinalCanvas, settings.format, settings.quality, toast]);
+  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, toast]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = React.useCallback(async () => {
     const fallbackShare = async () => {
         const url = 'https://imgresizer.xyz/';
         await navigator.clipboard.writeText(url);
@@ -558,6 +681,9 @@ export default function Home() {
 
     try {
         const finalCanvas = await generateFinalCanvas();
+        const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
+        const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
+
         finalCanvas.toBlob(async (blob) => {
             const shareData: ShareData = {
                 title: 'ImgResizer: Free Online Image Editor',
@@ -566,9 +692,9 @@ export default function Home() {
             };
 
             if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: blob.type })] })) {
-                const extension = settings.format.split('/')[1].split('+')[0] || 'png';
+                const extension = currentFormat.split('/')[1].split('+')[0] || 'png';
                 const filename = `imgresizer-edited-image.${extension}`;
-                const file = new File([blob], filename, { type: settings.format });
+                const file = new File([blob], filename, { type: currentFormat });
                 shareData.files = [file];
             }
             
@@ -577,30 +703,33 @@ export default function Home() {
             } else {
                 await fallbackShare();
             }
-        }, settings.format, settings.quality);
+        }, currentFormat, currentQuality);
     } catch (error) {
         console.error("Share error:", error);
         if ((error as Error).name !== 'AbortError') { // Don't show fallback if user cancels share
           await fallbackShare();
         }
     }
-  }, [generateFinalCanvas, settings.format, settings.quality, toast]);
+  }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, toast]);
 
   const editingText = settings.texts.find(t => t.id === editingTextId);
   
-  if (!originalImage) {
+  if (!originalImage && editorMode === 'single') {
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
         <AppHeader 
           onUpload={handleImageUpload} 
           onDownload={handleDownload}
-          isImageLoaded={!!originalImage}
+          isImageLoaded={!!originalImage || editorMode === 'collage'}
           settings={settings}
           updateSettings={updateSettings}
+          collageSettings={collageSettings}
+          updateCollageSettings={updateCollageSettings}
           generateFinalCanvas={generateFinalCanvas}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
           onShare={handleShare}
+          editorMode={editorMode}
         />
         <main className="flex-1 w-full overflow-y-auto">
           <HeroSection onUpload={handleImageUpload} />
@@ -642,13 +771,16 @@ export default function Home() {
         <AppHeader 
           onUpload={handleImageUpload} 
           onDownload={handleDownload}
-          isImageLoaded={!!originalImage}
+          isImageLoaded={!!originalImage || editorMode === 'collage'}
           settings={settings}
           updateSettings={updateSettings}
+          collageSettings={collageSettings}
+          updateCollageSettings={updateCollageSettings}
           generateFinalCanvas={generateFinalCanvas}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
           onShare={handleShare}
+          editorMode={editorMode}
         />
         <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
           <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
@@ -668,6 +800,12 @@ export default function Home() {
               setSelectedTextId={setSelectedTextId}
               selectedSignatureId={selectedSignatureId}
               setSelectedSignatureId={setSelectedSignatureId}
+              editorMode={editorMode}
+              collageSettings={collageSettings}
+              updateCollageSettings={updateCollageSettings}
+              onAddImageToCollage={addImageToCollage}
+              selectedLayerId={selectedLayerId}
+              setSelectedLayerId={setSelectedLayerId}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
@@ -685,6 +823,11 @@ export default function Home() {
               setEditingTextId={setEditingTextId}
               selectedSignatureId={selectedSignatureId}
               setSelectedSignatureId={setSelectedSignatureId}
+              editorMode={editorMode}
+              collageSettings={collageSettings}
+              updateCollageSettings={updateCollageSettings}
+              selectedLayerId={selectedLayerId}
+              setSelectedLayerId={setSelectedLayerId}
             />
             {editingText && canvasRef.current && (
               <TextEditor
@@ -731,5 +874,9 @@ export default function Home() {
     </div>
   );
 }
+
+    
+
+    
 
     

@@ -72,3 +72,27 @@ export type ImageSettings = {
   cropMode: 'rect' | 'perspective';
   perspectivePoints: CornerPoints | null;
 };
+
+export type ImageLayer = {
+  id: string;
+  src: string;
+  img: HTMLImageElement;
+  x: number; // percentage
+  y: number; // percentage
+  width: number; // percentage of canvas width
+  rotation: number;
+  opacity: number;
+  originalWidth: number;
+  originalHeight: number;
+};
+
+export type CollageSettings = {
+  width: number;
+  height: number;
+  backgroundColor: string;
+  layers: ImageLayer[];
+  format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml' | 'application/pdf';
+  quality: number;
+};
+
+    

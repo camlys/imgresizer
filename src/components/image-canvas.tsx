@@ -2,10 +2,10 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay, CollageSettings, ImageLayer } from '@/lib/types';
 
 interface ImageCanvasProps {
-  originalImage: OriginalImage;
+  originalImage: OriginalImage | null;
   imageElement: HTMLImageElement | null;
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
@@ -17,6 +17,11 @@ interface ImageCanvasProps {
   setEditingTextId: (id: string | null) => void;
   selectedSignatureId: string | null;
   setSelectedSignatureId: (id: string | null) => void;
+  editorMode: 'single' | 'collage';
+  collageSettings: CollageSettings;
+  updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
+  selectedLayerId: string | null;
+  setSelectedLayerId: (id: string | null) => void;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -34,12 +39,17 @@ const SIGNATURE_ROTATION_HANDLE_OFFSET = 25;
 const SIGNATURE_RESIZE_HANDLE_SIZE = 10;
 const SIGNATURE_HANDLE_HIT_AREA = 20;
 
+const LAYER_ROTATION_HANDLE_OFFSET = 25;
+const LAYER_RESIZE_HANDLE_SIZE = 10;
+const LAYER_HANDLE_HIT_AREA = 20;
+
 
 type InteractionType = 
   | 'crop-move' | 'crop-tl' | 'crop-t' | 'crop-tr' | 'crop-l' | 'crop-r' | 'crop-bl' | 'crop-b' | 'crop-br' | 'crop-new'
   | 'text-move' | 'text-rotate' | 'text-resize-tl' | 'text-resize-tr' | 'text-resize-bl' | 'text-resize-br'
   | 'signature-move' | 'signature-rotate' | 'signature-resize-tl' | 'signature-resize-tr' | 'signature-resize-bl' | 'signature-resize-br'
-  | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br';
+  | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br'
+  | 'layer-move' | 'layer-rotate' | 'layer-resize-tl' | 'layer-resize-tr' | 'layer-resize-bl' | 'layer-resize-br';
 
 type InteractionState = {
   type: InteractionType;
@@ -57,6 +67,11 @@ type InteractionState = {
   signatureId?: string;
   startSignature?: SignatureOverlay;
   signatureCenter?: { x: number; y: number; };
+
+  // Layer-specific state
+  layerId?: string;
+  startLayer?: ImageLayer;
+  layerCenter?: { x: number; y: number; };
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -72,6 +87,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   setEditingTextId,
   selectedSignatureId,
   setSelectedSignatureId,
+  editorMode,
+  collageSettings,
+  updateCollageSettings,
+  selectedLayerId,
+  setSelectedLayerId,
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -183,6 +203,47 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     return { corners, rotationHandle, center, unrotatedBoundingBox };
   }, []);
 
+  const getLayerHandlePositions = useCallback((layer: ImageLayer, canvas: HTMLCanvasElement) => {
+    const layerWidthPx = (layer.width / 100) * canvas.width;
+    const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
+    const center = { x: (layer.x / 100) * canvas.width, y: (layer.y / 100) * canvas.height };
+
+    const getRotatedPoint = (x: number, y: number, angleDeg: number) => {
+      const angleRad = angleDeg * Math.PI / 180;
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      return {
+        x: center.x + x * cos - y * sin,
+        y: center.y + x * sin + y * cos,
+      };
+    };
+
+    const halfW = layerWidthPx / 2;
+    const halfH = layerHeightPx / 2;
+
+    const corners = {
+      tl: getRotatedPoint(-halfW, -halfH, layer.rotation),
+      tr: getRotatedPoint(halfW, -halfH, layer.rotation),
+      bl: getRotatedPoint(-halfW, halfH, layer.rotation),
+      br: getRotatedPoint(halfW, halfH, layer.rotation),
+    };
+
+    const rotationHandleAngle = (layer.rotation - 90) * Math.PI / 180;
+    const rotationHandleDistance = halfH + LAYER_ROTATION_HANDLE_OFFSET;
+
+    const rotationHandle = {
+      x: center.x + rotationHandleDistance * Math.cos(rotationHandleAngle),
+      y: center.y + rotationHandleDistance * Math.sin(rotationHandleAngle),
+    };
+
+    const unrotatedBoundingBox = {
+      width: layerWidthPx,
+      height: layerHeightPx,
+    };
+
+    return { corners, rotationHandle, center, unrotatedBoundingBox };
+  }, []);
+
   useEffect(() => {
     if (!imageElement) return;
 
@@ -223,10 +284,79 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   useEffect(() => {
     const { canvas, ctx } = getCanvasAndContext();
-    const img = imageElement;
-    if (!canvas || !ctx || !img) return;
+    if (!canvas || !ctx) return;
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (editorMode === 'collage') {
+        const { width, height, backgroundColor, layers } = collageSettings;
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+
+        for (const layer of layers) {
+            const layerWidthPx = (layer.width / 100) * width;
+            const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
+            const layerX = (layer.x / 100) * width;
+            const layerY = (layer.y / 100) * height;
+
+            ctx.save();
+            ctx.translate(layerX, layerY);
+            ctx.rotate(layer.rotation * Math.PI / 180);
+            ctx.globalAlpha = layer.opacity;
+            ctx.drawImage(layer.img, -layerWidthPx / 2, -layerHeightPx / 2, layerWidthPx, layerHeightPx);
+            ctx.restore();
+        }
+        
+        if (selectedLayerId) {
+            const selectedLayer = layers.find(l => l.id === selectedLayerId);
+            if (selectedLayer) {
+                const { corners, rotationHandle } = getLayerHandlePositions(selectedLayer, canvas);
+                
+                ctx.save();
+                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
+                ctx.lineWidth = 1;
+
+                // Draw bounding box
+                ctx.beginPath();
+                ctx.moveTo(corners.tl.x, corners.tl.y);
+                ctx.lineTo(corners.tr.x, corners.tr.y);
+                ctx.lineTo(corners.br.x, corners.br.y);
+                ctx.lineTo(corners.bl.x, corners.bl.y);
+                ctx.closePath();
+                ctx.stroke();
+
+                // Draw rotation line and handle
+                ctx.beginPath();
+                ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+                ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(rotationHandle.x, rotationHandle.y, LAYER_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw resize handles
+                Object.values(corners).forEach(corner => {
+                    ctx.beginPath();
+                    ctx.rect(corner.x - LAYER_RESIZE_HANDLE_SIZE / 2, corner.y - LAYER_RESIZE_HANDLE_SIZE / 2, LAYER_RESIZE_HANDLE_SIZE, LAYER_RESIZE_HANDLE_SIZE);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                
+                ctx.restore();
+            }
+        }
+        return;
+    }
+    
+    const img = imageElement;
+    if (!img) return;
 
     if (activeTab === 'crop') {
         const container = containerRef.current;
@@ -505,7 +635,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerId, getLayerHandlePositions]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -533,10 +663,45 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     };
   };
 
-  const getInteractionType = useCallback((pos: { x: number, y: number }): { type: InteractionType; cursor: string, textId?: string, signatureId?: string } | null => {
+  const getInteractionType = useCallback((pos: { x: number, y: number }): { type: InteractionType; cursor: string, textId?: string, signatureId?: string, layerId?: string } | null => {
       const { canvas, ctx } = getCanvasAndContext();
       const img = imageElement;
-      if (!canvas || !ctx || !img) return null;
+      if (!canvas || !ctx) return null;
+      
+      if (editorMode === 'collage') {
+          const reversedLayers = [...collageSettings.layers].reverse();
+          for (const layer of reversedLayers) {
+            const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
+            const isSelected = layer.id === selectedLayerId;
+
+            if (isSelected) {
+              for (const [key, corner] of Object.entries(corners)) {
+                if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
+                  const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
+                  return { type: `layer-resize-${key}` as InteractionType, layerId: layer.id, cursor: cursorMap[key as keyof typeof cursorMap]};
+                }
+              }
+              if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < LAYER_HANDLE_HIT_AREA / 2) {
+                return { type: 'layer-rotate', layerId: layer.id, cursor: 'crosshair' };
+              }
+            }
+
+            const translatedX = pos.x - center.x;
+            const translatedY = pos.y - center.y;
+            const angleRad = -layer.rotation * Math.PI / 180;
+            const cosVal = Math.cos(angleRad);
+            const sinVal = Math.sin(angleRad);
+            const rotatedX = translatedX * cosVal - translatedY * sinVal;
+            const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+              return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
+            }
+          }
+          return null;
+      }
+
+      if (!img) return null;
 
       if (activeTab === 'crop') {
          if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
@@ -633,7 +798,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
 
       return null;
-  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions]);
+  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerId, getLayerHandlePositions]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
@@ -641,12 +806,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
-    if (!canvas || !ctx || !imageElement) return;
+    if (!canvas || !ctx) return;
 
     const interaction = getInteractionType(pos);
     const currentTime = new Date().getTime();
-    
-    if (interaction?.type.startsWith('text-')) {
+
+    if (interaction?.type.startsWith('layer-')) {
+        const layerId = interaction.layerId!;
+        const clickedLayer = collageSettings.layers.find(l => l.id === layerId);
+
+        if (clickedLayer) {
+            setSelectedLayerId(layerId);
+            setInteractionState({ 
+              type: interaction.type,
+              startPos: pos,
+              layerId: layerId,
+              startLayer: clickedLayer,
+              layerCenter: getLayerHandlePositions(clickedLayer, canvas).center,
+            });
+        }
+        lastClickTime.current = currentTime;
+        lastClickTarget.current = layerId;
+
+    } else if (interaction?.type.startsWith('text-')) {
         const textId = interaction.textId!;
         const clickedText = settings.texts.find(t => t.id === textId);
 
@@ -704,7 +886,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           startPos: pos,
           startCrop: interaction.type.startsWith('crop-') ? pendingCrop! : undefined
         });
-    } else if (activeTab === 'crop' && settings.cropMode === 'rect') {
+    } else if (activeTab === 'crop' && settings.cropMode === 'rect' && imageElement) {
         setSelectedTextId(null);
         setSelectedSignatureId(null);
         const scale = canvas.width / imageElement.width;
@@ -714,9 +896,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     } else {
         setSelectedTextId(null);
         setSelectedSignatureId(null);
+        setSelectedLayerId(null);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings.layers, setSelectedLayerId, getLayerHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -725,12 +908,41 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if ('touches' in e) e.preventDefault();
         
         const { canvas, ctx } = getCanvasAndContext();
-        const img = imageElement;
-        if (!canvas || !ctx || !img) return;
+        if (!canvas || !ctx) return;
 
-        const { type, startPos, startText, startSignature } = interactionState;
-        
-        if (type.startsWith('text-') && startText) {
+        const { type, startPos, startText, startSignature, startLayer } = interactionState;
+
+        if (type.startsWith('layer-') && startLayer) {
+            if (type === 'layer-move') {
+                const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
+                const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
+                const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l,
+                    x: Math.max(0, Math.min(100, startLayer.x + dx_percent)),
+                    y: Math.max(0, Math.min(100, startLayer.y + dy_percent)),
+                } : l);
+                updateCollageSettings({ layers: newLayers });
+            } else if (type === 'layer-rotate' && interactionState.layerCenter) {
+                const startAngle = Math.atan2(startPos.y - interactionState.layerCenter.y, startPos.x - interactionState.layerCenter.x);
+                const currentAngle = Math.atan2(pos.y - interactionState.layerCenter.y, pos.x - interactionState.layerCenter.x);
+                const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
+                const newRotation = startLayer.rotation + angleDiff;
+                const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l, rotation: newRotation } : l);
+                updateCollageSettings({ layers: newLayers });
+            } else if (type.startsWith('layer-resize-') && interactionState.layerCenter) {
+                const center = interactionState.layerCenter;
+                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
+                const currentDist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
+
+                if (startDist > 0) {
+                    const scaleFactor = currentDist / startDist;
+                    const newWidthPercent = startLayer.width * scaleFactor;
+                    const newWidth = Math.max(1, Math.min(200, newWidthPercent));
+                    
+                    const newLayers = collageSettings.layers.map(l => l.id === startLayer.id ? { ...l, width: newWidth } : l);
+                    updateCollageSettings({ layers: newLayers });
+                }
+            }
+        } else if (type.startsWith('text-') && startText) {
             if (type === 'text-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
@@ -791,17 +1003,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     updateSettings({ signatures: newSignatures });
                 }
             }
-        } else if (type.startsWith('crop-')) {
+        } else if (type.startsWith('crop-') && imageElement) {
             const { startCrop } = interactionState;
             if (!startCrop) return;
-            const scale = canvas.width / img.width;
+            const scale = canvas.width / imageElement.width;
             
             if (type === 'crop-move') {
                  const dx = (pos.x - startPos.x) / scale;
                  const dy = (pos.y - startPos.y) / scale;
                  let newCrop = { ...startCrop, x: startCrop.x + dx, y: startCrop.y + dy };
-                 newCrop.x = Math.max(0, Math.min(newCrop.x, img.width - newCrop.width));
-                 newCrop.y = Math.max(0, Math.min(newCrop.y, img.height - newCrop.height));
+                 newCrop.x = Math.max(0, Math.min(newCrop.x, imageElement.width - newCrop.width));
+                 newCrop.y = Math.max(0, Math.min(newCrop.y, imageElement.height - newCrop.height));
                  setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
             } else {
                  let newCrop = { ...startCrop };
@@ -829,17 +1041,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                  if (newCrop.height < minH) { newCrop.height = minH; if (newCrop.y === Math.min(newY1, newY2)) { newCrop.y = newY2 - minH; } }
                  if (newCrop.x < 0) { newCrop.width += newCrop.x; newCrop.x = 0; }
                  if (newCrop.y < 0) { newCrop.height += newCrop.y; newCrop.y = 0; }
-                 if (newCrop.x + newCrop.width > img.width) { newCrop.width = img.width - newCrop.x; }
-                 if (newCrop.y + newCrop.height > img.height) { newCrop.height = img.height - newCrop.y; }
+                 if (newCrop.x + newCrop.width > imageElement.width) { newCrop.width = imageElement.width - newCrop.x; }
+                 if (newCrop.y + newCrop.height > imageElement.height) { newCrop.height = imageElement.height - newCrop.y; }
                  setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
             }
-        } else if (type.startsWith('perspective-')) {
-            const scale = canvas.width / img.width;
+        } else if (type.startsWith('perspective-') && imageElement) {
+            const scale = canvas.width / imageElement.width;
             let newX = pos.x / scale;
             let newY = pos.y / scale;
 
-            newX = Math.max(0, Math.min(newX, img.width));
-            newY = Math.max(0, Math.min(newY, img.height));
+            newX = Math.max(0, Math.min(newX, imageElement.width));
+            newY = Math.max(0, Math.min(newY, imageElement.height));
             
             const corner = type.split('-')[1] as keyof CornerPoints;
             const newPoints = { ...settings.perspectivePoints!, [corner]: { x: newX, y: newY } };
@@ -853,7 +1065,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.signatures, settings.perspectivePoints, updateSettings, activeTab, getInteractionType]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.signatures, settings.perspectivePoints, updateSettings, activeTab, getInteractionType, collageSettings.layers, updateCollageSettings]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
@@ -864,10 +1076,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                   : t
           );
           updateSettings({ texts: newTexts });
+      } else if (interactionState.type.startsWith('layer-resize-') && interactionState.startLayer) {
+          const newLayers = collageSettings.layers.map(l =>
+              l.id === interactionState.startLayer!.id
+                  ? { ...l, width: Math.round(l.width) }
+                  : l
+          );
+          updateCollageSettings({ layers: newLayers });
       }
       setInteractionState(null);
     }
-  }, [interactionState, settings.texts, updateSettings]);
+  }, [interactionState, settings.texts, updateSettings, collageSettings.layers, updateCollageSettings]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {
@@ -881,7 +1100,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"
-          style={{ cursor: cursor }}
+          style={{ cursor: cursor, background: editorMode === 'collage' ? 'hsl(var(--muted))' : '' }}
           onMouseDown={handleInteractionStart}
           onMouseMove={handleInteractionMove}
           onMouseUp={handleInteractionEnd}
@@ -899,5 +1118,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
 
     

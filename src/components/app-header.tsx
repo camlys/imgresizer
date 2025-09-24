@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { ImageSettings } from '@/lib/types';
+import type { ImageSettings, CollageSettings } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
@@ -30,9 +30,12 @@ interface AppHeaderProps {
   isImageLoaded: boolean;
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
+  collageSettings: CollageSettings;
+  updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
   generateFinalCanvas: () => Promise<HTMLCanvasElement>;
   processedSize: number | null;
   onUpdateProcessedSize: () => void;
+  editorMode: 'single' | 'collage';
 }
 
 export function AppHeader({ 
@@ -42,9 +45,12 @@ export function AppHeader({
   isImageLoaded,
   settings,
   updateSettings,
+  collageSettings,
+  updateCollageSettings,
   generateFinalCanvas,
   processedSize,
   onUpdateProcessedSize,
+  editorMode,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -54,11 +60,14 @@ export function AppHeader({
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
 
+  const currentSettings = editorMode === 'single' ? settings : collageSettings;
+  const currentUpdateSettings = editorMode === 'single' ? updateSettings : updateCollageSettings;
+
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
       onUpdateProcessedSize();
     }
-  }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings]);
+  }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
 
 
   const handleUploadClick = () => {
@@ -87,9 +96,9 @@ export function AppHeader({
               resolve(null);
               return;
           }
-          canvas.toBlob((blob) => resolve(blob), settings.format, quality);
+          canvas.toBlob((blob) => resolve(blob), currentSettings.format, quality);
       });
-  }, [generateFinalCanvas, settings.format]);
+  }, [generateFinalCanvas, currentSettings.format]);
 
 
   const handleTargetSize = async () => {
@@ -115,7 +124,7 @@ export function AppHeader({
       bestQuality = mid;
     }
     
-    updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+    currentUpdateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
     
     // Defer the size update to allow the main state to update first
     setTimeout(() => {
@@ -184,13 +193,13 @@ export function AppHeader({
                     <div className="grid gap-2">
                       <Label htmlFor="format">Format</Label>
                       <Select
-                        value={settings.format}
+                        value={currentSettings.format}
                         onValueChange={(value) => {
-                          const newSettings: Partial<ImageSettings> = { format: value as ImageSettings['format'] };
+                          const newSettings: Partial<ImageSettings | CollageSettings> = { format: value as any };
                           if (value === 'application/pdf' || value === 'image/svg+xml') {
                             newSettings.quality = 1.0;
                           }
-                          updateSettings(newSettings);
+                          currentUpdateSettings(newSettings);
                           setTimeout(onUpdateProcessedSize, 100);
                         }}
                       >
@@ -201,25 +210,25 @@ export function AppHeader({
                           <SelectItem value="image/png">PNG</SelectItem>
                           <SelectItem value="image/jpeg">JPEG</SelectItem>
                           <SelectItem value="image/webp">WEBP</SelectItem>
-                          <SelectItem value="image/gif">GIF</SelectItem>
-                          <SelectItem value="image/bmp">BMP</SelectItem>
+                          {editorMode === 'single' && <SelectItem value="image/gif">GIF</SelectItem>}
+                          {editorMode === 'single' && <SelectItem value="image/bmp">BMP</SelectItem>}
                           <SelectItem value="image/svg+xml">SVG</SelectItem>
                           <SelectItem value="application/pdf">PDF</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    {(settings.format === 'image/jpeg' || settings.format === 'image/webp') && (
+                    {(currentSettings.format === 'image/jpeg' || currentSettings.format === 'image/webp') && (
                       <>
                         <div className="grid gap-2">
                           <div className="flex justify-between items-center">
                             <Label htmlFor="quality">Quality</Label>
-                            <span className="text-sm text-muted-foreground">{Math.round(settings.quality * 100)}%</span>
+                            <span className="text-sm text-muted-foreground">{Math.round(currentSettings.quality * 100)}%</span>
                           </div>
                           <Slider
                             id="quality"
                             min={0} max={1} step={0.01}
-                            value={[settings.quality]}
-                            onValueChange={(value) => updateSettings({ quality: value[0] })}
+                            value={[currentSettings.quality]}
+                            onValueChange={(value) => currentUpdateSettings({ quality: value[0] })}
                             onValueCommit={() => onUpdateProcessedSize()}
                           />
                         </div>
@@ -251,7 +260,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {settings.format === 'image/svg+xml' || settings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                          {currentSettings.format === 'image/svg+xml' || currentSettings.format === 'application/pdf' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -282,3 +291,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    

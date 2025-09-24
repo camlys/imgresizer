@@ -7,13 +7,14 @@ import { RotateFlipTab } from '@/components/tabs/rotate-flip-tab';
 import { CropTab } from '@/components/tabs/crop-tab';
 import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
-import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
-import { SlidersHorizontal, Crop, Type, Scan, RotateCcw } from 'lucide-react';
+import { CollageTab } from '@/components/tabs/collage-tab';
+import type { ImageSettings, OriginalImage, CropSettings, CollageSettings } from '@/lib/types';
+import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers } from 'lucide-react';
 
 interface ControlPanelProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
-  originalImage: OriginalImage;
+  originalImage: OriginalImage | null;
   activeTab: string;
   onTabChange: (tab: string) => void;
   processedSize: number | null;
@@ -26,6 +27,12 @@ interface ControlPanelProps {
   setSelectedTextId: (id: string | null) => void;
   selectedSignatureId: string | null;
   setSelectedSignatureId: (id: string | null) => void;
+  editorMode: 'single' | 'collage';
+  collageSettings: CollageSettings;
+  updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
+  onAddImageToCollage: (file: File) => void;
+  selectedLayerId: string | null;
+  setSelectedLayerId: (id: string | null) => void;
 }
 
 export function ControlPanel({ 
@@ -44,38 +51,46 @@ export function ControlPanel({
   setSelectedTextId,
   selectedSignatureId,
   setSelectedSignatureId,
+  editorMode,
+  collageSettings,
+  updateCollageSettings,
+  onAddImageToCollage,
+  selectedLayerId,
+  setSelectedLayerId,
 }: ControlPanelProps) {
+
+  const singleModeTabs = [
+    { value: 'resize', icon: Scan, label: 'Resize' },
+    { value: 'crop', icon: Crop, label: 'Crop' },
+    { value: 'rotate', icon: RotateCcw, label: 'Rotate' },
+    { value: 'text', icon: Type, label: 'Overlays' },
+    { value: 'adjustments', icon: SlidersHorizontal, label: 'Adjust' },
+    { value: 'collage', icon: Layers, label: 'Collage' },
+  ];
+
+  const collageModeTabs = [
+     { value: 'collage', icon: Layers, label: 'Collage' },
+  ];
+
+  const availableTabs = editorMode === 'single' ? singleModeTabs : collageModeTabs;
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-            <TabsTrigger value="resize" className="flex-col h-auto gap-1 py-2">
-              <Scan size={16}/>
-              <span className="text-xs">Resize</span>
-            </TabsTrigger>
-            <TabsTrigger value="crop" className="flex-col h-auto gap-1 py-2">
-                <Crop size={16}/>
-                <span className="text-xs">Crop</span>
-            </TabsTrigger>
-             <TabsTrigger value="rotate" className="flex-col h-auto gap-1 py-2">
-              <RotateCcw size={16}/>
-              <span className="text-xs">Rotate</span>
-            </TabsTrigger>
-            <TabsTrigger value="text" className="flex-col h-auto gap-1 py-2">
-                <Type size={16}/>
-                <span className="text-xs">Overlays</span>
-            </TabsTrigger>
-            <TabsTrigger value="adjustments" className="flex-col h-auto gap-1 py-2">
-                <SlidersHorizontal size={16}/>
-                <span className="text-xs">Adjust</span>
-            </TabsTrigger>
+          <TabsList className={`grid w-full h-auto p-1 grid-cols-${availableTabs.length}`}>
+            {availableTabs.map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value} className="flex-col h-auto gap-1 py-2">
+                <tab.icon size={16}/>
+                <span className="text-xs">{tab.label}</span>
+              </TabsTrigger>
+            ))}
           </TabsList>
           <TabsContent value="resize">
             <ResizeRotateTab 
               settings={settings} 
               updateSettings={updateSettings} 
-              originalImage={originalImage} 
+              originalImage={originalImage!} 
               processedSize={processedSize}
               isFromMultiPagePdf={isFromMultiPagePdf}
               onViewPages={onViewPages}
@@ -85,7 +100,7 @@ export function ControlPanel({
             <CropTab 
               settings={settings} 
               updateSettings={updateSettings} 
-              originalImage={originalImage}
+              originalImage={originalImage!}
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
               onTabChange={onTabChange}
@@ -108,8 +123,19 @@ export function ControlPanel({
           <TabsContent value="adjustments">
             <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
+          <TabsContent value="collage">
+            <CollageTab
+              settings={collageSettings}
+              updateSettings={updateCollageSettings}
+              onAddImage={onAddImageToCollage}
+              selectedLayerId={selectedLayerId}
+              setSelectedLayerId={setSelectedLayerId}
+            />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
+
+    
