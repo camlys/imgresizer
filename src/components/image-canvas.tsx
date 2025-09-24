@@ -421,16 +421,58 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.restore();
         });
         
-        if (activeTab === 'text' && selectedTextId) {
-            const selectedText = texts.find(t => t.id === selectedTextId);
-            if (selectedText) {
-                const { corners, rotationHandle } = getTextHandlePositions(selectedText, canvas, ctx);
+        if (activeTab === 'text') {
+            if (selectedTextId) {
+                const selectedText = texts.find(t => t.id === selectedTextId);
+                if (selectedText) {
+                    const { corners, rotationHandle } = getTextHandlePositions(selectedText, canvas, ctx);
+                    
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
+                    ctx.lineWidth = 1;
+
+                    // Draw bounding box
+                    ctx.beginPath();
+                    ctx.moveTo(corners.tl.x, corners.tl.y);
+                    ctx.lineTo(corners.tr.x, corners.tr.y);
+                    ctx.lineTo(corners.br.x, corners.br.y);
+                    ctx.lineTo(corners.bl.x, corners.bl.y);
+                    ctx.closePath();
+                    ctx.stroke();
+
+                    // Draw rotation line and handle
+                    ctx.beginPath();
+                    ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+                    ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(rotationHandle.x, rotationHandle.y, TEXT_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Draw resize handles
+                    Object.values(corners).forEach(corner => {
+                        ctx.beginPath();
+                        ctx.rect(corner.x - TEXT_RESIZE_HANDLE_SIZE / 2, corner.y - TEXT_RESIZE_HANDLE_SIZE / 2, TEXT_RESIZE_HANDLE_SIZE, TEXT_RESIZE_HANDLE_SIZE);
+                        ctx.fillStyle = 'white';
+                        ctx.fill();
+                        ctx.stroke();
+                    });
+                    
+                    ctx.restore();
+                }
+            }
+            if (selectedSignatureId) {
+              const selectedSignature = signatures.find(s => s.id === selectedSignatureId);
+              if (selectedSignature) {
+                const { corners, rotationHandle } = getSignatureHandlePositions(selectedSignature, canvas);
                 
                 ctx.save();
                 ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
                 ctx.lineWidth = 1;
 
-                // Draw bounding box
                 ctx.beginPath();
                 ctx.moveTo(corners.tl.x, corners.tl.y);
                 ctx.lineTo(corners.tr.x, corners.tr.y);
@@ -439,69 +481,28 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 ctx.closePath();
                 ctx.stroke();
 
-                // Draw rotation line and handle
                 ctx.beginPath();
                 ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
                 ctx.lineTo(rotationHandle.x, rotationHandle.y);
                 ctx.stroke();
                 
                 ctx.beginPath();
-                ctx.arc(rotationHandle.x, rotationHandle.y, TEXT_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+                ctx.arc(rotationHandle.x, rotationHandle.y, SIGNATURE_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
                 ctx.fillStyle = 'white';
                 ctx.fill();
                 ctx.stroke();
                 
-                // Draw resize handles
                 Object.values(corners).forEach(corner => {
                     ctx.beginPath();
-                    ctx.rect(corner.x - TEXT_RESIZE_HANDLE_SIZE / 2, corner.y - TEXT_RESIZE_HANDLE_SIZE / 2, TEXT_RESIZE_HANDLE_SIZE, TEXT_RESIZE_HANDLE_SIZE);
+                    ctx.rect(corner.x - SIGNATURE_RESIZE_HANDLE_SIZE / 2, corner.y - SIGNATURE_RESIZE_HANDLE_SIZE / 2, SIGNATURE_RESIZE_HANDLE_SIZE, SIGNATURE_RESIZE_HANDLE_SIZE);
                     ctx.fillStyle = 'white';
                     ctx.fill();
                     ctx.stroke();
                 });
                 
                 ctx.restore();
+              }
             }
-        }
-
-        if (activeTab === 'signature' && selectedSignatureId) {
-          const selectedSignature = signatures.find(s => s.id === selectedSignatureId);
-          if (selectedSignature) {
-            const { corners, rotationHandle } = getSignatureHandlePositions(selectedSignature, canvas);
-            
-            ctx.save();
-            ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
-            ctx.lineWidth = 1;
-
-            ctx.beginPath();
-            ctx.moveTo(corners.tl.x, corners.tl.y);
-            ctx.lineTo(corners.tr.x, corners.tr.y);
-            ctx.lineTo(corners.br.x, corners.br.y);
-            ctx.lineTo(corners.bl.x, corners.bl.y);
-            ctx.closePath();
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
-            ctx.lineTo(rotationHandle.x, rotationHandle.y);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(rotationHandle.x, rotationHandle.y, SIGNATURE_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
-            ctx.fillStyle = 'white';
-            ctx.fill();
-            ctx.stroke();
-            
-            Object.values(corners).forEach(corner => {
-                ctx.beginPath();
-                ctx.rect(corner.x - SIGNATURE_RESIZE_HANDLE_SIZE / 2, corner.y - SIGNATURE_RESIZE_HANDLE_SIZE / 2, SIGNATURE_RESIZE_HANDLE_SIZE, SIGNATURE_RESIZE_HANDLE_SIZE);
-                ctx.fillStyle = 'white';
-                ctx.fill();
-                ctx.stroke();
-            });
-            
-            ctx.restore();
-          }
         }
     }
   }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId]);
@@ -565,6 +566,37 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
           }
       } else if (activeTab === 'text') {
+          // Check signatures first, as they might be on top
+          const reversedSignatures = [...settings.signatures].reverse();
+          for (const sig of reversedSignatures) {
+            const { corners, rotationHandle, center, unrotatedBoundingBox } = getSignatureHandlePositions(sig, canvas);
+            const isSelected = sig.id === selectedSignatureId;
+
+            if (isSelected) {
+              for (const [key, corner] of Object.entries(corners)) {
+                if (Math.abs(pos.x - corner.x) < SIGNATURE_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < SIGNATURE_HANDLE_HIT_AREA / 2) {
+                  const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
+                  return { type: `signature-resize-${key}` as InteractionType, signatureId: sig.id, cursor: cursorMap[key as keyof typeof cursorMap]};
+                }
+              }
+              if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < SIGNATURE_HANDLE_HIT_AREA / 2) {
+                return { type: 'signature-rotate', signatureId: sig.id, cursor: 'crosshair' };
+              }
+            }
+
+            const translatedX = pos.x - center.x;
+            const translatedY = pos.y - center.y;
+            const angleRad = -sig.rotation * Math.PI / 180;
+            const cosVal = Math.cos(angleRad);
+            const sinVal = Math.sin(angleRad);
+            const rotatedX = translatedX * cosVal - translatedY * sinVal;
+            const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+              return { type: 'signature-move', signatureId: sig.id, cursor: 'move' };
+            }
+          }
+
           const reversedTexts = [...settings.texts].reverse();
           for (const text of reversedTexts) {
               const { corners, rotationHandle, center, unrotatedBoundingBox } = getTextHandlePositions(text, canvas, ctx);
@@ -598,36 +630,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                   return { type: 'text-move', textId: text.id, cursor: 'move' };
               }
           }
-      } else if (activeTab === 'signature') {
-        const reversedSignatures = [...settings.signatures].reverse();
-        for (const sig of reversedSignatures) {
-          const { corners, rotationHandle, center, unrotatedBoundingBox } = getSignatureHandlePositions(sig, canvas);
-          const isSelected = sig.id === selectedSignatureId;
-
-          if (isSelected) {
-            for (const [key, corner] of Object.entries(corners)) {
-              if (Math.abs(pos.x - corner.x) < SIGNATURE_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < SIGNATURE_HANDLE_HIT_AREA / 2) {
-                const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
-                return { type: `signature-resize-${key}` as InteractionType, signatureId: sig.id, cursor: cursorMap[key as keyof typeof cursorMap]};
-              }
-            }
-            if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < SIGNATURE_HANDLE_HIT_AREA / 2) {
-              return { type: 'signature-rotate', signatureId: sig.id, cursor: 'crosshair' };
-            }
-          }
-
-          const translatedX = pos.x - center.x;
-          const translatedY = pos.y - center.y;
-          const angleRad = -sig.rotation * Math.PI / 180;
-          const cosVal = Math.cos(angleRad);
-          const sinVal = Math.sin(angleRad);
-          const rotatedX = translatedX * cosVal - translatedY * sinVal;
-          const rotatedY = translatedX * sinVal + translatedY * cosVal;
-
-          if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
-            return { type: 'signature-move', signatureId: sig.id, cursor: 'move' };
-          }
-        }
       }
 
       return null;

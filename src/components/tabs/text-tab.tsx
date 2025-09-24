@@ -7,16 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Type, Plus, Trash2, Ban, RotateCcw, RotateCw } from 'lucide-react';
-import type { ImageSettings, TextOverlay } from '@/lib/types';
-import React from 'react';
+import { Type, Plus, Trash2, Ban, RotateCcw, RotateCw, Pencil } from 'lucide-react';
+import type { ImageSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
+import React, { useRef } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
+import { Slider } from '../ui/slider';
+import { Separator } from '../ui/separator';
 
 interface TextTabProps {
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
   selectedTextId: string | null;
   setSelectedTextId: (id: string | null) => void;
+  selectedSignatureId: string | null;
+  setSelectedSignatureId: (id: string | null) => void;
 }
 
 const fonts = [
@@ -30,7 +35,17 @@ const fonts = [
   'Verdana',
 ];
 
-export function TextTab({ settings, updateSettings, selectedTextId, setSelectedTextId }: TextTabProps) {
+export function TextTab({ 
+  settings, 
+  updateSettings, 
+  selectedTextId, 
+  setSelectedTextId,
+  selectedSignatureId,
+  setSelectedSignatureId,
+}: TextTabProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
   const addText = () => {
     const newText: TextOverlay = {
       id: Date.now().toString(),
@@ -47,6 +62,7 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
     const newTexts = [...settings.texts, newText];
     updateSettings({ texts: newTexts });
     setSelectedTextId(newText.id);
+    setSelectedSignatureId(null);
   };
   
   const removeText = (id: string) => {
@@ -62,7 +78,7 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
     });
   };
 
-  const handleQuickRotate = (id: string, currentRotation: number, angle: number) => {
+  const handleQuickRotateText = (id: string, currentRotation: number, angle: number) => {
     const newRotation = (currentRotation + angle + 360) % 360;
     updateText(id, { rotation: newRotation });
   };
@@ -81,11 +97,74 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
     updateText(text.id, { backgroundColor: newColor });
   };
 
+  // --- Signature Methods ---
+
+  const handleSignatureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Invalid File', description: 'Please upload an image file for the signature.', variant: 'destructive' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imgSrc = e.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const newSignature: SignatureOverlay = {
+            id: Date.now().toString(),
+            src: imgSrc,
+            img: img,
+            x: 50,
+            y: 50,
+            width: 25, // Default width as 25% of canvas
+            rotation: 0,
+            opacity: 1,
+          };
+          const newSignatures = [...settings.signatures, newSignature];
+          updateSettings({ signatures: newSignatures });
+          setSelectedSignatureId(newSignature.id);
+          setSelectedTextId(null);
+        };
+        img.src = imgSrc;
+      };
+      reader.readAsDataURL(file);
+    }
+    if (event.target) {
+        event.target.value = '';
+    }
+  };
+
+  const removeSignature = (id: string) => {
+    const newSignatures = settings.signatures.filter(s => s.id !== id);
+    updateSettings({ signatures: newSignatures });
+    if (selectedSignatureId === id) {
+      setSelectedSignatureId(null);
+    }
+  };
+
+  const updateSignature = (id: string, newProps: Partial<SignatureOverlay>) => {
+    const newSignatures = settings.signatures.map(s => (s.id === id ? { ...s, ...newProps } : s));
+    updateSettings({ signatures: newSignatures });
+  };
+  
+  const handleQuickRotateSignature = (id: string, currentRotation: number, angle: number) => {
+    const newRotation = (currentRotation + angle + 360) % 360;
+    updateSignature(id, { rotation: newRotation });
+  };
+
   return (
     <div className="space-y-4 p-1">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleSignatureUpload}
+        className="hidden"
+        accept="image/*"
+      />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Add Text</CardTitle>
+          <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
           <Button variant="outline" size="sm" onClick={addText}><Plus size={16} className="mr-2"/> Add</Button>
         </CardHeader>
         <CardContent>
@@ -97,11 +176,14 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
                 collapsible 
                 className="w-full" 
                 value={selectedTextId || ""}
-                onValueChange={(value) => setSelectedTextId(value || null)}
+                onValueChange={(value) => {
+                  setSelectedTextId(value || null);
+                  if (value) setSelectedSignatureId(null);
+                }}
             >
               {settings.texts.map((text, index) => (
                 <AccordionItem value={text.id} key={text.id}>
-                  <AccordionTrigger onClick={() => setSelectedTextId(text.id === selectedTextId ? null : text.id)}>Text Layer {index + 1}</AccordionTrigger>
+                  <AccordionTrigger>Text Layer {index + 1}</AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="grid gap-1.5">
                       <Label htmlFor={`text-content-${text.id}`}>Content</Label>
@@ -188,16 +270,93 @@ export function TextTab({ settings, updateSettings, selectedTextId, setSelectedT
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
                             </div>
-                            <Button variant="outline" size="icon" onClick={() => handleQuickRotate(text.id, text.rotation, -90)}><RotateCcw size={16}/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleQuickRotate(text.id, text.rotation, 90)}><RotateCw size={16}/></Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleQuickRotate(text.id, text.rotation, -45)}>-45°</Button>
-                          <Button variant="outline" size="sm" onClick={() => handleQuickRotate(text.id, text.rotation, 45)}>+45°</Button>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotateText(text.id, text.rotation, -90)}><RotateCcw size={16}/></Button>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotateText(text.id, text.rotation, 90)}><RotateCw size={16}/></Button>
                         </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">Drag text on canvas to reposition.</p>
+                    <p className="text-xs text-muted-foreground">Drag on canvas to reposition, or double-click to edit content.</p>
                     <Button variant="destructive" size="sm" onClick={() => removeText(text.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove</Button>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </CardContent>
+      </Card>
+
+      <Separator />
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Pencil size={18} /> Signature Overlays
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+            <Plus size={16} className="mr-2" /> Upload
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {settings.signatures.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No signatures added.</p>
+          ) : (
+             <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={selectedSignatureId || ""}
+              onValueChange={(value) => {
+                setSelectedSignatureId(value || null);
+                if (value) setSelectedTextId(null);
+              }}
+            >
+              {settings.signatures.map((sig, index) => (
+                <AccordionItem value={sig.id} key={sig.id}>
+                  <AccordionTrigger>Signature {index + 1}</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <img src={sig.src} alt={`Signature ${index + 1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
+                        <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
+                    </div>
+
+                    <div className="grid gap-1.5">
+                      <Label htmlFor={`sig-width-${sig.id}`}>Size</Label>
+                      <Slider
+                        id={`sig-width-${sig.id}`}
+                        value={[sig.width]}
+                        onValueChange={([val]) => updateSignature(sig.id, { width: val })}
+                        min={1} max={100} step={1}
+                      />
+                    </div>
+                     <div className="grid gap-1.5">
+                      <Label htmlFor={`sig-opacity-${sig.id}`}>Opacity</Label>
+                      <Slider
+                        id={`sig-opacity-${sig.id}`}
+                        value={[sig.opacity]}
+                        onValueChange={([val]) => updateSignature(sig.id, { opacity: val })}
+                        min={0} max={1} step={0.05}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Rotation</Label>
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Input
+                                type="number"
+                                value={Math.round(sig.rotation)}
+                                onChange={e => updateSignature(sig.id, { rotation: parseInt(e.target.value, 10) || 0 })}
+                                min={0}
+                                max={360}
+                                className="w-full pr-6 text-right"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                            </div>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotateSignature(sig.id, sig.rotation, -90)}><RotateCcw size={16}/></Button>
+                            <Button variant="outline" size="icon" onClick={() => handleQuickRotateSignature(sig.id, sig.rotation, 90)}><RotateCw size={16}/></Button>
+                        </div>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => removeSignature(sig.id)} className="w-full">
+                        <Trash2 size={16} className="mr-2"/> Remove Signature
+                    </Button>
                   </AccordionContent>
                 </AccordionItem>
               ))}

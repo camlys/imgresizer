@@ -114,8 +114,6 @@ export default function Home() {
      if (tab !== 'text') {
       setSelectedTextId(null);
       setEditingTextId(null);
-    }
-    if (tab !== 'signature') {
       setSelectedSignatureId(null);
     }
   };

@@ -7,9 +7,8 @@ import { RotateFlipTab } from '@/components/tabs/rotate-flip-tab';
 import { CropTab } from '@/components/tabs/crop-tab';
 import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
-import { SignatureTab } from '@/components/tabs/signature-tab';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
-import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Pencil } from 'lucide-react';
+import { SlidersHorizontal, Crop, Type, Scan, RotateCcw } from 'lucide-react';
 
 interface ControlPanelProps {
   settings: ImageSettings;
@@ -50,7 +49,7 @@ export function ControlPanel({
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
             <TabsTrigger value="resize" className="flex-col h-auto gap-1 py-2">
               <Scan size={16}/>
               <span className="text-xs">Resize</span>
@@ -65,11 +64,7 @@ export function ControlPanel({
             </TabsTrigger>
             <TabsTrigger value="text" className="flex-col h-auto gap-1 py-2">
                 <Type size={16}/>
-                <span className="text-xs">Text</span>
-            </TabsTrigger>
-             <TabsTrigger value="signature" className="flex-col h-auto gap-1 py-2">
-                <Pencil size={16}/>
-                <span className="text-xs">Sign</span>
+                <span className="text-xs">Overlays</span>
             </TabsTrigger>
             <TabsTrigger value="adjustments" className="flex-col h-auto gap-1 py-2">
                 <SlidersHorizontal size={16}/>
@@ -106,12 +101,6 @@ export function ControlPanel({
               updateSettings={updateSettings}
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
-            />
-          </TabsContent>
-          <TabsContent value="signature">
-            <SignatureTab
-              settings={settings}
-              updateSettings={updateSettings}
               selectedSignatureId={selectedSignatureId}
               setSelectedSignatureId={setSelectedSignatureId}
             />
