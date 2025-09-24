@@ -86,12 +86,12 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateSettings({ backgroundColor: 'transparent' })}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateSettings({ backgroundColor: settings.backgroundColor === 'transparent' ? '#ffffff' : 'transparent' })}>
                         <Ban size={16}/>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Set background to transparent</p>
+                      <p>Toggle transparent background</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
