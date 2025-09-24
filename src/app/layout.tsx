@@ -6,21 +6,21 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://camly.app'),
-  title: 'Camly: Free Online Image & Photo Editor',
-  description: 'Edit, resize, and enhance images for free with Camly. Our powerful, privacy-focused online tool works right in your browser. No downloads, no sign-ups.',
+  metadataBase: new URL('https://imgresizer.app'),
+  title: 'ImgResizer: Free Online Image & Photo Editor',
+  description: 'Edit, resize, and enhance images for free with ImgResizer. Our powerful, privacy-focused online tool works right in your browser. No downloads, no sign-ups.',
   keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf to image', 'change image format', 'image compressor'],
   openGraph: {
-    title: 'Camly: Free Online Image & Photo Editor',
+    title: 'ImgResizer: Free Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
-    url: 'https://camly.app',
-    siteName: 'Camly',
+    url: 'https://imgresizer.app',
+    siteName: 'ImgResizer',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Camly Online Image Editor',
+        alt: 'ImgResizer Online Image Editor',
       },
     ],
     locale: 'en_US',
@@ -28,12 +28,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Camly: Free Online Image & Photo Editor',
+    title: 'ImgResizer: Free Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
      images: ['/og-image.png'],
   },
   icons: {
-    icon: '/logo.png',
+    icon: '/ImgResizer.png',
   },
   manifest: '/site.webmanifest',
 };
@@ -46,8 +46,8 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'Camly',
-    url: 'https://camly.app',
+    name: 'ImgResizer',
+    url: 'https://imgresizer.app',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
     description: 'A free, privacy-focused online tool to resize, crop, and edit images and photos directly in your browser.',

@@ -57,7 +57,7 @@ export default function ContactPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">Our Office</h2>
                   <p className="text-muted-foreground mt-1">
-                    Camly pvt. Chandi chowk, Bishnupur<br/>
+                    ImgResizer pvt. Chandi chowk, Bishnupur<br/>
                     Begusarai 851101
                   </p>
                 </div>

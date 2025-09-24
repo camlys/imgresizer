@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 
 export const apps = [
-    { name: 'Camly', id: 'camly', url: '/', icon: <img src="/camly.png" alt="Camly" className="w-6 h-6" />, description: 'The current app' },
+    { name: 'ImgResizer', id: 'imgresizer', url: '/', icon: <img src="/ImgResizer.png" alt="ImgResizer" className="w-6 h-6" />, description: 'The current app' },
     { name: 'Calput', id: 'calput', url: 'https://calput.vercel.app/', icon: <Calculator size={24} />, description: 'Calculator with history' },
     { name: 'Favic', id: 'favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={24} />, description: 'Generate favicons' },
     { name: 'Qrick', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'QR & Barcode generator' },

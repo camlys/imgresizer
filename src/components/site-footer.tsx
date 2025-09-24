@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="container mx-auto py-12 px-6">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
-            <h3 className="text-xl font-bold font-headline">Camly</h3>
+            <h3 className="text-xl font-bold font-headline">ImgResizer</h3>
             <p className="text-sm text-muted-foreground mt-2">
               The simple, powerful online image editor.
             </p>
@@ -30,7 +30,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Camly. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} ImgResizer. All rights reserved.</p>
         </div>
       </div>
     </footer>
