@@ -154,7 +154,7 @@ export function TextTab({
   };
 
   return (
-    <div className="p-1">
+    <div className="p-1 space-y-4">
       <input
         type="file"
         ref={fileInputRef}
@@ -162,11 +162,11 @@ export function TextTab({
         className="hidden"
         accept="image/*"
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
         <Card>
-          <CardHeader className="flex-col items-start sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
-            <Button variant="outline" size="sm" onClick={addText} className="w-full sm:w-auto"><Plus size={16} className="mr-2"/> Add</Button>
+            <Button variant="outline" size="sm" onClick={addText}><Plus size={16} className="mr-2"/> Add</Button>
           </CardHeader>
           <CardContent>
             {settings.texts.length === 0 ? (
@@ -286,11 +286,11 @@ export function TextTab({
         </Card>
 
         <Card>
-          <CardHeader className="flex-col items-start sm:flex-row sm:items-center sm:justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Pencil size={18} /> Signature Overlays
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Plus size={16} className="mr-2" /> Upload
             </Button>
           </CardHeader>
@@ -363,7 +363,7 @@ export function TextTab({
             )}
           </CardContent>
         </Card>
-      </div>
+      
     </div>
   );
 }
