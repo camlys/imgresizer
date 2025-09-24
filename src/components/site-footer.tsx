@@ -1,8 +1,56 @@
 
+"use client"
+
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Github, Twitter, Facebook } from 'lucide-react';
+import { Github, Twitter, Facebook, Download } from 'lucide-react';
+
+// Define the event type for beforeinstallprompt
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: Array<string>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed',
+    platform: string,
+  }>;
+  prompt(): Promise<void>;
+}
 
 export function SiteFooter() {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the default mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = useCallback((e: React.MouseEvent) => {
+    if (!installPrompt) {
+      return;
+    }
+    e.preventDefault();
+    // Show the prompt
+    installPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    installPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      setInstallPrompt(null);
+    });
+  }, [installPrompt]);
+  
   return (
     <footer className="bg-card border-t">
       <div className="container mx-auto py-12 px-6">
@@ -45,6 +93,13 @@ export function SiteFooter() {
                 <li><Link href="/hub" className="text-muted-foreground hover:text-foreground">App Hub</Link></li>
                 <li><Link href="/" className="text-muted-foreground hover:text-foreground">Image Resizer</Link></li>
                  <li><Link href="/" className="text-muted-foreground hover:text-foreground">PDF Converter</Link></li>
+                 {installPrompt && (
+                   <li>
+                     <a href="#" onClick={handleInstallClick} className="text-muted-foreground hover:text-foreground flex items-center">
+                       Install App <Download size={14} className="ml-2" />
+                     </a>
+                   </li>
+                 )}
               </ul>
             </div>
           </div>
