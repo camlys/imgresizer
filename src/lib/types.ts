@@ -66,6 +66,7 @@ export type ImageSettings = {
     sepia: number;
     invert: number;
   };
+  backgroundColor: string;
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'image/bmp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
   cropMode: 'rect' | 'perspective';

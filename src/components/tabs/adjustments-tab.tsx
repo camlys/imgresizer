@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal, RefreshCcw } from 'lucide-react';
+import { SlidersHorizontal, RefreshCcw, Ban } from 'lucide-react';
 import type { ImageSettings } from '@/lib/types';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Input } from '../ui/input';
 
 interface AdjustmentsTabProps {
   settings: ImageSettings;
@@ -50,7 +51,7 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
   };
   
   const resetAllAdjustments = () => {
-    updateSettings({ adjustments: initialAdjustments });
+    updateSettings({ adjustments: initialAdjustments, backgroundColor: 'transparent' });
   };
   
   const resetSingleAdjustment = (field: keyof typeof initialAdjustments) => {
@@ -79,8 +80,41 @@ export function AdjustmentsTab({ settings, updateSettings }: AdjustmentsTabProps
           <Button variant="ghost" size="sm" onClick={resetAllAdjustments}>Reset All</Button>
         </CardHeader>
         <CardContent className="space-y-4">
+           <div className="grid gap-1.5">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="bg-color">Background Color</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateSettings({ backgroundColor: 'transparent' })}>
+                        <Ban size={16}/>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set background to transparent</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="relative">
+                <Input
+                  id="bg-color"
+                  value={settings.backgroundColor}
+                  onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
+                  placeholder="e.g. #FFF, transparent"
+                  className="pr-10"
+                />
+                <Input
+                  type="color"
+                  className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  value={settings.backgroundColor.startsWith('#') ? settings.backgroundColor : '#ffffff'}
+                  onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
+                  disabled={settings.backgroundColor === 'transparent'}
+                />
+              </div>
+            </div>
            <div>
-            <Label className="text-xs text-muted-foreground">Presets</Label>
+            <Label className="text-xs text-muted-foreground">Color Presets</Label>
             <div className="grid grid-cols-4 gap-2 mt-1">
               {presets.map(p => (
                  <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p.values)} className="text-xs h-8">{p.name}</Button>

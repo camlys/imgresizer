@@ -47,6 +47,7 @@ const initialSettings: ImageSettings = {
     sepia: 0,
     invert: 0,
   },
+  backgroundColor: 'transparent',
   format: 'image/jpeg',
   quality: 1.0,
 };
@@ -355,7 +356,7 @@ export default function Home() {
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments } = settings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = settings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -391,6 +392,11 @@ export default function Home() {
             
             finalCanvas.width = width;
             finalCanvas.height = height;
+
+            if (backgroundColor !== 'transparent') {
+                finalCtx.fillStyle = backgroundColor;
+                finalCtx.fillRect(0, 0, width, height);
+            }
             
             finalCtx.save();
             const rad = (rotation * Math.PI) / 180;
