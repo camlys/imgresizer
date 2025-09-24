@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { AppHubCard } from './app-hub-card';
+import { InstallPwaButton } from './install-pwa-button';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -109,6 +110,7 @@ export function AppHeader({
     let low = 0.0;
     let mid = 0.5;
     let bestQuality = 0.5;
+    let finalBlob: Blob | null = null;
     
     // Binary search for the best quality setting to meet the target size
     for(let i = 0; i < 10; i++) { // 10 iterations are usually enough
@@ -118,6 +120,7 @@ export function AppHeader({
         setIsOptimizing(false);
         return;
       }
+      finalBlob = blob;
       
       if(blob.size > targetBytes) {
         high = mid;
@@ -127,13 +130,23 @@ export function AppHeader({
       bestQuality = mid;
     }
     
-    currentUpdateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+    currentUpdateSettings({ 
+      quality: parseFloat(bestQuality.toFixed(2)),
+    });
     
-    // Defer the size update to allow the main state to update first
-    setTimeout(() => {
-        onUpdateProcessedSize();
-        setIsOptimizing(false);
-    }, 100);
+    // Directly update the size from the final calculated blob
+    if (finalBlob) {
+        const updateCollage = editorMode === 'collage' ? { processedSize: finalBlob.size } : {};
+        const updateSingle = editorMode === 'single' ? { processedSize: finalBlob.size } : {};
+
+        if (editorMode === 'collage') {
+            updateCollageSettings({ ...updateCollage } as Partial<CollageSettings>);
+        } else {
+            updateSettings({ ...updateSingle } as Partial<ImageSettings>);
+        }
+    }
+    
+    setIsOptimizing(false);
   };
 
   const handleDownloadClick = () => {
@@ -297,6 +310,8 @@ export function AppHeader({
     </header>
   );
 }
+
+    
 
     
 

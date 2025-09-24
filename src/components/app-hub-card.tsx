@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Sparkles, QrCode } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
+import { InstallPwaButton } from "./install-pwa-button";
 
 export const apps = [
     { name: 'Camly', id: 'imgresizer', url: 'https://camly.site', icon: <img src="/camly.png" alt="Camly" className="w-8 h-8" />, description: 'The current app' },
@@ -31,7 +32,10 @@ export function AppHubCard({ onAppSelect }: AppHubCardProps) {
                   <h4 className="font-bold text-lg">App Hub</h4>
                   <p className="text-sm text-muted-foreground">Explore other useful tools.</p>
                 </div>
-                <ThemeToggle />
+                <div className="flex items-center gap-2">
+                    <InstallPwaButton />
+                    <ThemeToggle />
+                </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
                 {apps.map((app) => (
@@ -51,3 +55,5 @@ export function AppHubCard({ onAppSelect }: AppHubCardProps) {
         </div>
     );
 }
+
+    

@@ -18,6 +18,7 @@ import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
 import { FeatureGrid } from '@/components/feature-grid';
+import { InstallPwaBanner } from '@/components/install-pwa-banner';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -806,6 +807,7 @@ export default function Home() {
           <SeoContent isEditing={false} />
         </main>
         <SiteFooter />
+        <InstallPwaBanner />
         {pdfDoc && (
           <PdfPageSelectorDialog
             isOpen={isPdfSelectorOpen}
@@ -934,5 +936,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     

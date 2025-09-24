@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 import Script from 'next/script';
 import { CookieConsentBanner } from '@/components/cookie-consent-banner';
-import { InstallPwaBanner } from '@/components/install-pwa-banner';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://imgresizer.xyz'),
@@ -142,9 +141,10 @@ export default function RootLayout({
           {children}
           <Toaster />
           <CookieConsentBanner />
-          <InstallPwaBanner />
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
+    

@@ -26,7 +26,11 @@ export function InstallPwaBanner() {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setInstallPrompt(e as BeforeInstallPromptEvent);
-      setIsVisible(true);
+      
+      const isBannerDismissed = sessionStorage.getItem('pwa_banner_dismissed') === 'true';
+      if (!isBannerDismissed) {
+          setIsVisible(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -56,6 +60,7 @@ export function InstallPwaBanner() {
 
   const handleClose = () => {
     setIsVisible(false);
+    sessionStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
   if (!installPrompt || !isVisible) {
@@ -86,3 +91,5 @@ export function InstallPwaBanner() {
     </div>
   );
 }
+
+    
