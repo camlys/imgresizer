@@ -60,7 +60,7 @@ export function ControlPanel({
   setSelectedLayerId,
 }: ControlPanelProps) {
 
-  const singleModeTabs = [
+  const allTabs = [
     { value: 'resize', icon: Scan, label: 'Resize' },
     { value: 'crop', icon: Crop, label: 'Crop' },
     { value: 'rotate', icon: RotateCcw, label: 'Rotate' },
@@ -69,26 +69,20 @@ export function ControlPanel({
     { value: 'collage', icon: Layers, label: 'Collage' },
   ];
 
-  const collageModeTabs = [
-     { value: 'collage', icon: Layers, label: 'Collage' },
-  ];
-
-  const availableTabs = editorMode === 'single' ? singleModeTabs : collageModeTabs;
-
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-grow p-2 overflow-y-auto">
-        <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <div className="w-full overflow-x-auto whitespace-nowrap">
-            <TabsList className="h-auto p-1 inline-flex">
-              {availableTabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
-                  <tab.icon size={16}/>
-                  <span className="text-sm">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full flex flex-col h-full">
+        <div className="w-full overflow-x-auto whitespace-nowrap p-2">
+          <TabsList className="h-auto p-1 inline-flex">
+            {allTabs.map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2" disabled={editorMode === 'collage' && tab.value !== 'collage'}>
+                <tab.icon size={16}/>
+                <span className="text-sm">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        <ScrollArea className="flex-grow p-2 pt-0">
           <TabsContent value="resize">
             <ResizeRotateTab 
               settings={settings} 
@@ -135,8 +129,9 @@ export function ControlPanel({
               setSelectedLayerId={setSelectedLayerId}
             />
           </TabsContent>
-        </Tabs>
-      </div>
+        </ScrollArea>
+      </Tabs>
     </div>
   );
 }
+
