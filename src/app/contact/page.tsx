@@ -29,8 +29,8 @@ export default function ContactPage() {
                   <p className="text-muted-foreground mt-1">
                     For sales, support, and general feedback, please email us.
                   </p>
-                  <a href="mailto:imgresizersales@gmail.com" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
-                    imgresizersales@gmail.com
+                  <a href="mailto:camlysales@gmail.com" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
+                    camlysales@gmail.com
                   </a>
                 </div>
               </div>
@@ -57,7 +57,7 @@ export default function ContactPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">Our Office</h2>
                   <p className="text-muted-foreground mt-1">
-                    ImgResizer pvt. Chandi chowk, Bishnupur<br/>
+                    Camly pvt. Chandi chowk, Bishnupur<br/>
                     Begusarai 851101
                   </p>
                 </div>

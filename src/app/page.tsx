@@ -644,7 +644,7 @@ export default function Home() {
 
   const handleDownload = React.useCallback(async (filename: string) => {
     try {
-        const downloadName = filename || 'imgresizer-export';
+        const downloadName = filename || 'camly-export';
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
@@ -729,7 +729,7 @@ export default function Home() {
 
   const handleShare = React.useCallback(async () => {
     const fallbackShare = async () => {
-        const url = 'https://imgresizer.app/';
+        const url = 'https://camly.app/';
         await navigator.clipboard.writeText(url);
         toast({
             title: "Link Copied!",
@@ -744,14 +744,14 @@ export default function Home() {
 
         canvasToShare.toBlob(async (blob) => {
             const shareData: ShareData = {
-                title: 'ImgResizer: Free Online Image Editor',
-                text: 'Check out this image I edited with the free and private ImgResizer web app!',
-                url: 'https://imgresizer.app/',
+                title: 'Camly: Free Online Image Editor',
+                text: 'Check out this image I edited with the free and private Camly web app!',
+                url: 'https://camly.app/',
             };
 
             if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: blob.type })] })) {
                 const extension = currentFormat.split('/')[1].split('+')[0] || 'png';
-                const filename = `imgresizer-edited-image.${extension}`;
+                const filename = `camly-edited-image.${extension}`;
                 const file = new File([blob], filename, { type: currentFormat });
                 shareData.files = [file];
             }
@@ -796,7 +796,7 @@ export default function Home() {
           <section className="container mx-auto pb-12 px-4 text-center">
             <h2 className="text-2xl font-bold font-headline mb-4">A Full Suite of Editing Tools</h2>
             <p className="max-w-3xl mx-auto text-muted-foreground">
-              Beyond simple resizing, ImgResizer offers a complete set of tools to perfect your images. Crop, rotate, adjust colors, and add text overlays with ease. Our powerful editor works for both images and PDF files, giving you full control over your creative assets—all for free and with complete privacy.
+              Beyond simple resizing, Camly offers a complete set of tools to perfect your images. Crop, rotate, adjust colors, and add text overlays with ease. Our powerful editor works for both images and PDF files, giving you full control over your creative assets—all for free and with complete privacy.
             </p>
           </section>
           <FeatureGrid />

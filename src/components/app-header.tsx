@@ -55,7 +55,7 @@ export function AppHeader({
   const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [filename, setFilename] = useState('imgresizer-export');
+  const [filename, setFilename] = useState('camly-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
 
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
@@ -142,7 +142,7 @@ export function AppHeader({
         <LogoIcon className="absolute top-1/2 -translate-y-1/2 left-1 md:left-4 opacity-20 size-10 md:size-16" />
         <div className="sun-rays pl-4">
             <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
-                ImgResizer
+                Camly
             </h1>
         </div>
       </Link>
@@ -188,7 +188,7 @@ export function AppHeader({
                             id="filename"
                             value={filename}
                             onChange={(e) => setFilename(e.target.value)}
-                            placeholder="imgresizer-export"
+                            placeholder="camly-export"
                         />
                     </div>
                     <div className="grid gap-2">

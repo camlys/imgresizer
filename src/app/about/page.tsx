@@ -8,7 +8,7 @@ const features = [
   {
     icon: <ShieldCheck className="w-8 h-8 text-primary" />,
     title: 'Absolute Privacy',
-    description: 'Your images are your business. ImgResizer processes everything in your browser, so your files never touch our servers.',
+    description: 'Your images are your business. Camly processes everything in your browser, so your files never touch our servers.',
   },
   {
     icon: <Zap className="w-8 h-8 text-primary" />,
@@ -39,7 +39,7 @@ export default function AboutPage() {
               Empowering Creativity, Simply.
             </h1>
             <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground">
-              ImgResizer was born from a simple idea: professional-grade image editing should be accessible to everyone, everywhere. We're dedicated to providing a tool that is not only powerful and versatile but also respects your privacy.
+              Camly was born from a simple idea: professional-grade image editing should be accessible to everyone, everywhere. We're dedicated to providing a tool that is not only powerful and versatile but also respects your privacy.
             </p>
           </div>
         </section>
@@ -50,14 +50,14 @@ export default function AboutPage() {
               <div>
                 <h2 className="text-3xl font-bold font-headline mb-4">Our Story</h2>
                 <p className="text-muted-foreground text-lg mb-4">
-                  In a world of complex software and privacy concerns, we saw the need for a straightforward, secure, and free image editor. We set out to build ImgResizer—a browser-based tool that puts the user first. Our journey has been driven by a passion for design and a commitment to privacy, culminating in the editor you see today.
+                  In a world of complex software and privacy concerns, we saw the need for a straightforward, secure, and free image editor. We set out to build Camly—a browser-based tool that puts the user first. Our journey has been driven by a passion for design and a commitment to privacy, culminating in the editor you see today.
                 </p>
                 <p className="text-muted-foreground text-lg">
-                  We believe that creativity shouldn't be locked behind expensive subscriptions or complicated installations. ImgResizer is our contribution to a more open, creative web.
+                  We believe that creativity shouldn't be locked behind expensive subscriptions or complicated installations. Camly is our contribution to a more open, creative web.
                 </p>
               </div>
               <div className="bg-primary/10 rounded-lg p-8">
-                <img src="/ImgResizer.png" alt="ImgResizer Mission" className="w-full h-auto rounded-lg shadow-xl" />
+                <img src="/camly.png" alt="Camly Mission" className="w-full h-auto rounded-lg shadow-xl" />
               </div>
             </div>
           </div>
@@ -65,9 +65,9 @@ export default function AboutPage() {
 
         <section className="py-16 bg-muted/40">
             <div className="container mx-auto px-6 text-center">
-                <h2 className="text-3xl font-bold font-headline mb-4">Why Choose ImgResizer?</h2>
+                <h2 className="text-3xl font-bold font-headline mb-4">Why Choose Camly?</h2>
                 <p className="max-w-3xl mx-auto text-lg text-muted-foreground mb-12">
-                    We've built ImgResizer with a core set of values to ensure you have the best editing experience possible.
+                    We've built Camly with a core set of values to ensure you have the best editing experience possible.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {features.map((feature, index) => (

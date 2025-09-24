@@ -13,7 +13,7 @@ export function SeoContent({ isEditing, children }: SeoContentProps) {
     return (
       <div className="container mx-auto py-16 px-6 space-y-20 bg-background">
         <section>
-            <h2 className="text-3xl font-bold text-center font-headline mb-12">Why ImgResizer is Your Best Choice for Editing</h2>
+            <h2 className="text-3xl font-bold text-center font-headline mb-12">Why Camly is Your Best Choice for Editing</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
                 <div className="flex flex-col items-center">
                     <ShieldCheck className="w-12 h-12 text-primary mb-4"/>
@@ -121,7 +121,7 @@ export function SeoContent({ isEditing, children }: SeoContentProps) {
               <div className="flex items-center gap-4">
                 <FileImage className="w-20 h-20 text-primary" />
                 <GitCompareArrows className="w-12 h-12 text-muted-foreground" />
-                <img src="/ImgResizer.png" alt="Image format icon" className="w-20 h-20" />
+                <img src="/camly.png" alt="Image format icon" className="w-20 h-20" />
               </div>
             </div>
         </div>
@@ -132,18 +132,18 @@ export function SeoContent({ isEditing, children }: SeoContentProps) {
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Is ImgResizer really free to use?</CardTitle>
+              <CardTitle>Is Camly really free to use?</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Yes, absolutely. All features of ImgResizer, from resizing and cropping to color adjustments and format conversion, are completely free. We believe everyone should have access to powerful image editing tools without any cost.</p>
+              <p className="text-muted-foreground">Yes, absolutely. All features of Camly, from resizing and cropping to color adjustments and format conversion, are completely free. We believe everyone should have access to powerful image editing tools without any cost.</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>How does ImgResizer protect my privacy?</CardTitle>
+              <CardTitle>How does Camly protect my privacy?</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Your privacy is our top priority. ImgResizer is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure.</p>
+              <p className="text-muted-foreground">Your privacy is our top priority. Camly is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure.</p>
             </CardContent>
           </Card>
           <Card>
