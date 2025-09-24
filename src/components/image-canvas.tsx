@@ -2,7 +2,7 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay } from '@/lib/types';
 
 interface ImageCanvasProps {
   originalImage: OriginalImage;
@@ -15,6 +15,8 @@ interface ImageCanvasProps {
   selectedTextId: string | null;
   setSelectedTextId: (id: string | null) => void;
   setEditingTextId: (id: string | null) => void;
+  selectedSignatureId: string | null;
+  setSelectedSignatureId: (id: string | null) => void;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -28,10 +30,15 @@ const TEXT_ROTATION_HANDLE_OFFSET = 25;
 const TEXT_RESIZE_HANDLE_SIZE = 10;
 const TEXT_HANDLE_HIT_AREA = 20;
 
+const SIGNATURE_ROTATION_HANDLE_OFFSET = 25;
+const SIGNATURE_RESIZE_HANDLE_SIZE = 10;
+const SIGNATURE_HANDLE_HIT_AREA = 20;
+
 
 type InteractionType = 
   | 'crop-move' | 'crop-tl' | 'crop-t' | 'crop-tr' | 'crop-l' | 'crop-r' | 'crop-bl' | 'crop-b' | 'crop-br' | 'crop-new'
   | 'text-move' | 'text-rotate' | 'text-resize-tl' | 'text-resize-tr' | 'text-resize-bl' | 'text-resize-br'
+  | 'signature-move' | 'signature-rotate' | 'signature-resize-tl' | 'signature-resize-tr' | 'signature-resize-bl' | 'signature-resize-br'
   | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br';
 
 type InteractionState = {
@@ -45,6 +52,11 @@ type InteractionState = {
   textId?: string;
   startText?: TextOverlay;
   textCenter?: { x: number; y: number };
+
+  // Signature-specific state
+  signatureId?: string;
+  startSignature?: SignatureOverlay;
+  signatureCenter?: { x: number; y: number; };
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -58,6 +70,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   selectedTextId,
   setSelectedTextId,
   setEditingTextId,
+  selectedSignatureId,
+  setSelectedSignatureId,
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +141,47 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     ctx.restore();
     return { corners, rotationHandle, center, unrotatedBoundingBox };
 }, []);
+
+ const getSignatureHandlePositions = useCallback((signature: SignatureOverlay, canvas: HTMLCanvasElement) => {
+    const sigWidth = (signature.width / 100) * canvas.width;
+    const sigHeight = sigWidth / (signature.img.width / signature.img.height);
+    const center = { x: (signature.x / 100) * canvas.width, y: (signature.y / 100) * canvas.height };
+
+    const getRotatedPoint = (x: number, y: number, angleDeg: number) => {
+      const angleRad = angleDeg * Math.PI / 180;
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      return {
+        x: center.x + x * cos - y * sin,
+        y: center.y + x * sin + y * cos,
+      };
+    };
+
+    const halfW = sigWidth / 2;
+    const halfH = sigHeight / 2;
+
+    const corners = {
+      tl: getRotatedPoint(-halfW, -halfH, signature.rotation),
+      tr: getRotatedPoint(halfW, -halfH, signature.rotation),
+      bl: getRotatedPoint(-halfW, halfH, signature.rotation),
+      br: getRotatedPoint(halfW, halfH, signature.rotation),
+    };
+
+    const rotationHandleAngle = (signature.rotation - 90) * Math.PI / 180;
+    const rotationHandleDistance = halfH + SIGNATURE_ROTATION_HANDLE_OFFSET;
+
+    const rotationHandle = {
+      x: center.x + rotationHandleDistance * Math.cos(rotationHandleAngle),
+      y: center.y + rotationHandleDistance * Math.sin(rotationHandleAngle),
+    };
+
+    const unrotatedBoundingBox = {
+      width: sigWidth,
+      height: sigHeight,
+    };
+
+    return { corners, rotationHandle, center, unrotatedBoundingBox };
+  }, []);
 
   useEffect(() => {
     if (!imageElement) return;
@@ -301,7 +356,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     } else {
         if (!processedImageCache) return;
-        const { width, height, rotation, flipHorizontal, flipVertical, texts } = settings;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures } = settings;
         canvas.width = width;
         canvas.height = height;
 
@@ -322,6 +377,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         
         ctx.drawImage(processedImageCache, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
+
+        signatures.forEach(sig => {
+          if (sig.img) {
+            const sigWidth = (sig.width / 100) * width;
+            const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+            const sigX = (sig.x / 100) * width;
+            const sigY = (sig.y / 100) * height;
+
+            ctx.save();
+            ctx.translate(sigX, sigY);
+            ctx.rotate(sig.rotation * Math.PI / 180);
+            ctx.globalAlpha = sig.opacity;
+            ctx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+            ctx.restore();
+          }
+        });
 
         texts.forEach(text => {
             const textX = (text.x / 100) * width;
@@ -392,8 +463,48 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 ctx.restore();
             }
         }
+
+        if (activeTab === 'signature' && selectedSignatureId) {
+          const selectedSignature = signatures.find(s => s.id === selectedSignatureId);
+          if (selectedSignature) {
+            const { corners, rotationHandle } = getSignatureHandlePositions(selectedSignature, canvas);
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            ctx.moveTo(corners.tl.x, corners.tl.y);
+            ctx.lineTo(corners.tr.x, corners.tr.y);
+            ctx.lineTo(corners.br.x, corners.br.y);
+            ctx.lineTo(corners.bl.x, corners.bl.y);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+            ctx.lineTo(rotationHandle.x, rotationHandle.y);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(rotationHandle.x, rotationHandle.y, SIGNATURE_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.stroke();
+            
+            Object.values(corners).forEach(corner => {
+                ctx.beginPath();
+                ctx.rect(corner.x - SIGNATURE_RESIZE_HANDLE_SIZE / 2, corner.y - SIGNATURE_RESIZE_HANDLE_SIZE / 2, SIGNATURE_RESIZE_HANDLE_SIZE, SIGNATURE_RESIZE_HANDLE_SIZE);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.stroke();
+            });
+            
+            ctx.restore();
+          }
+        }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -421,7 +532,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     };
   };
 
-  const getInteractionType = useCallback((pos: { x: number, y: number }): { type: InteractionType; cursor: string, textId?: string } | null => {
+  const getInteractionType = useCallback((pos: { x: number, y: number }): { type: InteractionType; cursor: string, textId?: string, signatureId?: string } | null => {
       const { canvas, ctx } = getCanvasAndContext();
       const img = imageElement;
       if (!canvas || !ctx || !img) return null;
@@ -487,10 +598,40 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                   return { type: 'text-move', textId: text.id, cursor: 'move' };
               }
           }
+      } else if (activeTab === 'signature') {
+        const reversedSignatures = [...settings.signatures].reverse();
+        for (const sig of reversedSignatures) {
+          const { corners, rotationHandle, center, unrotatedBoundingBox } = getSignatureHandlePositions(sig, canvas);
+          const isSelected = sig.id === selectedSignatureId;
+
+          if (isSelected) {
+            for (const [key, corner] of Object.entries(corners)) {
+              if (Math.abs(pos.x - corner.x) < SIGNATURE_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < SIGNATURE_HANDLE_HIT_AREA / 2) {
+                const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
+                return { type: `signature-resize-${key}` as InteractionType, signatureId: sig.id, cursor: cursorMap[key as keyof typeof cursorMap]};
+              }
+            }
+            if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < SIGNATURE_HANDLE_HIT_AREA / 2) {
+              return { type: 'signature-rotate', signatureId: sig.id, cursor: 'crosshair' };
+            }
+          }
+
+          const translatedX = pos.x - center.x;
+          const translatedY = pos.y - center.y;
+          const angleRad = -sig.rotation * Math.PI / 180;
+          const cosVal = Math.cos(angleRad);
+          const sinVal = Math.sin(angleRad);
+          const rotatedX = translatedX * cosVal - translatedY * sinVal;
+          const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+          if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+            return { type: 'signature-move', signatureId: sig.id, cursor: 'move' };
+          }
+        }
       }
 
       return null;
-  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions]);
+  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
@@ -510,6 +651,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if (clickedText) {
           if (selectedTextId !== textId) {
             setSelectedTextId(textId);
+            setSelectedSignatureId(null);
           }
           
           if (currentTime - lastClickTime.current < 300 && lastClickTarget.current === textId) {
@@ -532,8 +674,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         lastClickTime.current = currentTime;
         lastClickTarget.current = textId;
 
+    } else if (interaction?.type.startsWith('signature-')) {
+        const signatureId = interaction.signatureId!;
+        const clickedSignature = settings.signatures.find(s => s.id === signatureId);
+
+        if (clickedSignature) {
+            if (selectedSignatureId !== signatureId) {
+                setSelectedSignatureId(signatureId);
+                setSelectedTextId(null);
+            }
+
+            setInteractionState({
+                type: interaction.type,
+                startPos: pos,
+                signatureId: signatureId,
+                startSignature: clickedSignature,
+                signatureCenter: getSignatureHandlePositions(clickedSignature, canvas).center
+            });
+        }
+        lastClickTime.current = currentTime;
+        lastClickTarget.current = signatureId;
     } else if (interaction?.type.startsWith('crop-') || interaction?.type.startsWith('perspective-')) {
         setSelectedTextId(null);
+        setSelectedSignatureId(null);
         setInteractionState({ 
           type: interaction.type,
           startPos: pos,
@@ -541,15 +704,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         });
     } else if (activeTab === 'crop' && settings.cropMode === 'rect') {
         setSelectedTextId(null);
+        setSelectedSignatureId(null);
         const scale = canvas.width / imageElement.width;
         const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
         setPendingCrop(newCrop);
         setInteractionState({ type: 'crop-br', startPos: pos, startCrop: newCrop });
     } else {
         setSelectedTextId(null);
+        setSelectedSignatureId(null);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -561,7 +726,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const img = imageElement;
         if (!canvas || !ctx || !img) return;
 
-        const { type, startPos, startText } = interactionState;
+        const { type, startPos, startText, startSignature } = interactionState;
         
         if (type.startsWith('text-') && startText) {
             if (type === 'text-move') {
@@ -590,6 +755,38 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     
                     const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, size: newSize } : t);
                     updateSettings({ texts: newTexts });
+                }
+            }
+        } else if (type.startsWith('signature-') && startSignature) {
+             if (type === 'signature-move') {
+                const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
+                const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
+                const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s,
+                    x: Math.max(0, Math.min(100, startSignature.x + dx_percent)),
+                    y: Math.max(0, Math.min(100, startSignature.y + dy_percent)),
+                } : s);
+                updateSettings({ signatures: newSignatures });
+            } else if (type === 'signature-rotate' && interactionState.signatureCenter) {
+                const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.x);
+                const currentAngle = Math.atan2(pos.y - interactionState.signatureCenter.y, pos.x - interactionState.signatureCenter.x);
+                const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
+                const newRotation = startSignature.rotation + angleDiff;
+                const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s, rotation: newRotation } : s);
+                updateSettings({ signatures: newSignatures });
+            } else if (type.startsWith('signature-resize-') && interactionState.signatureCenter) {
+                const center = interactionState.signatureCenter;
+                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
+                const currentDist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
+
+                if (startDist > 0) {
+                    const scaleFactor = currentDist / startDist;
+                    const sigWidthPx = (startSignature.width / 100) * canvas.width;
+                    const newSigWidthPx = sigWidthPx * scaleFactor;
+                    const newWidthPercent = (newSigWidthPx / canvas.width) * 100;
+                    const newWidth = Math.max(1, newWidthPercent); // Min width 1%
+                    
+                    const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s, width: newWidth } : s);
+                    updateSettings({ signatures: newSignatures });
                 }
             }
         } else if (type.startsWith('crop-')) {
@@ -654,7 +851,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.perspectivePoints, updateSettings, activeTab, getInteractionType]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.signatures, settings.perspectivePoints, updateSettings, activeTab, getInteractionType]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {

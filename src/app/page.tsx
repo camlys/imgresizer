@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -38,6 +38,7 @@ const initialSettings: ImageSettings = {
   cropMode: 'rect',
   perspectivePoints: null,
   texts: [],
+  signatures: [],
   adjustments: {
     brightness: 100,
     contrast: 100,
@@ -73,6 +74,9 @@ export default function Home() {
   // Text Editing
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
+  // Signature Editing
+  const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -110,6 +114,9 @@ export default function Home() {
      if (tab !== 'text') {
       setSelectedTextId(null);
       setEditingTextId(null);
+    }
+    if (tab !== 'signature') {
+      setSelectedSignatureId(null);
     }
   };
   
@@ -275,6 +282,13 @@ export default function Home() {
           setEditingTextId(null);
         }
       }
+      if (newSettings.signatures) {
+        const currentSelectedId = selectedSignatureId;
+        const signatureExists = newSettings.signatures.some(s => s.id === currentSelectedId);
+        if (!signatureExists) {
+          setSelectedSignatureId(null);
+        }
+      }
       return updated;
     });
 
@@ -285,7 +299,7 @@ export default function Home() {
       setPendingCrop(newSettings.crop);
     }
     setProcessedSize(null);
-  }, [selectedTextId]);
+  }, [selectedTextId, selectedSignatureId]);
 
   const handleApplyPerspectiveCrop = useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {
@@ -343,7 +357,7 @@ export default function Home() {
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, adjustments } = settings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments } = settings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -395,6 +409,22 @@ export default function Home() {
             finalCtx.rotate(rad);
             finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             finalCtx.restore();
+
+            signatures.forEach(sig => {
+                if (sig.img) {
+                    const sigWidth = (sig.width / 100) * width;
+                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+                    const sigX = (sig.x / 100) * width;
+                    const sigY = (sig.y / 100) * height;
+
+                    finalCtx.save();
+                    finalCtx.translate(sigX, sigY);
+                    finalCtx.rotate(sig.rotation * Math.PI / 180);
+                    finalCtx.globalAlpha = sig.opacity;
+                    finalCtx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+                    finalCtx.restore();
+                }
+            });
 
             texts.forEach(text => {
                 const textX = (text.x / 100) * width;
@@ -632,6 +662,8 @@ export default function Home() {
               onViewPages={() => setIsPdfSelectorOpen(true)}
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
+              selectedSignatureId={selectedSignatureId}
+              setSelectedSignatureId={setSelectedSignatureId}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
@@ -647,6 +679,8 @@ export default function Home() {
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
               setEditingTextId={setEditingTextId}
+              selectedSignatureId={selectedSignatureId}
+              setSelectedSignatureId={setSelectedSignatureId}
             />
             {editingText && canvasRef.current && (
               <TextEditor

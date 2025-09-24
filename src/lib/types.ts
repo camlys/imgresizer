@@ -1,3 +1,4 @@
+
 export type Unit = 'px' | 'cm' | 'mm' | 'inch';
 
 export type TextOverlay = {
@@ -11,6 +12,17 @@ export type TextOverlay = {
   x: number;
   y: number;
   rotation: number;
+};
+
+export type SignatureOverlay = {
+  id: string;
+  src: string;
+  img: HTMLImageElement; // Keep the image element for rendering
+  x: number; // percentage
+  y: number; // percentage
+  width: number; // percentage of canvas width
+  rotation: number;
+  opacity: number;
 };
 
 export type CropSettings = {
@@ -45,6 +57,7 @@ export type ImageSettings = {
   flipVertical: boolean;
   crop: CropSettings | null;
   texts: TextOverlay[];
+  signatures: SignatureOverlay[];
   adjustments: {
     brightness: number;
     contrast: number;
