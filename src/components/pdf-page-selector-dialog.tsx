@@ -398,7 +398,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                     const imgData = canvas.toDataURL('image/png');
                     pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
                 }
-                pdf.save('imgresizer-pages.pdf');
+                pdf.save('camly-pages.pdf');
             } catch (error) {
                  console.error(`Failed to generate PDF`, error);
                 toast({
