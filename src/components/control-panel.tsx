@@ -10,6 +10,7 @@ import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
 import type { ImageSettings, OriginalImage, CropSettings, CollageSettings } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers } from 'lucide-react';
+import { ScrollArea } from './ui/scroll-area';
 
 interface ControlPanelProps {
   settings: ImageSettings;
@@ -78,14 +79,16 @@ export function ControlPanel({
     <div className="flex flex-col h-full">
       <div className="flex-grow p-2 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <TabsList className={`grid w-full h-auto p-1 grid-cols-${availableTabs.length}`}>
-            {availableTabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="flex-col h-auto gap-1 py-2">
-                <tab.icon size={16}/>
-                <span className="text-xs">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="h-auto p-1 inline-flex">
+              {availableTabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
+                  <tab.icon size={16}/>
+                  <span className="text-sm">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </ScrollArea>
           <TabsContent value="resize">
             <ResizeRotateTab 
               settings={settings} 
@@ -137,5 +140,3 @@ export function ControlPanel({
     </div>
   );
 }
-
-    
