@@ -816,7 +816,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const clickedLayer = collageSettings.layers.find(l => l.id === layerId);
 
         if (clickedLayer) {
-            setSelectedLayerId(layerId);
+            if (selectedLayerId !== layerId) {
+                setSelectedLayerId(layerId);
+            }
             setInteractionState({ 
               type: interaction.type,
               startPos: pos,
@@ -899,7 +901,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedLayerId(null);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings.layers, setSelectedLayerId, getLayerHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings.layers, selectedLayerId, setSelectedLayerId, getLayerHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -1065,7 +1067,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings.texts, settings.signatures, settings.perspectivePoints, updateSettings, activeTab, getInteractionType, collageSettings.layers, updateCollageSettings]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
@@ -1118,7 +1120,5 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
 
     
