@@ -39,15 +39,6 @@ const initialSettings: ImageSettings = {
   perspectivePoints: null,
   texts: [],
   signatures: [],
-  sheet: {
-    enabled: false,
-    horizontalLines: true,
-    verticalLines: false,
-    lineColor: '#d1d5db',
-    spacing: 20,
-    marginTop: 20,
-    marginLeft: 20,
-  },
   adjustments: {
     brightness: 100,
     contrast: 100,
@@ -66,6 +57,15 @@ const initialCollageSettings: CollageSettings = {
   height: 842, // A4 height in px at 72 DPI
   backgroundColor: '#ffffff',
   layers: [],
+  sheet: {
+    enabled: false,
+    horizontalLines: true,
+    verticalLines: false,
+    lineColor: '#d1d5db',
+    spacing: 20,
+    marginTop: 20,
+    marginLeft: 20,
+  },
   format: 'application/pdf',
   quality: 1.0,
 };
@@ -455,12 +455,33 @@ export default function Home() {
           const finalCtx = finalCanvas.getContext('2d');
           if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
 
-          const { width, height, backgroundColor, layers } = collageSettings;
+          const { width, height, backgroundColor, layers, sheet } = collageSettings;
           finalCanvas.width = width;
           finalCanvas.height = height;
 
           finalCtx.fillStyle = backgroundColor;
           finalCtx.fillRect(0, 0, width, height);
+          
+          if (sheet.enabled) {
+              finalCtx.strokeStyle = sheet.lineColor;
+              finalCtx.lineWidth = 1;
+              if (sheet.horizontalLines) {
+                  for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(sheet.marginLeft, y);
+                      finalCtx.lineTo(width, y);
+                      finalCtx.stroke();
+                  }
+              }
+              if (sheet.verticalLines) {
+                  for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(x, sheet.marginTop);
+                      finalCtx.lineTo(x, height);
+                      finalCtx.stroke();
+                  }
+              }
+          }
 
           // Draw layers in order
           for (const layer of layers) {
@@ -484,7 +505,7 @@ export default function Home() {
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, sheet } = settings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = settings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -524,27 +545,6 @@ export default function Home() {
             if (backgroundColor !== 'transparent') {
                 finalCtx.fillStyle = backgroundColor;
                 finalCtx.fillRect(0, 0, width, height);
-            }
-
-            if (sheet.enabled) {
-              finalCtx.strokeStyle = sheet.lineColor;
-              finalCtx.lineWidth = 1;
-              if (sheet.horizontalLines) {
-                  for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
-                      finalCtx.beginPath();
-                      finalCtx.moveTo(sheet.marginLeft, y);
-                      finalCtx.lineTo(width, y);
-                      finalCtx.stroke();
-                  }
-              }
-              if (sheet.verticalLines) {
-                  for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
-                      finalCtx.beginPath();
-                      finalCtx.moveTo(x, sheet.marginTop);
-                      finalCtx.lineTo(x, height);
-                      finalCtx.stroke();
-                  }
-              }
             }
             
             finalCtx.save();

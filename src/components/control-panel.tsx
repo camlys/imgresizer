@@ -8,9 +8,8 @@ import { CropTab } from '@/components/tabs/crop-tab';
 import { TextTab } from '@/components/tabs/text-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
-import { SheetTab } from '@/components/tabs/sheet-tab';
 import type { ImageSettings, OriginalImage, CropSettings, CollageSettings } from '@/lib/types';
-import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Notebook } from 'lucide-react';
+import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 interface ControlPanelProps {
@@ -67,7 +66,6 @@ export function ControlPanel({
     { value: 'rotate', icon: RotateCcw, label: 'Rotate' },
     { value: 'text', icon: Type, label: 'Overlays' },
     { value: 'adjustments', icon: SlidersHorizontal, label: 'Adjust' },
-    { value: 'sheet', icon: Notebook, label: 'Sheet' },
     { value: 'collage', icon: Layers, label: 'Collage' },
   ];
 
@@ -121,9 +119,6 @@ export function ControlPanel({
           </TabsContent>
           <TabsContent value="adjustments">
             <AdjustmentsTab settings={settings} updateSettings={updateSettings} />
-          </TabsContent>
-           <TabsContent value="sheet">
-            <SheetTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
           <TabsContent value="collage">
             <CollageTab

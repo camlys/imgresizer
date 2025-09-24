@@ -289,12 +289,33 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (editorMode === 'collage') {
-        const { width, height, backgroundColor, layers } = collageSettings;
+        const { width, height, backgroundColor, layers, sheet } = collageSettings;
         canvas.width = width;
         canvas.height = height;
 
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
+
+        if (sheet.enabled) {
+          ctx.strokeStyle = sheet.lineColor;
+          ctx.lineWidth = 1;
+          if (sheet.horizontalLines) {
+            for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
+              ctx.beginPath();
+              ctx.moveTo(sheet.marginLeft, y);
+              ctx.lineTo(width, y);
+              ctx.stroke();
+            }
+          }
+          if (sheet.verticalLines) {
+            for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
+              ctx.beginPath();
+              ctx.moveTo(x, sheet.marginTop);
+              ctx.lineTo(x, height);
+              ctx.stroke();
+            }
+          }
+        }
 
         for (const layer of layers) {
             const layerWidthPx = (layer.width / 100) * width;
@@ -485,33 +506,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         }
 
     } else {
-        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures, backgroundColor, sheet } = settings;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures, backgroundColor } = settings;
         canvas.width = width;
         canvas.height = height;
 
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
-
-        if (sheet.enabled) {
-          ctx.strokeStyle = sheet.lineColor;
-          ctx.lineWidth = 1;
-          if (sheet.horizontalLines) {
-            for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
-              ctx.beginPath();
-              ctx.moveTo(sheet.marginLeft, y);
-              ctx.lineTo(width, y);
-              ctx.stroke();
-            }
-          }
-          if (sheet.verticalLines) {
-            for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
-              ctx.beginPath();
-              ctx.moveTo(x, sheet.marginTop);
-              ctx.lineTo(x, height);
-              ctx.stroke();
-            }
-          }
-        }
 
         if (processedImageCache) {
           ctx.save();

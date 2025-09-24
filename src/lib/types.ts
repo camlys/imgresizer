@@ -68,7 +68,6 @@ export type ImageSettings = {
   crop: CropSettings | null;
   texts: TextOverlay[];
   signatures: SignatureOverlay[];
-  sheet: SheetSettings;
   adjustments: {
     brightness: number;
     contrast: number;
@@ -102,6 +101,7 @@ export type CollageSettings = {
   height: number;
   backgroundColor: string;
   layers: ImageLayer[];
+  sheet: SheetSettings;
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
 };
