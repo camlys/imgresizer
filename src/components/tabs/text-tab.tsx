@@ -13,7 +13,6 @@ import React, { useRef } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '../ui/slider';
-import { Separator } from '../ui/separator';
 
 interface TextTabProps {
   settings: ImageSettings;
@@ -154,7 +153,7 @@ export function TextTab({
   };
 
   return (
-    <div className="p-1 space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
       <input
         type="file"
         ref={fileInputRef}
@@ -164,7 +163,7 @@ export function TextTab({
       />
       
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-start md:items-center justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2"><Type size={18}/> Text Overlays</CardTitle>
             <Button variant="outline" size="sm" onClick={addText}><Plus size={16} className="mr-2"/> Add</Button>
           </CardHeader>
@@ -190,7 +189,7 @@ export function TextTab({
                         <Label htmlFor={`text-content-${text.id}`}>Content</Label>
                         <Input id={`text-content-${text.id}`} value={text.text} onChange={e => updateText(text.id, { text: e.target.value })}/>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div className="grid gap-1.5">
                           <Label htmlFor={`text-font-${text.id}`}>Font</Label>
                           <Select value={text.font} onValueChange={font => updateText(text.id, { font })}>
@@ -205,7 +204,7 @@ export function TextTab({
                           <Input id={`text-size-${text.id}`} type="number" value={Math.round(text.size)} onChange={e => updateText(text.id, { size: parseInt(e.target.value, 10) || 0 })}/>
                         </div>
                       </div>
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div className="grid gap-1.5">
                           <Label htmlFor={`text-color-${text.id}`}>Color</Label>
                           <div className="relative">
@@ -286,7 +285,7 @@ export function TextTab({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
+          <CardHeader className="flex flex-row items-start md:items-center justify-between pb-2 gap-2">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Pencil size={18} /> Signature Overlays
             </CardTitle>
@@ -367,3 +366,5 @@ export function TextTab({
     </div>
   );
 }
+
+    
