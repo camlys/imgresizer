@@ -838,8 +838,8 @@ export default function Home() {
           onShare={handleShare}
           editorMode={editorMode}
         />
-        <main className="flex-1 flex flex-col lg:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto lg:overflow-hidden">
-          <div className="w-full lg:w-[380px] lg:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
+        <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto md:overflow-hidden">
+          <div className="w-full md:w-[380px] md:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
             <ControlPanel 
               settings={settings} 
               updateSettings={updateSettings} 
@@ -864,7 +864,7 @@ export default function Home() {
               setSelectedLayerId={setSelectedLayerId}
             />
           </div>
-          <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] lg:min-h-0">
+          <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">
             <ImageCanvas
               ref={canvasRef}
               originalImage={originalImage}
