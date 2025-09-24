@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 
 // Define the event type for beforeinstallprompt
 interface BeforeInstallPromptEvent extends Event {
@@ -18,6 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function InstallPwaBanner() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -25,6 +26,7 @@ export function InstallPwaBanner() {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setInstallPrompt(e as BeforeInstallPromptEvent);
+      setIsVisible(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -48,16 +50,30 @@ export function InstallPwaBanner() {
         console.log('User dismissed the install prompt');
       }
       setInstallPrompt(null);
+      setIsVisible(false);
     });
   };
 
-  if (!installPrompt) {
+  const handleClose = () => {
+    setIsVisible(false);
+  };
+
+  if (!installPrompt || !isVisible) {
     return null;
   }
 
   return (
     <div className="fixed bottom-16 left-0 right-0 z-50 p-4 sm:bottom-0">
-      <Card className="container mx-auto p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl bg-primary/90 text-primary-foreground backdrop-blur-md">
+      <Card className="container mx-auto p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl bg-primary/90 text-primary-foreground backdrop-blur-md relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-6 w-6"
+          onClick={handleClose}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </Button>
         <div className="text-sm text-center sm:text-left">
           <p className="font-semibold">Install ImgResizer</p>
           <p>Get a native app experience. Add ImgResizer to your home screen for quick and easy access.</p>
