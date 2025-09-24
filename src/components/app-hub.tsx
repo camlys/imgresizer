@@ -2,12 +2,15 @@
 "use client"
 
 import { useSearchParams } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { apps } from "./app-hub-card";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Suspense } from "react";
+import { motion } from "framer-motion";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { AppHubCard } from "./app-hub-card";
 
 function AppHubContent() {
     const searchParams = useSearchParams();
@@ -16,13 +19,29 @@ function AppHubContent() {
     
     return (
         <Tabs defaultValue={defaultTab} className="w-full h-full flex flex-col relative">
-            <div className="absolute top-2 right-2 z-10">
-                <Link href="/" passHref>
-                    <Button variant="ghost" size="icon">
-                        <X />
-                    </Button>
-                </Link>
-            </div>
+            <motion.div 
+                className="absolute top-4 right-4 z-20"
+                drag
+                dragMomentum={false}
+            >
+                <Popover>
+                    <PopoverTrigger asChild>
+                         <Button variant="outline" size="icon" className="cursor-grab active:cursor-grabbing shadow-lg">
+                            <Menu />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 bg-background/80 backdrop-blur-md border-primary/20">
+                        <AppHubCard />
+                        <div className="mt-4">
+                             <Link href="/" passHref>
+                                <Button variant="ghost" className="w-full">
+                                    Close Hub
+                                </Button>
+                            </Link>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </motion.div>
             {apps.map((app) => (
                 <TabsContent key={app.id} value={app.id} className="flex-grow m-0 ring-offset-0">
                     <iframe src={app.url} className="w-full h-full border-0" title={app.name}></iframe>
