@@ -25,8 +25,8 @@ export default function ContactPage() {
               <p className="mt-2">
                 For sales inquiries, support questions, and general feedback, please don't hesitate to reach out to us at:
               </p>
-              <a href="mailto:contact@camly.app" className="text-primary font-semibold text-xl hover:underline">
-                contact@camly.app
+              <a href="mailto:camlysales@gmail.com" className="text-primary font-semibold text-xl hover:underline">
+                camlysales@gmail.com
               </a>
               <p className="mt-2">
                 We aim to respond to all inquiries within 24-48 business hours.
