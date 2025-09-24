@@ -25,7 +25,8 @@ import { AppHubCard } from './app-hub-card';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
-  onDownload: (filename: string) => void;
+  onDownload: (filename: string) => Promise<void>;
+  generateFinalCanvas: (pageToRender?: CollagePage) => Promise<HTMLCanvasElement>;
   onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
@@ -40,6 +41,7 @@ interface AppHeaderProps {
 export function AppHeader({ 
   onUpload, 
   onDownload,
+  generateFinalCanvas,
   onShare,
   isImageLoaded,
   settings,
@@ -86,17 +88,14 @@ export function AppHeader({
       onUpload(file);
     }
   };
-
+  
   const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
-      // This is a simplified version; a proper implementation would need access to the canvas generation logic
-      // For now, we'll assume a dummy canvas for size estimation logic.
-      const canvas = document.createElement('canvas');
-      canvas.width = editorMode === 'single' ? settings.width : collageSettings.width;
-      canvas.height = editorMode === 'single' ? settings.height : collageSettings.height;
-      return new Promise((resolve) => {
-          canvas.toBlob((blob) => resolve(blob), currentSettings.format, quality);
-      });
-  }, [editorMode, settings.width, settings.height, collageSettings.width, collageSettings.height, currentSettings.format]);
+    const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
+    const canvas = await generateFinalCanvas(pageToRender);
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, currentSettings.format, quality);
+    });
+  }, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
 
 
   const handleTargetSize = async () => {
@@ -106,13 +105,19 @@ export function AppHeader({
     setIsOptimizing(true);
     const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
     
-    let high = 1, low = 0, mid = 0.5, bestQuality = 0.5;
+    let high = 1.0;
+    let low = 0.0;
+    let mid = 0.5;
+    let bestQuality = 0.5;
     
     // Binary search for the best quality setting to meet the target size
-    for(let i = 0; i < 10; i++) {
+    for(let i = 0; i < 10; i++) { // 10 iterations are usually enough
       mid = (low + high) / 2;
       const blob = await getBlobFromCanvas(mid);
-      if (!blob) break;
+      if (!blob) {
+        setIsOptimizing(false);
+        return;
+      }
       
       if(blob.size > targetBytes) {
         high = mid;
@@ -292,5 +297,7 @@ export function AppHeader({
     </header>
   );
 }
+
+    
 
     

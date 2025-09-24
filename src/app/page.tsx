@@ -459,15 +459,17 @@ export default function Home() {
     }
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
- const generateFinalCanvas = React.useCallback(async (pageToRender: CollagePage): Promise<HTMLCanvasElement> => {
+ const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
         if (editorMode === 'collage') {
           const finalCanvas = document.createElement('canvas');
           const finalCtx = finalCanvas.getContext('2d');
           if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
+          
+          const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
 
           const { width, height, backgroundColor } = collageSettings;
-          const { layers, sheet } = pageToRender;
+          const { layers, sheet } = page;
           finalCanvas.width = width;
           finalCanvas.height = height;
 
@@ -621,7 +623,7 @@ export default function Home() {
   const updateProcessedSize = React.useCallback(async () => {
     try {
         const pageToRender = editorMode === 'collage' ? activePage : undefined;
-        const canvas = await generateFinalCanvas(pageToRender!);
+        const canvas = await generateFinalCanvas(pageToRender);
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
@@ -679,7 +681,7 @@ export default function Home() {
             return;
         }
 
-        const canvasToDownload = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined!);
+        const canvasToDownload = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined);
         if (currentFormat === 'image/svg+xml') {
             const dataUrl = canvasToDownload.toDataURL('image/png');
             const svgContent = `<svg width="${canvasToDownload.width}" height="${canvasToDownload.height}" xmlns="http://www.w3.org/2000/svg">
@@ -738,7 +740,7 @@ export default function Home() {
     };
 
     try {
-        const canvasToShare = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined!);
+        const canvasToShare = await generateFinalCanvas(editorMode === 'collage' ? activePage : undefined);
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
@@ -785,6 +787,7 @@ export default function Home() {
           updateCollageSettings={updateCollageSettings}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
+          generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
           editorMode={editorMode}
         />
@@ -835,6 +838,7 @@ export default function Home() {
           updateCollageSettings={updateCollageSettings}
           processedSize={processedSize}
           onUpdateProcessedSize={updateProcessedSize}
+          generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
           editorMode={editorMode}
         />
@@ -930,3 +934,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
