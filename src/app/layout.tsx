@@ -7,35 +7,65 @@ import Script from 'next/script';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://imgresizer.app'),
-  title: 'ImgResizer: Free Online Image & Photo Editor',
-  description: 'Edit, resize, and enhance images for free with ImgResizer. Our powerful, privacy-focused online tool works right in your browser. No downloads, no sign-ups.',
-  keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf to image', 'change image format', 'image compressor'],
+  title: {
+    default: 'ImgResizer: Free, Private Online Image & Photo Editor',
+    template: '%s | ImgResizer',
+  },
+  description: 'Edit, resize, crop, convert, and enhance images and photos for free. ImgResizer is a powerful, privacy-focused online tool that works right in your browser. No downloads, no sign-ups, no watermarks.',
+  keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf to image converter', 'change image format', 'compress image', 'add text to image', 'perspective crop', 'photo effects', 'image manipulation'],
+  
+  authors: [{ name: 'ImgResizer Team', url: 'https://imgresizer.app/about' }],
+  creator: 'ImgResizer',
+  publisher: 'ImgResizer',
+
   openGraph: {
-    title: 'ImgResizer: Free Online Image & Photo Editor',
-    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
+    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
+    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
     url: 'https://imgresizer.app',
     siteName: 'ImgResizer',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.png', // Ensure you have this file in your /public folder
         width: 1200,
         height: 630,
-        alt: 'ImgResizer Online Image Editor',
+        alt: 'ImgResizer - Free Online Image and Photo Editor',
       },
     ],
     locale: 'en_US',
     type: 'website',
   },
+
   twitter: {
     card: 'summary_large_image',
-    title: 'ImgResizer: Free Online Image & Photo Editor',
-    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit images right in your browser.',
-     images: ['/og-image.png'],
+    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
+    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
+    creator: '@ImgResizer', // Replace with your actual Twitter handle
+    images: ['/og-image.png'], // Ensure you have this file in your /public folder
   },
+
   icons: {
     icon: '/ImgResizer.png',
+    shortcut: '/ImgResizer.png',
+    apple: '/apple-touch-icon.png', // Ensure you have this file
   },
-  manifest: '/site.webmanifest',
+
+  manifest: '/site.webmanifest', // Ensure you have this file
+  
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
+  alternates: {
+    canonical: 'https://imgresizer.app',
+  },
 };
 
 export default function RootLayout({
@@ -54,10 +84,14 @@ export default function RootLayout({
     featureList: [
       'Image Resizing',
       'Image Cropping',
+      'Perspective Correction',
       'Image Format Conversion (PNG, JPEG, WEBP, etc.)',
       'Color Adjustments (Brightness, Contrast, Saturation)',
+      'Photo Filters (Grayscale, Sepia, etc.)',
       'Add Text to Images',
+      'Add Signature/Watermark to Images',
       'PDF to Image Conversion',
+      'Image Collage Maker',
       'Client-side processing for privacy',
     ],
     offers: {
@@ -65,16 +99,22 @@ export default function RootLayout({
       price: '0',
       priceCurrency: 'USD',
     },
+    creator: {
+      '@type': 'Organization',
+      name: 'ImgResizer',
+      url: 'https://imgresizer.app'
+    }
   };
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-      <meta name="google-site-verification" content="vAXaQAf1AwfzrK402zrQbne-DlogUKuiHaQAWg7P09A" />
+        <meta name="google-site-verification" content="vAXaQAf1AwfzrK402zrQbne-DlogUKuiHaQAWg7P09A" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-         <script
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
