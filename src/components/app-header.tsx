@@ -130,28 +130,27 @@ export function AppHeader({
       bestQuality = mid;
     }
     
-    currentUpdateSettings({ 
-      quality: parseFloat(bestQuality.toFixed(2)),
-    });
-    
+    // Update both quality and the processed size state in one go
     if (finalBlob) {
-      // Create a dummy settings update object to satisfy types without modifying original logic path
-      const dummySettingsUpdate: any = {};
-      
-      // Update size state directly in the component that owns it
-      if (editorMode === 'collage') {
-          // This is a bit of a workaround; ideally, AppHeader wouldn't need to know about this.
-          // A better solution would involve a shared state management (like Zustand or Context).
-          // For now, let's assume `updateCollageSettings` can handle this.
-          (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ processedSize: finalBlob.size } as any);
-      } else {
-          // Same as above for single image mode
-          (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ processedSize: finalBlob.size } as any);
-      }
-      
-       // Manually trigger the size update function in the parent to reflect change
-       // This feels redundant but ensures the UI updates if the above doesn't trigger a re-render
-       onUpdateProcessedSize();
+        if (editorMode === 'collage') {
+            updateCollageSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+        } else {
+            updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
+        }
+        // This is a direct call to the parent's state update logic via prop
+        // It's a bit of a workaround because AppHeader doesn't own this state.
+        // A better long-term solution might be a shared state manager.
+        const parentComponent = {
+            setProcessedSize: (size: number | null) => {
+                // In a real scenario, this would be a state setter from parent
+                // For this simulation, we'll assume the parent component re-renders
+                // based on the settings update. The onUpdateProcessedSize call will
+                // ensure the parent knows to recalculate if needed.
+                (currentUpdateSettings as any)({_processedSize: size}); // a dummy update
+            }
+        };
+        parentComponent.setProcessedSize(finalBlob.size);
+        onUpdateProcessedSize(); // Trigger recalculation in parent if needed
     }
     
     setIsOptimizing(false);
@@ -163,10 +162,10 @@ export function AppHeader({
 
 
   return (
-    <header className="flex items-center justify-between p-4 pl-6 border-b bg-card overflow-hidden">
-      <Link href="/" className="flex items-center gap-3">
+    <header className="flex items-center justify-between p-2 sm:p-4 sm:pl-6 border-b bg-card overflow-hidden">
+      <Link href="/" className="flex flex-col md:flex-row md:items-center md:gap-3">
         <LogoIcon className="size-8" />
-        <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
+        <h1 className="text-sm -mt-1 md:mt-0 md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
             ImgResizer
         </h1>
       </Link>
