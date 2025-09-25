@@ -188,7 +188,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         accept="image/*"
       />
       {isFromMultiPagePdf && (
-        <div className="absolute top-0 right-1 z-10">
+        <div className="absolute -top-1 right-1 z-10">
           <TooltipProvider>
               <Tooltip>
                   <TooltipTrigger asChild>
