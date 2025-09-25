@@ -34,7 +34,7 @@ export default function DataRelatedPage() {
             </p>
 
             <h2 className="text-xl font-semibold text-foreground pt-4">Contact Our Data Protection Officer</h2>
-            <p>For any specific questions or concerns regarding your data and our commitment to GDPR, please contact us at <a href="mailto:imgresizersales@gmail.com" className="text-primary hover:underline">imgresizersales@gmail.com</a> with the subject line "GDPR Inquiry".</p>
+            <p>For any specific questions or concerns regarding your data and our commitment to GDPR, please contact us at <a href="mailto:camlysales@gmail.com" className="text-primary hover:underline">camlysales@gmail.com</a> with the subject line "GDPR Inquiry".</p>
           </CardContent>
         </Card>
       </main>
