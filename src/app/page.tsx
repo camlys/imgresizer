@@ -198,13 +198,36 @@ export default function Home() {
     const addImageToCollageFromSrc = React.useCallback((src: string) => {
         const img = new Image();
         img.onload = () => {
+             const MARGIN = 2; // 2% margin
+             const numLayers = activePage.layers.length;
+             let x, y, width, height;
+
+             if (numLayers < 4) {
+                 const gridCols = 2;
+                 const gridRows = 2;
+                 const itemWidth = (100 - MARGIN * (gridCols + 1)) / gridCols;
+                 const itemHeight = itemWidth; // For square-like items
+
+                 const row = Math.floor(numLayers / gridCols);
+                 const col = numLayers % gridCols;
+
+                 x = MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2;
+                 y = MARGIN + row * (itemHeight + MARGIN) + itemHeight / 2;
+                 width = itemWidth;
+             } else {
+                 // Fallback for 5th image and more
+                 x = 50;
+                 y = 50;
+                 width = 30;
+             }
+
              const newLayer: ImageLayer = {
                 id: Date.now().toString(),
                 src: img.src,
                 img: img,
-                x: 50,
-                y: 50,
-                width: 30, // Default to 30% of canvas width
+                x: x,
+                y: y,
+                width: width,
                 rotation: 0,
                 opacity: 1,
                 originalWidth: img.width,
@@ -965,6 +988,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
