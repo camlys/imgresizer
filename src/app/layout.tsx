@@ -45,12 +45,12 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: '/camly.png',
-    shortcut: '/camly.png',
-    apple: '/apple-touch-icon.png', // Ensure you have this file
+    icon: '/imgresizer.jpeg',
+    shortcut: '/imgresizer.jpeg',
+    apple: '/imgresizer.jpeg',
   },
 
-  manifest: '/site.webmanifest', // Ensure you have this file
+  manifest: '/site.webmanifest',
   
   robots: {
     index: true,
