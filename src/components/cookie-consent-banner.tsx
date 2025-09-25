@@ -13,14 +13,16 @@ export function CookieConsentBanner() {
     // Check if consent has already been given
     const consent = localStorage.getItem('cookie_consent');
 
-    if (!consent) {
+    if (consent === null) {
       setIsVisible(true);
     }
   }, []);
 
-  const handleAccept = () => {
-    localStorage.setItem('cookie_consent', 'true');
+  const handleConsent = (consent: boolean) => {
+    localStorage.setItem('cookie_consent', consent.toString());
     setIsVisible(false);
+    // Reload to apply analytics script change
+    window.location.reload(); 
   };
 
   if (!isVisible) {
@@ -32,16 +34,21 @@ export function CookieConsentBanner() {
       <Card className="container m-4 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl border-primary/20 animate-in slide-in-from-bottom-5">
         <div className="text-sm text-muted-foreground">
           <p>
-            We use cookies to enhance your experience and ensure our site functions correctly. By using our site, you agree to our use of cookies. Read our{' '}
+            We use cookies to analyze site traffic and improve your experience. By clicking "Accept," you agree to our use of cookies for analytics. Read our{' '}
             <Link href="/privacy-policy" className="underline text-primary hover:text-primary/80 transition-colors">
               Privacy Policy
             </Link>
             .
           </p>
         </div>
-        <Button onClick={handleAccept} className="shrink-0">
-          Accept
-        </Button>
+        <div className="flex gap-2 shrink-0">
+            <Button onClick={() => handleConsent(true)} >
+                Accept
+            </Button>
+            <Button onClick={() => handleConsent(false)} variant="outline">
+                Decline
+            </Button>
+        </div>
       </Card>
     </div>
   );

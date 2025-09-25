@@ -1,73 +1,47 @@
 
-import type {Metadata} from 'next';
+"use client";
+
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 import Script from 'next/script';
 import { CookieConsentBanner } from '@/components/cookie-consent-banner';
+import { useEffect, useState } from 'react';
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://imgresizer.xyz'),
-  title: {
-    default: 'ImgResizer: Free, Private Online Image & Photo Editor',
-    template: '%s | ImgResizer',
-  },
-  description: 'Edit, resize, crop, convert, and enhance images and photos for free. ImgResizer is a powerful, privacy-focused online tool that works right in your browser. No downloads, no sign-ups, no watermarks.',
-  keywords: ['image editor', 'photo editor', 'online image editor', 'free image editor', 'image resizer', 'photo resizer', 'crop image', 'pdf to image converter', 'change image format', 'compress image', 'add text to image', 'perspective crop', 'photo effects', 'image manipulation'],
-  
-  authors: [{ name: 'ImgResizer Team', url: 'https://imgresizer.xyz/about' }],
-  creator: 'ImgResizer',
-  publisher: 'ImgResizer',
+const Analytics = () => {
+  const [consent, setConsent] = useState<boolean | null>(null);
 
-  openGraph: {
-    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
-    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
-    url: 'https://imgresizer.xyz',
-    siteName: 'ImgResizer',
-    images: [
-      {
-        url: 'https://imgresizer.xyz/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'ImgResizer - Free Online Image and Photo Editor',
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
+  useEffect(() => {
+    const consentValue = localStorage.getItem('cookie_consent');
+    if (consentValue) {
+      setConsent(consentValue === 'true');
+    } else {
+      // If no consent is stored, we assume null and the banner will show.
+      // We don't render analytics until consent is explicitly true.
+      setConsent(null);
+    }
+  }, []);
 
-  twitter: {
-    card: 'summary_large_image',
-    title: 'ImgResizer: Free, Private Online Image & Photo Editor',
-    description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
-    creator: '@ImgResizer',
-    images: ['https://imgresizer.xyz/og-image.png'],
-  },
+  if (consent !== true) {
+    return null;
+  }
 
-  icons: {
-    icon: '/imgresizerlogo.png',
-    shortcut: '/imgresizerlogo.png',
-    apple: '/imgresizerlogo.png',
-  },
+  return (
+    <>
+      {/* <!-- Google tag (gtag.js) --> */}
+      <Script async src="https://www.googletagmanager.com/gtag/js?id=G-RP9B39XVRB"></Script>
+      <Script id="google-analytics">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
 
-  manifest: '/site.webmanifest',
-  
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-
-  alternates: {
-    canonical: 'https://imgresizer.xyz',
-  },
-};
+          gtag('config', 'G-RP9B39XVRB');
+        `}
+      </Script>
+    </>
+  )
+}
 
 export default function RootLayout({
   children,
@@ -119,17 +93,25 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* <!-- Google tag (gtag.js) --> */}
-        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-RP9B39XVRB"></Script>
-        <Script id="google-analytics">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+        <Analytics />
+        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="icon" href="/imgresizerlogo.png" />
+        <link rel="apple-touch-icon" href="/imgresizerlogo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
+        <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
+        <meta name="twitter:creator" content="@ImgResizer" />
+        <meta name="twitter:image" content="https://imgresizer.xyz/og-image.png" />
+        <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
+        <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
+        <meta property="og:url" content="https://imgresizer.xyz" />
+        <meta property="og:site_name" content="ImgResizer" />
+        <meta property="og:image" content="https://imgresizer.xyz/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:type" content="website" />
 
-            gtag('config', 'G-RP9B39XVRB');
-          `}
-        </Script>
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
