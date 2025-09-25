@@ -27,12 +27,12 @@ interface CollageTabProps {
 }
 
 const canvasSizes = [
-    { name: 'A4 Portrait', width: 595, height: 842 },
-    { name: 'A4 Landscape', width: 842, height: 595 },
-    { name: 'A5 Portrait', width: 420, height: 595 },
-    { name: 'A5 Landscape', width: 595, height: 420 },
-    { name: 'US Letter Portrait', width: 612, height: 792 },
-    { name: 'US Letter Landscape', width: 792, height: 612 },
+    { name: 'A4 Portrait (300 DPI)', width: 2481, height: 3507 },
+    { name: 'A4 Landscape (300 DPI)', width: 3507, height: 2481 },
+    { name: 'A5 Portrait (300 DPI)', width: 1748, height: 2481 },
+    { name: 'A5 Landscape (300 DPI)', width: 2481, height: 1748 },
+    { name: 'US Letter Portrait (300 DPI)', width: 2550, height: 3300 },
+    { name: 'US Letter Landscape (300 DPI)', width: 3300, height: 2550 },
     { name: 'Instagram Story', width: 1080, height: 1920 },
     { name: 'Instagram Post (Square)', width: 1080, height: 1080 },
     { name: 'Instagram Post (Portrait)', width: 1080, height: 1350 },
@@ -383,28 +383,30 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
           </AccordionContent>
         </AccordionItem>
         
-        <AccordionItem value="image-layers">
-           <div className="flex items-center">
+         <AccordionItem value="image-layers">
+          <div className="flex items-center">
             <AccordionTrigger className="flex-1">
-                <h3 className="text-base font-medium flex items-center gap-2"><ImageUp size={18} /> Image Layers</h3>
+              <h3 className="text-base font-medium flex items-center gap-2">
+                <ImageUp size={18} /> Image Layers
+              </h3>
             </AccordionTrigger>
             {isFromMultiPagePdf && (
-                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                                    <BookOpen size={16}/>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Open PDF page selector to add another page to the canvas.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
+              <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                        <BookOpen size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add more pages from the PDF</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             )}
-           </div>
+          </div>
             <AccordionContent className="pt-4">
                 <div className="flex gap-2 mb-4">
                   <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">

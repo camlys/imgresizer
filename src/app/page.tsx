@@ -64,8 +64,8 @@ const initialSheetSettings: SheetSettings = {
 };
 
 const initialCollageSettings: CollageSettings = {
-  width: 595, // A4 width in px at 72 DPI
-  height: 842, // A4 height in px at 72 DPI
+  width: 2481, // A4 Portrait at 300 DPI
+  height: 3507, // A4 Portrait at 300 DPI
   backgroundColor: '#ffffff',
   pages: [{
     id: Date.now().toString(),
@@ -803,19 +803,27 @@ export default function Home() {
             }
             
             const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
-            const orientation = firstPageCanvas.width > firstPageCanvas.height ? 'l' : 'p';
+            // A4 dimensions in points: 595.28 x 841.89
+            // Use the canvas dimensions for custom sizes, but map to standard points for jsPDF
+            const pdfWidth = (firstPageCanvas.width / 300) * 72;
+            const pdfHeight = (firstPageCanvas.height / 300) * 72;
+            
+            const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
             const pdf = new jsPDF({
               orientation: orientation,
-              unit: 'px',
-              format: [firstPageCanvas.width, firstPageCanvas.height]
+              unit: 'pt',
+              format: [pdfWidth, pdfHeight]
             });
             pdf.deletePage(1);
 
             for (const page of pagesToRender) {
                 const canvas = await generateFinalCanvas(page);
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addPage([canvas.width, canvas.height], canvas.width > canvas.height ? 'l' : 'p');
-                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                const imgData = canvas.toDataURL('image/png', 1.0); // Use high quality PNG for PDF
+                const pagePdfWidth = (canvas.width / 300) * 72;
+                const pagePdfHeight = (canvas.height / 300) * 72;
+
+                pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
+                pdf.addImage(imgData, 'PNG', 0, 0, pagePdfWidth, pagePdfHeight);
             }
 
             pdf.save(`${downloadName}.pdf`);
