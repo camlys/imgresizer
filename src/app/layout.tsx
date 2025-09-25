@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: 'ImgResizer',
     images: [
       {
-        url: '/og-image.png',
+        url: 'https://imgresizer.xyz/og-image.png',
         width: 1200,
         height: 630,
         alt: 'ImgResizer - Free Online Image and Photo Editor',
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     title: 'ImgResizer: Free, Private Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
     creator: '@ImgResizer',
-    images: ['/og-image.png'],
+    images: ['https://imgresizer.xyz/og-image.png'],
   },
 
   icons: {
