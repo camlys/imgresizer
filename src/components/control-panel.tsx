@@ -34,6 +34,7 @@ interface ControlPanelProps {
   onAddImageToCollage: (file: File) => void;
   selectedLayerId: string | null;
   setSelectedLayerId: (id: string | null) => void;
+  onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
 }
 
 export function ControlPanel({ 
@@ -58,6 +59,7 @@ export function ControlPanel({
   onAddImageToCollage,
   selectedLayerId,
   setSelectedLayerId,
+  onAutoLayout,
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -128,6 +130,7 @@ export function ControlPanel({
             setSelectedLayerId={setSelectedLayerId}
             isFromMultiPagePdf={isFromMultiPagePdf}
             onViewPages={() => onViewPages('collage')}
+            onAutoLayout={onAutoLayout}
           />
         </TabsContent>
       </ScrollArea>

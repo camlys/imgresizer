@@ -22,6 +22,7 @@ interface CollageTabProps {
   setSelectedLayerId: (id: string | null) => void;
   isFromMultiPagePdf: boolean;
   onViewPages: () => void;
+  onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
 }
 
 const canvasSizes = [
@@ -50,7 +51,7 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId, isFromMultiPagePdf, onViewPages }: CollageTabProps) {
+export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId, isFromMultiPagePdf, onViewPages, onAutoLayout }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
@@ -189,28 +190,28 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       />
       
       <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'pages']} className="w-full">
-        <AccordionItem value="canvas-settings" className="relative">
-           <div className="flex items-center">
-             <AccordionTrigger>
-               <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
-             </AccordionTrigger>
-             {isFromMultiPagePdf && (
-                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                                    <BookOpen size={16}/>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Open PDF page selector to add another page to the canvas.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
+        <AccordionItem value="canvas-settings" className="border-b">
+            <div className="flex items-center">
+              <AccordionTrigger className="flex-1">
+                <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
+              </AccordionTrigger>
+              {isFromMultiPagePdf && (
+                  <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                      <TooltipProvider>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                      <BookOpen size={16}/>
+                                  </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>Open PDF page selector to add another page to the canvas.</p>
+                              </TooltipContent>
+                          </Tooltip>
+                      </TooltipProvider>
+                  </div>
               )}
-           </div>
+            </div>
            <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
@@ -242,6 +243,27 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   </div>
               </div>
            </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="auto-layout">
+          <AccordionTrigger>
+              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Auto-Layout</h3>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">Arrange the first N images into a grid. This will reset their position and rotation.</p>
+            <div className="grid grid-cols-5 gap-2">
+                {[2, 3, 4, 5, 6].map(num => (
+                    <Button
+                        key={num}
+                        variant={settings.layout === num ? 'default' : 'outline'}
+                        onClick={() => onAutoLayout(num as 2 | 3 | 4 | 5 | 6)}
+                        disabled={activePage.layers.length < num}
+                    >
+                        {num}
+                    </Button>
+                ))}
+            </div>
+          </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="pages">

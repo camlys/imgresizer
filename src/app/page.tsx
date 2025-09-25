@@ -75,6 +75,7 @@ const initialCollageSettings: CollageSettings = {
   activePageIndex: 0,
   format: 'application/pdf',
   quality: 1.0,
+  layout: 4,
 };
 
 
@@ -822,6 +823,72 @@ export default function Home() {
     }
   }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, activePage, toast]);
 
+  const handleAutoLayout = React.useCallback((count: 2 | 3 | 4 | 5 | 6) => {
+    const page = activePage;
+    if (!page || page.layers.length === 0) return;
+
+    const layersToLayout = page.layers;
+    const numImages = layersToLayout.length;
+    const margin = 2; // 2% margin
+
+    let layoutConfig: { cols: number; rows: number; areas?: string[] } | null = null;
+    let newLayers = [...layersToLayout];
+
+    switch (count) {
+        case 2: // 1x2
+            layoutConfig = { cols: 1, rows: 2 };
+            break;
+        case 3: // 2 rows, top is 1 col, bottom is 2
+            layoutConfig = { cols: 2, rows: 2, areas: ["1 1", "2 3"] };
+            break;
+        case 4: // 2x2
+            layoutConfig = { cols: 2, rows: 2 };
+            break;
+        case 5: // 2 rows, top 2, bottom 3
+            layoutConfig = { cols: 6, rows: 2, areas: ["1 1 1 2 2 2", "3 3 4 4 5 5"] };
+            break;
+        case 6: // 2x3
+            layoutConfig = { cols: 3, rows: 2 };
+            break;
+    }
+
+    if (!layoutConfig) return;
+
+    if (layoutConfig.areas) {
+        // Complex grid logic
+        const { cols, rows } = layoutConfig;
+        const cellWidth = (100 - (cols + 1) * margin) / cols;
+        const cellHeight = (100 - (rows + 1) * margin) / rows;
+        // This is a simplified version. A full implementation would need a grid area parsing logic.
+        // For now, let's just use a simple grid for all.
+        // A more complex logic would be needed here for CSS grid like areas.
+        toast({ title: "Layout", description: `Auto-layout for ${count} is not fully implemented with complex areas yet. Using simple grid.`, variant: "default" });
+        return; // Or fallback to simple grid
+    }
+    
+    // Simple grid logic
+    const { cols, rows } = layoutConfig;
+    const itemWidth = (100 - (cols + 1) * margin) / cols;
+    const itemHeight = (100 - (rows + 1) * margin) / rows;
+
+    newLayers = newLayers.slice(0, count).map((layer, i) => {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      return {
+        ...layer,
+        x: margin + col * (itemWidth + margin) + itemWidth / 2,
+        y: margin + row * (itemHeight + margin) + itemHeight / 2,
+        width: itemWidth,
+        rotation: 0,
+      };
+    });
+
+    const newPages = [...collageSettings.pages];
+    newPages[collageSettings.activePageIndex] = { ...page, layers: newLayers };
+    updateCollageSettings({ pages: newPages, layout: count });
+
+  }, [activePage, collageSettings.pages, updateCollageSettings, toast]);
+
   const editingText = settings.texts.find(t => t.id === editingTextId);
   
   if (!originalImage && editorMode === 'single') {
@@ -920,6 +987,7 @@ export default function Home() {
               onAddImageToCollage={addImageToCollage}
               selectedLayerId={selectedLayerId}
               setSelectedLayerId={setSelectedLayerId}
+              onAutoLayout={handleAutoLayout}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">

@@ -110,4 +110,5 @@ export type CollageSettings = {
   activePageIndex: number;
   format: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml' | 'application/pdf';
   quality: number;
+  layout: 2 | 3 | 4 | 5 | 6 | null;
 };
