@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: 'ImgResizer',
     images: [
       {
-        url: '/og-image.png', // Ensure you have this file in your /public folder
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'ImgResizer - Free Online Image and Photo Editor',
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ImgResizer: Free, Private Online Image & Photo Editor',
     description: 'The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks.',
-    creator: '@ImgResizer', // Replace with your actual Twitter handle
-    images: ['/og-image.png'], // Ensure you have this file in your /public folder
+    creator: '@ImgResizer',
+    images: ['/og-image.png'],
   },
 
   icons: {
