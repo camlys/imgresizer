@@ -75,7 +75,7 @@ const initialCollageSettings: CollageSettings = {
   activePageIndex: 0,
   format: 'application/pdf',
   quality: 1.0,
-  layout: 4,
+  layout: null,
   syncSheetSettings: false,
 };
 
@@ -933,67 +933,68 @@ export default function Home() {
     const page = activePage;
     if (!page || page.layers.length === 0) return;
 
-    const layersToLayout = page.layers;
-    const numImages = layersToLayout.length;
+    let newLayers = [...page.layers];
     const margin = 2; // 2% margin
 
-    let layoutConfig: { cols: number; rows: number; areas?: string[] } | null = null;
-    let newLayers = [...layersToLayout];
+    const simpleGrid = (layers: ImageLayer[], cols: number, rows: number): ImageLayer[] => {
+      const itemWidth = (100 - (cols + 1) * margin) / cols;
+      const itemHeight = (100 - (rows + 1) * margin) / rows;
+      return layers.map((layer, i) => {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        return {
+          ...layer,
+          x: margin + col * (itemWidth + margin) + itemWidth / 2,
+          y: margin + row * (itemHeight + margin) + itemHeight / 2,
+          width: itemWidth,
+          rotation: 0,
+        };
+      });
+    };
 
-    switch (count) {
-        case 2: // 1x2
-            layoutConfig = { cols: 1, rows: 2 };
-            break;
-        case 3: // 2 rows, top is 1 col, bottom is 2
-            layoutConfig = { cols: 2, rows: 2, areas: ["1 1", "2 3"] };
-            break;
-        case 4: // 2x2
-            layoutConfig = { cols: 2, rows: 2 };
-            break;
-        case 5: // 2 rows, top 2, bottom 3
-            layoutConfig = { cols: 6, rows: 2, areas: ["1 1 1 2 2 2", "3 3 4 4 5 5"] };
-            break;
-        case 6: // 2x3
-            layoutConfig = { cols: 3, rows: 2 };
-            break;
+    if (count === 2) {
+      newLayers = simpleGrid(newLayers.slice(0, 2), 1, 2);
+    } else if (count === 3) {
+      if (newLayers.length >= 3) {
+        const w_large = 100 - 2 * margin;
+        const h_large = (100 - 3 * margin) / 2;
+        const w_small = (100 - 3 * margin) / 2;
+        const h_small = h_large;
+        
+        newLayers[0] = { ...newLayers[0], x: 50, y: margin + h_large / 2, width: w_large, rotation: 0 };
+        newLayers[1] = { ...newLayers[1], x: margin + w_small / 2, y: 2 * margin + h_large + h_small/2, width: w_small, rotation: 0 };
+        newLayers[2] = { ...newLayers[2], x: 2 * margin + w_small + w_small/2, y: 2 * margin + h_large + h_small/2, width: w_small, rotation: 0 };
+        newLayers = newLayers.slice(0, 3);
+      } else {
+        newLayers = simpleGrid(newLayers, 1, 3);
+      }
+    } else if (count === 4) {
+      newLayers = simpleGrid(newLayers.slice(0, 4), 2, 2);
+    } else if (count === 5) {
+      if (newLayers.length >= 5) {
+        const h = (100 - 3 * margin) / 2;
+        const w_top = (100 - 3 * margin) / 2;
+        const w_bottom = (100 - 4 * margin) / 3;
+
+        newLayers[0] = { ...newLayers[0], x: margin + w_top/2, y: margin + h/2, width: w_top, rotation: 0 };
+        newLayers[1] = { ...newLayers[1], x: 2 * margin + w_top + w_top/2, y: margin + h/2, width: w_top, rotation: 0 };
+        
+        newLayers[2] = { ...newLayers[2], x: margin + w_bottom/2, y: 2 * margin + h + h/2, width: w_bottom, rotation: 0 };
+        newLayers[3] = { ...newLayers[3], x: 2 * margin + w_bottom + w_bottom/2, y: 2 * margin + h + h/2, width: w_bottom, rotation: 0 };
+        newLayers[4] = { ...newLayers[4], x: 3 * margin + 2 * w_bottom + w_bottom/2, y: 2 * margin + h + h/2, width: w_bottom, rotation: 0 };
+        newLayers = newLayers.slice(0, 5);
+      } else {
+         newLayers = simpleGrid(newLayers, 2, 3);
+      }
+    } else if (count === 6) {
+      newLayers = simpleGrid(newLayers.slice(0, 6), 2, 3);
     }
 
-    if (!layoutConfig) return;
-
-    if (layoutConfig.areas) {
-        // Complex grid logic
-        const { cols, rows } = layoutConfig;
-        const cellWidth = (100 - (cols + 1) * margin) / cols;
-        const cellHeight = (100 - (rows + 1) * margin) / rows;
-        // This is a simplified version. A full implementation would need a grid area parsing logic.
-        // For now, let's just use a simple grid for all.
-        // A more complex logic would be needed here for CSS grid like areas.
-        toast({ title: "Layout", description: `Auto-layout for ${count} is not fully implemented with complex areas yet. Using simple grid.`, variant: "default" });
-        return; // Or fallback to simple grid
-    }
-    
-    // Simple grid logic
-    const { cols, rows } = layoutConfig;
-    const itemWidth = (100 - (cols + 1) * margin) / cols;
-    const itemHeight = (100 - (rows + 1) * margin) / rows;
-
-    newLayers = newLayers.slice(0, count).map((layer, i) => {
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      return {
-        ...layer,
-        x: margin + col * (itemWidth + margin) + itemWidth / 2,
-        y: margin + row * (itemHeight + margin) + itemHeight / 2,
-        width: itemWidth,
-        rotation: 0,
-      };
-    });
-
+    const finalLayers = [...newLayers, ...page.layers.slice(newLayers.length)];
     const newPages = [...collageSettings.pages];
-    newPages[collageSettings.activePageIndex] = { ...page, layers: newLayers };
+    newPages[collageSettings.activePageIndex] = { ...page, layers: finalLayers };
     updateCollageSettings({ pages: newPages, layout: count });
-
-  }, [activePage, collageSettings.pages, updateCollageSettings, toast]);
+  }, [activePage, collageSettings.pages, updateCollageSettings]);
 
   const editingText = settings.texts.find(t => t.id === editingTextId);
   
@@ -1176,3 +1177,4 @@ export default function Home() {
     
 
     
+
