@@ -134,16 +134,24 @@ export function AppHeader({
       quality: parseFloat(bestQuality.toFixed(2)),
     });
     
-    // Directly update the size from the final calculated blob
     if (finalBlob) {
-        const updateCollage = editorMode === 'collage' ? { processedSize: finalBlob.size } : {};
-        const updateSingle = editorMode === 'single' ? { processedSize: finalBlob.size } : {};
-
-        if (editorMode === 'collage') {
-            updateCollageSettings({ ...updateCollage } as Partial<CollageSettings>);
-        } else {
-            updateSettings({ ...updateSingle } as Partial<ImageSettings>);
-        }
+      // Create a dummy settings update object to satisfy types without modifying original logic path
+      const dummySettingsUpdate: any = {};
+      
+      // Update size state directly in the component that owns it
+      if (editorMode === 'collage') {
+          // This is a bit of a workaround; ideally, AppHeader wouldn't need to know about this.
+          // A better solution would involve a shared state management (like Zustand or Context).
+          // For now, let's assume `updateCollageSettings` can handle this.
+          (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ processedSize: finalBlob.size } as any);
+      } else {
+          // Same as above for single image mode
+          (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ processedSize: finalBlob.size } as any);
+      }
+      
+       // Manually trigger the size update function in the parent to reflect change
+       // This feels redundant but ensures the UI updates if the above doesn't trigger a re-render
+       onUpdateProcessedSize();
     }
     
     setIsOptimizing(false);
@@ -156,13 +164,11 @@ export function AppHeader({
 
   return (
     <header className="flex items-center justify-between p-4 pl-6 border-b bg-card overflow-hidden">
-      <Link href="/" className="flex items-center gap-2 relative">
-        <LogoIcon className="absolute top-1/2 -translate-y-1/2 left-1 md:left-4 opacity-20 size-10 md:size-16" />
-        <div className="sun-rays pl-4">
-            <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
-                ImgResizer
-            </h1>
-        </div>
+      <Link href="/" className="flex items-center gap-3">
+        <LogoIcon className="size-8" />
+        <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
+            ImgResizer
+        </h1>
       </Link>
       <div className="flex items-center gap-2">
         <input
@@ -310,9 +316,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
-
-    
-
-    
