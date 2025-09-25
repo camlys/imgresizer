@@ -121,6 +121,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-base font-medium flex items-center gap-2"><Scan size={18}/> Resize</CardTitle>
                     <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
                       {isFromMultiPagePdf && (
                           <TooltipProvider>
                               <Tooltip>
@@ -135,7 +136,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                               </Tooltip>
                           </TooltipProvider>
                       )}
-                      <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -199,5 +199,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
+
+    
 
     

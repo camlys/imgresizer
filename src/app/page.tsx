@@ -97,6 +97,7 @@ export default function Home() {
   const [isPdfSelectorOpen, setIsPdfSelectorOpen] = React.useState(false);
   const [pdfDoc, setPdfDoc] = React.useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pdfFile, setPdfFile] = React.useState<File | null>(null);
+  const [pdfSelectionSource, setPdfSelectionSource] = React.useState<'single' | 'collage'>('single');
   const [isFromMultiPagePdf, setIsFromMultiPagePdf] = React.useState(false);
   const [isPageSelecting, setIsPageSelecting] = React.useState(false);
 
@@ -177,25 +178,57 @@ export default function Home() {
     }
   };
   
+    const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 4.0 });
+
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) {
+            throw new Error("Could not create canvas context to render PDF.");
+        }
+        tempCanvas.width = viewport.width;
+        tempCanvas.height = viewport.height;
+
+        const renderContext = { canvasContext: tempCtx, viewport: viewport };
+        await page.render(renderContext).promise;
+        return tempCanvas.toDataURL('image/png');
+    }, []);
+
+    const addImageToCollageFromSrc = React.useCallback((src: string) => {
+        const img = new Image();
+        img.onload = () => {
+             const newLayer: ImageLayer = {
+                id: Date.now().toString(),
+                src: img.src,
+                img: img,
+                x: 50,
+                y: 50,
+                width: 30, // Default to 30% of canvas width
+                rotation: 0,
+                opacity: 1,
+                originalWidth: img.width,
+                originalHeight: img.height,
+            };
+            const newPages = [...collageSettings.pages];
+            const updatedPage = { ...activePage, layers: [...activePage.layers, newLayer] };
+            newPages[collageSettings.activePageIndex] = updatedPage;
+            setCollageSettings(prev => ({ ...prev, pages: newPages }));
+            setSelectedLayerId(newLayer.id);
+            setActiveTab('collage');
+            setEditorMode('collage');
+        };
+        img.onerror = () => {
+            toast({ title: "Error", description: "Could not load image to add to collage.", variant: "destructive" });
+        }
+        img.src = src;
+    }, [activePage, collageSettings.pages, toast]);
+
+
     const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
     setIsLoading(true);
     try {
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 4.0 });
-
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) {
-        toast({ title: "Error", description: "Could not create canvas context to render PDF.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
-      tempCanvas.width = viewport.width;
-      tempCanvas.height = viewport.height;
-
-      const renderContext = { canvasContext: tempCtx, viewport: viewport };
-      await page.render(renderContext).promise;
-      
+      const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
       const img = new Image();
       img.onload = () => {
         const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
@@ -229,26 +262,38 @@ export default function Home() {
         toast({ title: "Error", description: "Could not load PDF page as image.", variant: "destructive" });
         setIsLoading(false);
       }
-      img.src = tempCanvas.toDataURL('image/png');
+      img.src = dataUrl;
     } catch (error) {
         console.error("Error processing PDF page:", error);
         toast({ title: "PDF Error", description: "Could not process the selected PDF page.", variant: "destructive" });
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, renderPdfPageToDataURL]);
 
 
-  const handlePdfPageSelect = React.useCallback((pageNum: number) => {
+  const handlePdfPageSelect = React.useCallback(async (pageNum: number) => {
       if (pdfDoc && pdfFile) {
         setIsPageSelecting(true);
-        // Defer heavy operation to allow UI to update
-        setTimeout(() => {
-          loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
-          setIsPdfSelectorOpen(false);
-          setIsPageSelecting(false);
-        }, 50);
+        setIsPdfSelectorOpen(false);
+
+        try {
+            if (pdfSelectionSource === 'collage') {
+                const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
+                addImageToCollageFromSrc(dataUrl);
+            } else {
+                // Defer heavy operation to allow UI to update
+                setTimeout(() => {
+                    loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
+                }, 50);
+            }
+        } catch (error) {
+            console.error("Error handling PDF page selection:", error);
+            toast({ title: "Error", description: "Failed to process PDF page.", variant: "destructive" });
+        } finally {
+            setIsPageSelecting(false);
+        }
       }
-  }, [pdfDoc, pdfFile, loadPageAsImage]);
+  }, [pdfDoc, pdfFile, loadPageAsImage, pdfSelectionSource, renderPdfPageToDataURL, addImageToCollageFromSrc, toast]);
 
 
   const handleImageUpload = async (file: File) => {
@@ -310,6 +355,7 @@ export default function Home() {
             setPdfFile(file);
             
             if (doc.numPages > 1) {
+                setPdfSelectionSource('single');
                 setIsLoading(false);
                 setIsPdfSelectorOpen(true);
             } else {
@@ -341,27 +387,7 @@ export default function Home() {
     }
     const reader = new FileReader();
     reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-            const newLayer: ImageLayer = {
-                id: Date.now().toString(),
-                src: img.src,
-                img: img,
-                x: 50,
-                y: 50,
-                width: 30, // Default to 30% of canvas width
-                rotation: 0,
-                opacity: 1,
-                originalWidth: img.width,
-                originalHeight: img.height,
-            };
-            const newPages = [...collageSettings.pages];
-            const updatedPage = { ...activePage, layers: [...activePage.layers, newLayer] };
-            newPages[collageSettings.activePageIndex] = updatedPage;
-            setCollageSettings(prev => ({ ...prev, pages: newPages }));
-            setSelectedLayerId(newLayer.id);
-        };
-        img.src = e.target?.result as string;
+       addImageToCollageFromSrc(e.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -857,7 +883,10 @@ export default function Home() {
               setPendingCrop={setPendingCrop}
               onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
               isFromMultiPagePdf={isFromMultiPagePdf}
-              onViewPages={() => setIsPdfSelectorOpen(true)}
+              onViewPages={(source) => {
+                setPdfSelectionSource(source);
+                setIsPdfSelectorOpen(true);
+              }}
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
               selectedSignatureId={selectedSignatureId}
@@ -936,6 +965,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
