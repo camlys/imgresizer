@@ -142,6 +142,15 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   const resetSheetSettings = () => {
     handleSheetChange(initialSheetSettings);
   };
+
+  const handleApplySheetToAll = () => {
+    const currentSheetSettings = activePage.sheet;
+    const newPages = settings.pages.map(page => ({
+        ...page,
+        sheet: currentSheetSettings,
+    }));
+    updateSettings({ pages: newPages });
+  };
   
   const addPage = () => {
     const newPage: CollagePage = {
@@ -191,27 +200,11 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       />
       
       <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'layout-tools']} className="w-full">
-        <AccordionItem value="canvas-settings" className="border-b">
+        <AccordionItem value="canvas-settings">
           <div className="flex items-center">
             <AccordionTrigger className="flex-1">
               <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
             </AccordionTrigger>
-            {isFromMultiPagePdf && (
-                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                                    <BookOpen size={16}/>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Open PDF page selector to add another page to the canvas.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
-            )}
           </div>
           <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -311,6 +304,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                  <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
                     <Label htmlFor="sheet-enabled">Enable Sheet Overlay</Label>
+                    <p className="text-xs text-muted-foreground">For current page</p>
                     </div>
                     <Switch
                     id="sheet-enabled"
@@ -318,6 +312,21 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                     onCheckedChange={(checked) => handleSheetChange({ enabled: checked })}
                     />
                 </div>
+                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                    <Label htmlFor="sheet-apply-all">Apply to All Pages</Label>
+                    <p className="text-xs text-muted-foreground">Sync sheet settings across all pages</p>
+                    </div>
+                    <Button
+                        id="sheet-apply-all"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleApplySheetToAll}
+                    >
+                        Apply
+                    </Button>
+                </div>
+
 
                 {activePage.sheet.enabled && (
                     <div className="space-y-4">
@@ -378,7 +387,25 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         
         <AccordionItem value="image-layers">
             <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><ImageUp size={18} /> Image Layers</h3>
+              <div className="flex items-center justify-between w-full pr-1">
+                <h3 className="text-base font-medium flex items-center gap-2"><ImageUp size={18} /> Image Layers</h3>
+                {isFromMultiPagePdf && (
+                    <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                        <BookOpen size={16}/>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Open PDF page selector to add another page to the canvas.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
+              </div>
             </AccordionTrigger>
             <AccordionContent className="pt-4">
                 <div className="flex gap-2 mb-4">
