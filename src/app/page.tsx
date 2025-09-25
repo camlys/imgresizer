@@ -76,6 +76,7 @@ const initialCollageSettings: CollageSettings = {
   format: 'application/pdf',
   quality: 1.0,
   layout: 4,
+  syncSheetSettings: false,
 };
 
 
@@ -542,17 +543,20 @@ export default function Home() {
   }, [selectedTextId, selectedSignatureId]);
 
   const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
-    setCollageSettings(prev => ({ ...prev, ...newSettings }));
-    if (newSettings.pages) {
-      const newActivePage = newSettings.pages[newSettings.activePageIndex ?? collageSettings.activePageIndex];
-      const currentSelectedId = selectedLayerId;
-      const layerExists = newActivePage.layers.some(l => l.id === currentSelectedId);
-      if (!layerExists) {
-          setSelectedLayerId(null);
+    setCollageSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      if (newSettings.pages) {
+        const newActivePage = newSettings.pages[newSettings.activePageIndex ?? prev.activePageIndex];
+        const currentSelectedId = selectedLayerId;
+        const layerExists = newActivePage.layers.some(l => l.id === currentSelectedId);
+        if (!layerExists) {
+            setSelectedLayerId(null);
+        }
       }
-    }
+      return updated;
+    });
     setProcessedSize(null);
-  }, [selectedLayerId, collageSettings.activePageIndex]);
+  }, [selectedLayerId]);
 
   const handleApplyPerspectiveCrop = React.useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {

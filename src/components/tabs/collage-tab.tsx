@@ -134,29 +134,26 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   };
 
   const handleSheetChange = (newSheetProps: Partial<SheetSettings>) => {
-    const newPages = [...settings.pages];
-    newPages[settings.activePageIndex] = { ...activePage, sheet: { ...activePage.sheet, ...newSheetProps } };
-    updateSettings({ pages: newPages });
+    const currentSheetSettings = { ...activePage.sheet, ...newSheetProps };
+    if (settings.syncSheetSettings) {
+        const newPages = settings.pages.map(page => ({ ...page, sheet: currentSheetSettings }));
+        updateSettings({ pages: newPages });
+    } else {
+        const newPages = [...settings.pages];
+        newPages[settings.activePageIndex] = { ...activePage, sheet: currentSheetSettings };
+        updateSettings({ pages: newPages });
+    }
   };
 
   const resetSheetSettings = () => {
     handleSheetChange(initialSheetSettings);
-  };
-
-  const handleApplySheetToAll = () => {
-    const currentSheetSettings = activePage.sheet;
-    const newPages = settings.pages.map(page => ({
-        ...page,
-        sheet: currentSheetSettings,
-    }));
-    updateSettings({ pages: newPages });
   };
   
   const addPage = () => {
     const newPage: CollagePage = {
       id: Date.now().toString(),
       layers: [],
-      sheet: initialSheetSettings
+      sheet: settings.syncSheetSettings ? activePage.sheet : initialSheetSettings
     };
     const newPages = [...settings.pages, newPage];
     updateSettings({ pages: newPages, activePageIndex: newPages.length - 1 });
@@ -312,17 +309,14 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                 </div>
                  <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
-                    <Label htmlFor="sheet-apply-all">Apply to All Pages</Label>
-                    <p className="text-xs text-muted-foreground">Sync sheet settings across all pages</p>
+                    <Label htmlFor="sheet-apply-all">Sync Across All Pages</Label>
+                    <p className="text-xs text-muted-foreground">Apply changes to all pages</p>
                     </div>
-                    <Button
+                     <Switch
                         id="sheet-apply-all"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleApplySheetToAll}
-                    >
-                        Apply
-                    </Button>
+                        checked={settings.syncSheetSettings}
+                        onCheckedChange={(checked) => updateSettings({ syncSheetSettings: checked })}
+                    />
                 </div>
 
 
