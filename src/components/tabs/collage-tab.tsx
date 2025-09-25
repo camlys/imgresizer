@@ -6,13 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface CollageTabProps {
   settings: CollageSettings;
@@ -189,30 +190,30 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         accept="image/*"
       />
       
-      <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'pages']} className="w-full">
+      <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'layout-tools']} className="w-full">
         <AccordionItem value="canvas-settings" className="border-b">
-            <div className="flex items-center">
-              <AccordionTrigger className="flex-1">
-                <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
-              </AccordionTrigger>
-              {isFromMultiPagePdf && (
-                  <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                      <TooltipProvider>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                                      <BookOpen size={16}/>
-                                  </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>Open PDF page selector to add another page to the canvas.</p>
-                              </TooltipContent>
-                          </Tooltip>
-                      </TooltipProvider>
-                  </div>
-              )}
-            </div>
-           <AccordionContent className="space-y-4 pt-4">
+          <div className="flex items-center">
+            <AccordionTrigger className="flex-1">
+              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
+            </AccordionTrigger>
+            {isFromMultiPagePdf && (
+                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                    <BookOpen size={16}/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Open PDF page selector to add another page to the canvas.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+            )}
+          </div>
+          <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
                       <Label htmlFor="canvas-width">Width (px)</Label>
@@ -265,114 +266,116 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
             </div>
           </AccordionContent>
         </AccordionItem>
-
-        <AccordionItem value="pages">
-          <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Book size={18} /> Pages</h3>
+        
+        <AccordionItem value="layout-tools">
+           <AccordionTrigger>
+              <h3 className="text-base font-medium flex items-center gap-2"><Brush size={18} /> Layout Tools</h3>
           </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <Button onClick={addPage} variant="outline" size="sm" className="w-full">
-              <FilePlus size={16} className="mr-2"/> Add New Page
-            </Button>
-            <div className="space-y-2">
-              {settings.pages.map((page, index) => (
-                <div 
-                  key={page.id}
-                  className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${page.id === activePage.id ? 'bg-accent/50 border-primary' : 'hover:bg-muted'}`}
-                  draggable
-                  onDragStart={() => dragPageItem.current = page.id}
-                  onDragEnter={() => dragOverPageItem.current = page.id}
-                  onDragEnd={handlePageDragSort}
-                  onDragOver={(e) => e.preventDefault()}
-                >
-                  <div className="cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
-                  <div className="flex-1 cursor-pointer" onClick={() => setActivePage(page.id)}>
-                    <p className="text-sm font-medium">Page {index + 1}</p>
-                    <p className="text-xs text-muted-foreground">{page.layers.length} layers</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicatePage(page.id)}>
-                    <Copy size={14} />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deletePage(page.id)} disabled={settings.pages.length <= 1}>
-                    <Trash2 size={14} />
-                  </Button>
+          <AccordionContent className="pt-2">
+            <Tabs defaultValue="pages">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="pages"><Book size={16} className="mr-2"/>Pages</TabsTrigger>
+                <TabsTrigger value="sheet"><Notebook size={16} className="mr-2"/>Sheet</TabsTrigger>
+              </TabsList>
+              <TabsContent value="pages" className="mt-2 space-y-4">
+                 <Button onClick={addPage} variant="outline" size="sm" className="w-full">
+                  <FilePlus size={16} className="mr-2"/> Add New Page
+                </Button>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {settings.pages.map((page, index) => (
+                    <div 
+                      key={page.id}
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${page.id === activePage.id ? 'bg-accent/50 border-primary' : 'hover:bg-muted'}`}
+                      draggable
+                      onDragStart={() => dragPageItem.current = page.id}
+                      onDragEnter={() => dragOverPageItem.current = page.id}
+                      onDragEnd={handlePageDragSort}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      <div className="cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
+                      <div className="flex-1 cursor-pointer" onClick={() => setActivePage(page.id)}>
+                        <p className="text-sm font-medium">Page {index + 1}</p>
+                        <p className="text-xs text-muted-foreground">{page.layers.length} layers</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicatePage(page.id)}>
+                        <Copy size={14} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deletePage(page.id)} disabled={settings.pages.length <= 1}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="sheet-generator">
-          <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Notebook size={18} /> Sheet Generator</h3>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                <div className="space-y-0.5">
-                <Label htmlFor="sheet-enabled">Enable Sheet Overlay</Label>
-                </div>
-                <Switch
-                id="sheet-enabled"
-                checked={activePage.sheet.enabled}
-                onCheckedChange={(checked) => handleSheetChange({ enabled: checked })}
-                />
-            </div>
-
-            {activePage.sheet.enabled && (
-                <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+              </TabsContent>
+              <TabsContent value="sheet" className="mt-2 space-y-4">
+                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
-                    <Label htmlFor="h-lines" className="flex items-center gap-2"><Rows size={16}/> Horizontal Lines</Label>
+                    <Label htmlFor="sheet-enabled">Enable Sheet Overlay</Label>
                     </div>
                     <Switch
-                    id="h-lines"
-                    checked={activePage.sheet.horizontalLines}
-                    onCheckedChange={(checked) => handleSheetChange({ horizontalLines: checked })}
-                    />
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                    <Label htmlFor="v-lines" className="flex items-center gap-2"><Columns size={16}/>Vertical Lines</Label>
-                    </div>
-                    <Switch
-                    id="v-lines"
-                    checked={activePage.sheet.verticalLines}
-                    onCheckedChange={(checked) => handleSheetChange({ verticalLines: checked })}
+                    id="sheet-enabled"
+                    checked={activePage.sheet.enabled}
+                    onCheckedChange={(checked) => handleSheetChange({ enabled: checked })}
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="sheet-spacing">Spacing (px)</Label>
-                        <Input id="sheet-spacing" type="number" value={activePage.sheet.spacing} onChange={e => handleSheetChange({ spacing: parseInt(e.target.value) || 0 })}/>
+                {activePage.sheet.enabled && (
+                    <div className="space-y-4">
+                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                        <Label htmlFor="h-lines" className="flex items-center gap-2"><Rows size={16}/> Horizontal Lines</Label>
+                        </div>
+                        <Switch
+                        id="h-lines"
+                        checked={activePage.sheet.horizontalLines}
+                        onCheckedChange={(checked) => handleSheetChange({ horizontalLines: checked })}
+                        />
                     </div>
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="sheet-color">Line Color</Label>
-                        <div className="relative">
-                            <Input id="sheet-color" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
-                            <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
+                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                        <Label htmlFor="v-lines" className="flex items-center gap-2"><Columns size={16}/>Vertical Lines</Label>
+                        </div>
+                        <Switch
+                        id="v-lines"
+                        checked={activePage.sheet.verticalLines}
+                        onCheckedChange={(checked) => handleSheetChange({ verticalLines: checked })}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="sheet-spacing">Spacing (px)</Label>
+                            <Input id="sheet-spacing" type="number" value={activePage.sheet.spacing} onChange={e => handleSheetChange({ spacing: parseInt(e.target.value) || 0 })}/>
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="sheet-color">Line Color</Label>
+                            <div className="relative">
+                                <Input id="sheet-color" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
+                                <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="sheet-margin-top">Top Margin (px)</Label>
-                        <Input id="sheet-margin-top" type="number" value={activePage.sheet.marginTop} onChange={e => handleSheetChange({ marginTop: parseInt(e.target.value) || 0 })}/>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="sheet-margin-top">Top Margin (px)</Label>
+                            <Input id="sheet-margin-top" type="number" value={activePage.sheet.marginTop} onChange={e => handleSheetChange({ marginTop: parseInt(e.target.value) || 0 })}/>
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="sheet-margin-left">Left Margin (px)</Label>
+                            <Input id="sheet-margin-left" type="number" value={activePage.sheet.marginLeft} onChange={e => handleSheetChange({ marginLeft: parseInt(e.target.value) || 0 })}/>
+                        </div>
                     </div>
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="sheet-margin-left">Left Margin (px)</Label>
-                        <Input id="sheet-margin-left" type="number" value={activePage.sheet.marginLeft} onChange={e => handleSheetChange({ marginLeft: parseInt(e.target.value) || 0 })}/>
+                    <Button variant="outline" size="sm" onClick={resetSheetSettings}>
+                        <RefreshCw size={14} className="mr-2"/>
+                        Reset Sheet Settings
+                    </Button>
                     </div>
-                </div>
-                 <Button variant="outline" size="sm" onClick={resetSheetSettings}>
-                    <RefreshCw size={14} className="mr-2"/>
-                    Reset Sheet Settings
-                </Button>
-                </div>
-            )}
+                )}
+              </TabsContent>
+            </Tabs>
           </AccordionContent>
         </AccordionItem>
-
+        
         <AccordionItem value="image-layers">
             <AccordionTrigger>
               <h3 className="text-base font-medium flex items-center gap-2"><ImageUp size={18} /> Image Layers</h3>
