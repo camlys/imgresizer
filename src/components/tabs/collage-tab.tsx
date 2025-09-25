@@ -179,7 +179,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   };
 
   return (
-    <div className="p-1 space-y-4 relative">
+    <div className="p-1 space-y-4">
       <input
         type="file"
         ref={fileInputRef}
@@ -189,11 +189,13 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       />
       
       <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'pages']} className="w-full">
-        <AccordionItem value="canvas-settings">
-           <AccordionTrigger className="relative">
-             <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
-              {isFromMultiPagePdf && (
-                <div className="absolute top-1 right-8 z-10" onClick={(e) => e.stopPropagation()}>
+        <AccordionItem value="canvas-settings" className="relative">
+           <div className="flex items-center">
+             <AccordionTrigger>
+               <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
+             </AccordionTrigger>
+             {isFromMultiPagePdf && (
+                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -208,7 +210,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                     </TooltipProvider>
                 </div>
               )}
-           </AccordionTrigger>
+           </div>
            <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
@@ -421,5 +423,3 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
-
-    
