@@ -205,24 +205,18 @@ export default function Home() {
              const numLayers = activePage.layers.length;
              let x, y, width, height;
 
-             if (numLayers < 4) {
-                 const gridCols = 2;
-                 const gridRows = 2;
-                 const itemWidth = (100 - MARGIN * (gridCols + 1)) / gridCols;
-                 const itemHeight = itemWidth; // For square-like items
+             const gridCols = 2;
+             const gridRows = 2;
+             const itemWidth = (100 - MARGIN * (gridCols + 1)) / gridCols;
+             const itemHeight = itemWidth; // For square-like items
 
-                 const row = Math.floor(numLayers / gridCols);
-                 const col = numLayers % gridCols;
+             const row = Math.floor(numLayers / gridCols);
+             const col = numLayers % gridCols;
 
-                 x = MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2;
-                 y = MARGIN + row * (itemHeight + MARGIN) + itemHeight / 2;
-                 width = itemWidth;
-             } else {
-                 // Fallback for 5th image and more
-                 x = 50;
-                 y = 50;
-                 width = 30;
-             }
+             x = MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2;
+             y = MARGIN + row * (itemHeight + MARGIN) + itemHeight / 2;
+             width = itemWidth;
+             
 
              const newLayer: ImageLayer = {
                 id: Date.now().toString(),
@@ -320,6 +314,27 @@ export default function Home() {
         }
       }
   }, [pdfDoc, pdfFile, loadPageAsImage, pdfSelectionSource, renderPdfPageToDataURL, addImageToCollageFromSrc, toast]);
+
+  const handleMultiplePdfPageSelect = React.useCallback(async (pageNums: number[]) => {
+    if (pdfDoc) {
+      setIsPageSelecting(true);
+      setIsPdfSelectorOpen(false);
+      toast({ title: "Processing...", description: `Adding ${pageNums.length} pages to the collage.`});
+      try {
+        for (const pageNum of pageNums) {
+          const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
+          addImageToCollageFromSrc(dataUrl);
+          // Small delay to allow UI to update between additions, if necessary
+          await new Promise(res => setTimeout(res, 50));
+        }
+      } catch (error) {
+        console.error("Error handling multiple PDF page selection:", error);
+        toast({ title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
+      } finally {
+        setIsPageSelecting(false);
+      }
+    }
+  }, [pdfDoc, renderPdfPageToDataURL, addImageToCollageFromSrc, toast]);
 
 
   const handleImageUpload = async (file: File) => {
@@ -950,7 +965,9 @@ export default function Home() {
             }}
             pdfDoc={pdfDoc}
             onPageSelect={handlePdfPageSelect}
+            onMultiplePagesSelect={handleMultiplePdfPageSelect}
             isPageSelecting={isPageSelecting}
+            source={pdfSelectionSource}
           />
         )}
       </div>
@@ -1059,7 +1076,9 @@ export default function Home() {
               }}
               pdfDoc={pdfDoc}
               onPageSelect={handlePdfPageSelect}
+              onMultiplePagesSelect={handleMultiplePdfPageSelect}
               isPageSelecting={isPageSelecting}
+              source={pdfSelectionSource}
             />
           )}
       </div>

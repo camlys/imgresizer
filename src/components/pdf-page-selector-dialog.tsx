@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -224,10 +224,20 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   onPageSelect: (pageNum: number) => void;
+  onMultiplePagesSelect: (pageNums: number[]) => void;
   isPageSelecting: boolean;
+  source: 'single' | 'collage';
 }
 
-export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSelect, isPageSelecting }: PdfPageSelectorDialogProps) {
+export function PdfPageSelectorDialog({ 
+  isOpen, 
+  onOpenChange, 
+  pdfDoc, 
+  onPageSelect,
+  onMultiplePagesSelect,
+  isPageSelecting,
+  source 
+}: PdfPageSelectorDialogProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
     const [deletedPages, setDeletedPages] = useState<Set<number>>(new Set());
@@ -452,6 +462,12 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
         setSelectedPages([]); // Deselect after download
     };
 
+    const handleAddSelectedToCollage = () => {
+        if (selectedPages.length > 0) {
+            onMultiplePagesSelect(selectedPages);
+        }
+    };
+
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
@@ -467,7 +483,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 <DialogHeader>
                     <DialogTitle>Organize and Select Pages</DialogTitle>
                     <DialogDescription>
-                        Click a page to edit, or select multiple to download. You can rename, rotate, and delete pages before exporting.
+                        Click a page to edit, or select multiple to download or add to collage.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -498,6 +514,16 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                             )}
                          </div>
                          <div className="flex items-center gap-2">
+                            {source === 'collage' && (
+                                <Button onClick={handleAddSelectedToCollage} disabled={selectedPages.length === 0 || isPageSelecting}>
+                                    {isPageSelecting ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <PlusSquare className="mr-2 h-4 w-4" />
+                                    )}
+                                    Add to Collage ({selectedPages.length})
+                                </Button>
+                            )}
                             <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
                                 <SelectTrigger className="w-[120px]">
                                     <SelectValue placeholder="Format" />
@@ -524,7 +550,7 @@ export function PdfPageSelectorDialog({ isOpen, onOpenChange, pdfDoc, onPageSele
                 {isLoading || isPageSelecting ? (
                     <div className="flex-1 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Loading page for editing...' : 'Loading PDF...'}</p>
+                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Processing pages...' : 'Loading PDF...'}</p>
                     </div>
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
