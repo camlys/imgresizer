@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export function LogoIcon({ className }: { className?: string }) {
   return (
     <img
-      src="/imgresizer.jpeg"
+      src="/imgresizerlogo.png"
       alt="ImgResizer Logo"
       className={cn("rounded-md", className)}
     />

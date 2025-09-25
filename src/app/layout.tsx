@@ -45,9 +45,9 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: '/imgresizer.jpeg',
-    shortcut: '/imgresizer.jpeg',
-    apple: '/imgresizer.jpeg',
+    icon: '/imgresizerlogo.png',
+    shortcut: '/imgresizerlogo.png',
+    apple: '/imgresizerlogo.png',
   },
 
   manifest: '/site.webmanifest',
