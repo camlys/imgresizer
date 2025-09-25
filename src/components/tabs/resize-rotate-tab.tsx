@@ -125,7 +125,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                           <TooltipProvider>
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button variant="outline" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
                                           <BookOpen size={16}/>
                                       </Button>
                                   </TooltipTrigger>

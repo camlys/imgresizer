@@ -190,7 +190,23 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'pages']} className="w-full">
         <AccordionItem value="canvas-settings">
            <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
+             <div className="flex justify-between items-center w-full">
+                <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
+                {isFromMultiPagePdf && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onViewPages(); }} className="h-8 w-8 text-primary mr-2">
+                                    <BookOpen size={16}/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Add Page from PDF</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+             </div>
            </AccordionTrigger>
            <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -341,20 +357,6 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
                       <Plus size={16} className="mr-2"/> Add Image
                   </Button>
-                   {isFromMultiPagePdf && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" onClick={onViewPages} className="text-primary">
-                                        <BookOpen size={16}/>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Add Page from PDF</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
                 </div>
 
                 {activePage.layers.length === 0 ? (
