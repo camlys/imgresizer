@@ -95,13 +95,12 @@ export default function RootLayout({
         />
         <Analytics />
         <link rel="manifest" href="/site.webmanifest" />
-        <link rel="icon" href="/imgresizerlogo.png" />
+        <link rel="icon" href="/imgresizerlogo.ico" />
         <link rel="apple-touch-icon" href="/imgresizerlogo.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
         <meta name="twitter:creator" content="@ImgResizer" />
-        <meta name="twitter:image" content="https://imgresizer.xyz/og-image.png" />
         <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
         <meta property="og:url" content="https://imgresizer.xyz" />
@@ -111,7 +110,7 @@ export default function RootLayout({
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="en_US" />
         <meta property="og:type" content="website" />
-
+        <meta name="twitter:image" content="https://imgresizer.xyz/og-image.png" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider

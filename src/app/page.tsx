@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import type { Metadata } from 'next';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
@@ -24,7 +25,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
   import.meta.url,
 ).toString();
-
 
 const initialSettings: ImageSettings = {
   width: 512,
