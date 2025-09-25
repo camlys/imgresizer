@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 
 interface CollageTabProps {
   settings: CollageSettings;
@@ -19,6 +20,8 @@ interface CollageTabProps {
   onAddImage: (file: File) => void;
   selectedLayerId: string | null;
   setSelectedLayerId: (id: string | null) => void;
+  isFromMultiPagePdf: boolean;
+  onViewPages: () => void;
 }
 
 const canvasSizes = [
@@ -47,7 +50,7 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId }: CollageTabProps) {
+export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId, isFromMultiPagePdf, onViewPages }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
@@ -334,9 +337,25 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
               <h3 className="text-base font-medium flex items-center gap-2"><ImageUp size={18} /> Image Layers</h3>
             </AccordionTrigger>
             <AccordionContent className="pt-4">
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="w-full mb-4">
-                    <Plus size={16} className="mr-2"/> Add Image to Current Page
-                </Button>
+                <div className="flex gap-2 mb-4">
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                      <Plus size={16} className="mr-2"/> Add Image
+                  </Button>
+                   {isFromMultiPagePdf && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={onViewPages} className="text-primary">
+                                        <BookOpen size={16}/>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Add Page from PDF</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
 
                 {activePage.layers.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No images on this page. Click "Add Image" to start.</p>

@@ -126,6 +126,8 @@ export function ControlPanel({
             onAddImage={onAddImageToCollage}
             selectedLayerId={selectedLayerId}
             setSelectedLayerId={setSelectedLayerId}
+            isFromMultiPagePdf={isFromMultiPagePdf}
+            onViewPages={onViewPages}
           />
         </TabsContent>
       </ScrollArea>
