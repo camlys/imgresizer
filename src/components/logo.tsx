@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 export function LogoIcon({ className }: { className?: string }) {
   return (
     <img
-      src="/camly.png"
+      src="/imgresizer.jpeg"
       alt="ImgResizer Logo"
-      className={cn(className)}
+      className={cn("rounded-md", className)}
     />
   );
 }
