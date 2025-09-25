@@ -339,16 +339,26 @@ export default function Home() {
       const GRID_COLS = 2;
       const MAX_IMAGES_PER_PAGE = 4;
   
-      for (const pageNum of pageNums) {
-        const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
-        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error("Image load error"));
-          image.src = dataUrl;
-        });
+      // Batch-process all page renderings first
+      const imagePromises = pageNums.map(pageNum =>
+        renderPdfPageToDataURL(pdfDoc, pageNum).then(dataUrl =>
+          new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error("Image load error"));
+            image.src = dataUrl;
+          })
+        )
+      );
   
+      const newImages = await Promise.all(imagePromises);
+  
+      // Now, update the state in a single batch
+      newImages.forEach((img, index) => {
+        const pageNum = pageNums[index];
         let activePage = updatedPages[currentActivePageIndex];
+  
+        // If current page is full, create a new one
         if (activePage.layers.length >= MAX_IMAGES_PER_PAGE) {
           const newPage: CollagePage = {
             id: `${Date.now()}-page-${pageNum}`,
@@ -360,6 +370,7 @@ export default function Home() {
           activePage = newPage;
         }
   
+        // Add layer to the (potentially new) active page
         const layerIndex = activePage.layers.length;
         const itemWidth = (100 - MARGIN * (GRID_COLS + 1)) / GRID_COLS;
         const row = Math.floor(layerIndex / GRID_COLS);
@@ -377,11 +388,12 @@ export default function Home() {
           originalWidth: img.width,
           originalHeight: img.height,
         };
-        
+  
         activePage.layers.push(newLayer);
         lastSelectedLayerId = newLayer.id;
-      }
+      });
   
+      // Single state update
       setCollageSettings(prev => ({
         ...prev,
         pages: updatedPages,
@@ -436,7 +448,7 @@ export default function Home() {
                     crop: cropData,
                     perspectivePoints: {
                       tl: { x: inset, y: inset },
-                      tr: { x: img.width - inset, y: inset },
+                      tr: { x: img.width - inset, y: img.height - inset },
                       bl: { x: inset, y: img.height - inset },
                       br: { x: img.width - inset, y: img.height - inset },
                     },
@@ -1178,3 +1190,4 @@ export default function Home() {
 
     
 
+    
