@@ -323,77 +323,83 @@ export default function Home() {
   }, [pdfDoc, pdfFile, loadPageAsImage, pdfSelectionSource, renderPdfPageToDataURL, addImageToCollageFromSrc, toast]);
 
   const handleMultiplePdfPageSelect = React.useCallback(async (pageNums: number[]) => {
-    if (pdfDoc) {
-        setIsPageSelecting(true);
-        setIsPdfSelectorOpen(false);
-        toast({ title: "Processing...", description: `Adding ${pageNums.length} pages to the collage.` });
-        try {
-            const newLayers: ImageLayer[] = [];
-            let currentLayersCount = collageSettings.pages[collageSettings.activePageIndex].layers.length;
-
-            for (const pageNum of pageNums) {
-                const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
-                const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-                    const image = new Image();
-                    image.onload = () => resolve(image);
-                    image.onerror = () => reject(new Error("Image load error"));
-                    image.src = dataUrl;
-                });
-
-                const MARGIN = 2;
-                const gridCols = 2;
-                const itemWidth = (100 - MARGIN * (gridCols + 1)) / gridCols;
-                
-                const layerIndex = currentLayersCount++;
-                const row = Math.floor(layerIndex / gridCols);
-                const col = layerIndex % gridCols;
-
-                let x, y, width;
-                if (layerIndex < 4) {
-                    x = MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2;
-                    y = MARGIN + row * (itemWidth + MARGIN) + itemWidth / 2;
-                    width = itemWidth;
-                } else {
-                    x = 50;
-                    y = 50;
-                    width = 25;
-                }
-
-                newLayers.push({
-                    id: `${Date.now()}-${pageNum}`,
-                    src: img.src,
-                    img: img,
-                    x: x,
-                    y: y,
-                    width: width,
-                    rotation: 0,
-                    opacity: 1,
-                    originalWidth: img.width,
-                    originalHeight: img.height,
-                });
-            }
-
-            setCollageSettings(prev => {
-                const newPages = [...prev.pages];
-                const activePage = newPages[prev.activePageIndex];
-                const updatedPage = { ...activePage, layers: [...activePage.layers, ...newLayers] };
-                newPages[prev.activePageIndex] = updatedPage;
-                return { ...prev, pages: newPages };
-            });
-
-            if (newLayers.length > 0) {
-                setSelectedLayerId(newLayers[newLayers.length - 1].id);
-            }
-            setActiveTab('collage');
-            setEditorMode('collage');
-        } catch (error) {
-            console.error("Error handling multiple PDF page selection:", error);
-            toast({ title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
-        } finally {
-            setIsPageSelecting(false);
+    if (!pdfDoc) return;
+  
+    setIsPageSelecting(true);
+    setIsPdfSelectorOpen(false);
+    toast({ title: "Processing...", description: `Adding ${pageNums.length} pages to the collage.` });
+  
+    try {
+      let updatedPages = [...collageSettings.pages];
+      let currentActivePageIndex = collageSettings.activePageIndex;
+      let lastSelectedLayerId: string | null = null;
+  
+      const MARGIN = 2;
+      const GRID_COLS = 2;
+      const MAX_IMAGES_PER_PAGE = 4;
+  
+      for (const pageNum of pageNums) {
+        const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error("Image load error"));
+          image.src = dataUrl;
+        });
+  
+        let activePage = updatedPages[currentActivePageIndex];
+        if (activePage.layers.length >= MAX_IMAGES_PER_PAGE) {
+          const newPage: CollagePage = {
+            id: `${Date.now()}-page-${pageNum}`,
+            layers: [],
+            sheet: initialSheetSettings,
+          };
+          updatedPages.push(newPage);
+          currentActivePageIndex = updatedPages.length - 1;
+          activePage = newPage;
         }
+  
+        const layerIndex = activePage.layers.length;
+        const itemWidth = (100 - MARGIN * (GRID_COLS + 1)) / GRID_COLS;
+        const row = Math.floor(layerIndex / GRID_COLS);
+        const col = layerIndex % GRID_COLS;
+  
+        const newLayer: ImageLayer = {
+          id: `${Date.now()}-${pageNum}`,
+          src: img.src,
+          img: img,
+          x: MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2,
+          y: MARGIN + row * (itemWidth + MARGIN) + itemWidth / 2,
+          width: itemWidth,
+          rotation: 0,
+          opacity: 1,
+          originalWidth: img.width,
+          originalHeight: img.height,
+        };
+        
+        activePage.layers.push(newLayer);
+        lastSelectedLayerId = newLayer.id;
+      }
+  
+      setCollageSettings(prev => ({
+        ...prev,
+        pages: updatedPages,
+        activePageIndex: currentActivePageIndex,
+      }));
+  
+      if (lastSelectedLayerId) {
+        setSelectedLayerId(lastSelectedLayerId);
+      }
+      setActiveTab('collage');
+      setEditorMode('collage');
+  
+    } catch (error) {
+      console.error("Error handling multiple PDF page selection:", error);
+      toast({ title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
+    } finally {
+      setIsPageSelecting(false);
     }
-  }, [pdfDoc, renderPdfPageToDataURL, toast, collageSettings.pages, collageSettings.activePageIndex]);
+  }, [pdfDoc, renderPdfPageToDataURL, toast, collageSettings]);
 
 
   const handleImageUpload = async (file: File) => {
@@ -1148,6 +1154,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
