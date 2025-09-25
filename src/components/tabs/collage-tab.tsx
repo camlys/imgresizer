@@ -179,7 +179,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   };
 
   return (
-    <div className="p-1 space-y-4">
+    <div className="p-1 space-y-4 relative">
       <input
         type="file"
         ref={fileInputRef}
@@ -187,27 +187,28 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         className="hidden"
         accept="image/*"
       />
+      {isFromMultiPagePdf && (
+        <div className="absolute top-1 right-1 z-10">
+          <TooltipProvider>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                          <BookOpen size={16}/>
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                      <p>Open PDF page selector to add another page to the canvas.</p>
+                  </TooltipContent>
+              </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
       <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'pages']} className="w-full">
         <AccordionItem value="canvas-settings">
            <AccordionTrigger>
              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
            </AccordionTrigger>
            <AccordionContent className="space-y-4 pt-4">
-                {isFromMultiPagePdf && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onViewPages(); }} className="w-full">
-                                    <BookOpen size={16} className="mr-2"/>
-                                     Add Page from PDF
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Open PDF page selector to add another page to the canvas.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
                       <Label htmlFor="canvas-width">Width (px)</Label>
