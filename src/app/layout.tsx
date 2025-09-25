@@ -95,7 +95,7 @@ export default function RootLayout({
         />
         <Analytics />
         <link rel="manifest" href="/site.webmanifest" />
-        <link rel="icon" href="/imgresizerlogo.ico" />
+        <link rel="icon" href="/imgresizerlogo.png" />
         <link rel="apple-touch-icon" href="/imgresizerlogo.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
