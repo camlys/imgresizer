@@ -130,13 +130,15 @@ export default function Home() {
     if (tab === 'collage' && editorMode !== 'collage') {
         setEditorMode('collage');
         if (originalImage && activePage.layers.length === 0) {
+            const MARGIN = 2;
+            const itemWidth = (100 - MARGIN * 3) / 2; // 2 columns
             const newLayer: ImageLayer = {
                 id: Date.now().toString(),
                 src: originalImage.src,
                 img: imageElement!,
-                x: 50,
-                y: 50,
-                width: 50,
+                x: MARGIN + itemWidth / 2,
+                y: MARGIN + itemWidth / 2, // simplified for square-like items
+                width: itemWidth,
                 rotation: 0,
                 opacity: 1,
                 originalWidth: originalImage.width,
@@ -144,7 +146,7 @@ export default function Home() {
             };
             const newPages = [...collageSettings.pages];
             newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
-            setCollageSettings(prev => ({ ...prev, pages: newPages }));
+            setCollageSettings(prev => ({ ...prev, pages: newPages, layout: 2 }));
             setSelectedLayerId(newLayer.id);
         }
     } else if (tab !== 'collage' && editorMode !== 'single') {
@@ -405,15 +407,27 @@ export default function Home() {
   };
 
    const addImageToCollage = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-        toast({ title: "Invalid File", description: "Only image files can be added to the collage.", variant: "destructive" });
-        return;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        addImageToCollageFromSrc(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        setPdfDoc(doc);
+        setPdfFile(file);
+        setPdfSelectionSource('collage');
+        setIsPdfSelectorOpen(true);
+      } catch (error) {
+        console.error("Error processing PDF for collage:", error);
+        toast({ title: "PDF Error", description: "Could not process PDF.", variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-       addImageToCollageFromSrc(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const updateSettings = React.useCallback((newSettings: Partial<ImageSettings>) => {
