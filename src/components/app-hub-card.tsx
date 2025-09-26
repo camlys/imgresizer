@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Sparkles, QrCode } from "lucide-react";
+import { Calculator, Sparkles, QrCode, FileEdit } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { InstallPwaButton } from "./install-pwa-button";
@@ -12,6 +12,7 @@ export const apps = [
     { name: 'Calput', id: 'calput', url: 'https://calput.vercel.app/', icon: <Calculator size={24} />, description: 'Calculator with history' },
     { name: 'Favic', id: 'favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={24} />, description: 'Generate favicons' },
     { name: 'Qrick', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'QR & Barcode generator' },
+    { name: 'PDFpro', id: 'pdfpro', url: 'https://pdfpro-app.vercel.app/', icon: <FileEdit size={24} />, description: 'PDF Editor' },
 ];
 
 interface AppHubCardProps {
