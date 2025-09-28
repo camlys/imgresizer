@@ -91,7 +91,6 @@ export function AppHeader({
     try {
       localStorage.setItem('quickActionPreset', JSON.stringify(quickActionPreset));
       toast({ title: 'Success', description: 'Quick Action preset saved.' });
-      setIsQuickActionPopoverOpen(false);
     } catch (e) {
       console.error("Failed to save quick action preset to local storage", e);
       toast({ title: 'Error', description: 'Could not save the preset.', variant: 'destructive'});
@@ -158,6 +157,7 @@ export function AppHeader({
       toast({ title: 'Error', description: 'Quick Action failed to process the image.', variant: 'destructive'});
     } finally {
       setIsProcessingQuickAction(false);
+      setIsQuickActionPopoverOpen(false);
     }
   };
 
@@ -271,9 +271,9 @@ export function AppHeader({
         {isImageLoaded && editorMode === 'single' && (
            <Popover open={isQuickActionPopoverOpen} onOpenChange={setIsQuickActionPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" onClick={quickActionPreset ? handleQuickAction : undefined} disabled={isProcessingQuickAction}>
-                  {isProcessingQuickAction ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
-                  {isProcessingQuickAction ? 'Processing...' : 'Quick Action'}
+                <Button variant="outline">
+                  <Zap className="mr-2"/>
+                  Quick Action
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
@@ -281,7 +281,7 @@ export function AppHeader({
                       <div className="space-y-2">
                           <h4 className="font-medium leading-none">Quick Action Preset</h4>
                           <p className="text-sm text-muted-foreground">
-                          Configure your one-click resize and download settings.
+                          Configure and run a one-click resize and download.
                           </p>
                       </div>
                       <Separator />
@@ -337,7 +337,13 @@ export function AppHeader({
                             </Select>
                             </div>
                         </div>
-                        <Button onClick={handleSaveQuickActionPreset}>Save Preset</Button>
+                        <div className="flex items-center gap-2">
+                           <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
+                           <Button onClick={handleQuickAction} disabled={isProcessingQuickAction || !quickActionPreset} className="w-full">
+                                {isProcessingQuickAction ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
+                                Run
+                           </Button>
+                        </div>
                   </div>
               </PopoverContent>
            </Popover>
