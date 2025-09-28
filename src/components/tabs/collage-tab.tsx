@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, LayoutGrid, Palmtree, Scan, Text, WholeWord } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, Palmtree, Scan, Text, WholeWord, LayoutGrid } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -513,6 +513,13 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                                         <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, -90)}><RotateCcw size={16}/></Button>
                                                         <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, 90)}><RotateCw size={16}/></Button>
                                                     </div>
+                                                    <Slider 
+                                                        value={[layer.rotation]} 
+                                                        onValueChange={([val]) => handleLayerUpdate(layer.id, { rotation: val })}
+                                                        min={0} 
+                                                        max={360} 
+                                                        step={1}
+                                                    />
                                                 </div>
                                                 <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove Image</Button>
                                             </AccordionContent>
@@ -583,3 +590,5 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
+
+    
