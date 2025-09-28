@@ -1,6 +1,14 @@
 
 export type Unit = 'px' | 'cm' | 'mm' | 'inch';
 
+export type DrawingPath = {
+  id: string;
+  points: { x: number; y: number }[];
+  color: string;
+  size: number;
+  isEraser: boolean;
+};
+
 export type TextOverlay = {
   id: string;
   text: string;
@@ -15,7 +23,7 @@ export type TextOverlay = {
 };
 
 export type SignatureOverlay = {
-  id: string;
+  id:string;
   src: string;
   img: HTMLImageElement; // Keep the image element for rendering
   x: number; // percentage
@@ -68,6 +76,12 @@ export type ImageSettings = {
   crop: CropSettings | null;
   texts: TextOverlay[];
   signatures: SignatureOverlay[];
+  drawing: {
+    paths: DrawingPath[];
+    brushColor: string;
+    brushSize: number;
+    isErasing: boolean;
+  };
   adjustments: {
     brightness: number;
     contrast: number;
@@ -121,5 +135,3 @@ export type QuickActionPreset = {
   targetSize?: number;
   targetUnit: 'KB' | 'MB';
 };
-
-    

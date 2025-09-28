@@ -7,7 +7,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -40,6 +40,12 @@ const initialSettings: ImageSettings = {
   perspectivePoints: null,
   texts: [],
   signatures: [],
+  drawing: {
+    paths: [],
+    brushColor: '#ff0000',
+    brushSize: 10,
+    isErasing: false,
+  },
   adjustments: {
     brightness: 100,
     contrast: 100,
@@ -711,7 +717,7 @@ export default function Home() {
         
         try {
             const finalSettings = { ...settings, ...overrideSettings };
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = finalSettings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, drawing } = finalSettings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -768,6 +774,24 @@ export default function Home() {
             finalCtx.rotate(rad);
             finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             finalCtx.restore();
+
+            // Draw drawing paths
+            finalCtx.lineCap = 'round';
+            finalCtx.lineJoin = 'round';
+            drawing.paths.forEach(path => {
+                if (path.points.length < 2) return;
+                finalCtx.strokeStyle = path.color;
+                finalCtx.lineWidth = path.size;
+                finalCtx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
+                
+                finalCtx.beginPath();
+                finalCtx.moveTo(path.points[0].x, path.points[0].y);
+                for (let i = 1; i < path.points.length; i++) {
+                    finalCtx.lineTo(path.points[i].x, path.points[i].y);
+                }
+                finalCtx.stroke();
+            });
+            finalCtx.globalCompositeOperation = 'source-over'; // Reset composite operation
 
             signatures.forEach(sig => {
                 if (sig.img) {

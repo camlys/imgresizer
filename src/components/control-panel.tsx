@@ -6,10 +6,11 @@ import { ResizeRotateTab } from '@/components/tabs/resize-rotate-tab';
 import { RotateFlipTab } from '@/components/tabs/rotate-flip-tab';
 import { CropTab } from '@/components/tabs/crop-tab';
 import { TextTab } from '@/components/tabs/text-tab';
+import { DrawTab } from '@/components/tabs/draw-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
 import type { ImageSettings, OriginalImage, CropSettings, CollageSettings } from '@/lib/types';
-import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers } from 'lucide-react';
+import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Paintbrush } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 interface ControlPanelProps {
@@ -68,6 +69,7 @@ export function ControlPanel({
     { value: 'resize', icon: Scan, label: 'Resize' },
     { value: 'crop', icon: Crop, label: 'Crop' },
     { value: 'rotate', icon: RotateCcw, label: 'Rotate' },
+    { value: 'draw', icon: Paintbrush, label: 'Draw' },
     { value: 'text', icon: Type, label: 'Overlays' },
     { value: 'adjustments', icon: SlidersHorizontal, label: 'Adjust' },
     { value: 'collage', icon: Layers, label: 'Collage' },
@@ -110,6 +112,9 @@ export function ControlPanel({
         </TabsContent>
         <TabsContent value="rotate" className="mt-0">
           <RotateFlipTab settings={settings} updateSettings={updateSettings} />
+        </TabsContent>
+        <TabsContent value="draw" className="mt-0">
+          <DrawTab settings={settings} updateSettings={updateSettings} />
         </TabsContent>
         <TabsContent value="text" className="mt-0">
           <TextTab 

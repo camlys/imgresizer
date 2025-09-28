@@ -2,7 +2,7 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay, CollageSettings, ImageLayer } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay, CollageSettings, ImageLayer, DrawingPath } from '@/lib/types';
 
 interface ImageCanvasProps {
   originalImage: OriginalImage | null;
@@ -49,7 +49,8 @@ type InteractionType =
   | 'text-move' | 'text-rotate' | 'text-resize-tl' | 'text-resize-tr' | 'text-resize-bl' | 'text-resize-br'
   | 'signature-move' | 'signature-rotate' | 'signature-resize-tl' | 'signature-resize-tr' | 'signature-resize-bl' | 'signature-resize-br'
   | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br'
-  | 'layer-move' | 'layer-rotate' | 'layer-resize-tl' | 'layer-resize-tr' | 'layer-resize-bl' | 'layer-resize-br';
+  | 'layer-move' | 'layer-rotate' | 'layer-resize-tl' | 'layer-resize-tr' | 'layer-resize-bl' | 'layer-resize-br'
+  | 'draw';
 
 type InteractionState = {
   type: InteractionType;
@@ -72,6 +73,9 @@ type InteractionState = {
   layerId?: string;
   startLayer?: ImageLayer;
   layerCenter?: { x: number; y: number; };
+
+  // Drawing state
+  currentPath?: DrawingPath;
 };
 
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
@@ -512,7 +516,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         }
 
     } else {
-        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures, backgroundColor } = settings;
+        const { width, height, rotation, flipHorizontal, flipVertical, texts, signatures, backgroundColor, drawing } = settings;
         canvas.width = width;
         canvas.height = height;
 
@@ -538,6 +542,27 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.drawImage(processedImageCache, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
           ctx.restore();
         }
+
+        // Draw drawing paths
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const allPaths = [...drawing.paths];
+        if (interactionState?.type === 'draw' && interactionState.currentPath) {
+          allPaths.push(interactionState.currentPath);
+        }
+        allPaths.forEach(path => {
+          if (path.points.length < 2) return;
+          ctx.strokeStyle = path.color;
+          ctx.lineWidth = path.size;
+          ctx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
+          ctx.beginPath();
+          ctx.moveTo(path.points[0].x, path.points[0].y);
+          for (let i = 1; i < path.points.length; i++) {
+            ctx.lineTo(path.points[i].x, path.points[i].y);
+          }
+          ctx.stroke();
+        });
+        ctx.globalCompositeOperation = 'source-over';
 
         signatures.forEach(sig => {
           if (sig.img) {
@@ -666,7 +691,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions, interactionState]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -736,6 +761,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
 
       if (!img) return null;
+
+      if (activeTab === 'draw') {
+        return { type: 'draw', cursor: 'crosshair' };
+      }
 
       if (activeTab === 'crop') {
          if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
@@ -846,7 +875,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     const currentTime = new Date().getTime();
     const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
-    if (interaction?.type.startsWith('layer-') && activePage) {
+    if (interaction?.type === 'draw') {
+        const newPath: DrawingPath = {
+            id: Date.now().toString(),
+            points: [pos],
+            color: settings.drawing.brushColor,
+            size: settings.drawing.brushSize,
+            isEraser: settings.drawing.isErasing,
+        };
+        setInteractionState({
+            type: 'draw',
+            startPos: pos,
+            currentPath: newPath,
+        });
+    } else if (interaction?.type.startsWith('layer-') && activePage) {
         const layerId = interaction.layerId!;
         const clickedLayer = activePage.layers.find(l => l.id === layerId);
 
@@ -947,7 +989,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedLayerIds([]);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions, settings.texts, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -958,16 +1000,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const { canvas, ctx } = getCanvasAndContext();
         if (!canvas || !ctx) return;
 
-        const { type, startPos, startText, startSignature, startLayer } = interactionState;
+        const { type, startPos, startText, startSignature, startLayer, currentPath } = interactionState;
 
-        if (type.startsWith('layer-') && startLayer) {
+        if (type === 'draw' && currentPath) {
+          const newPath = { ...currentPath, points: [...currentPath.points, pos] };
+          setInteractionState(prev => prev ? { ...prev, currentPath: newPath } : null);
+        } else if (type.startsWith('layer-') && startLayer) {
             const activePage = collageSettings.pages[collageSettings.activePageIndex];
             if (!activePage) return;
 
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
                 const newPages = [...collageSettings.pages];
-                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
+                newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
                 updateCollageSettings({ pages: newPages });
             };
 
@@ -1115,6 +1160,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const interaction = getInteractionType(pos);
         if (activeTab === 'crop' && settings.cropMode === 'rect') {
           setCursor(interaction ? interaction.cursor : 'crosshair');
+        } else if (activeTab === 'draw') {
+          setCursor('crosshair');
         } else {
           setCursor(interaction ? interaction.cursor : 'default');
         }
@@ -1123,7 +1170,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
-      if (interactionState.type.startsWith('text-resize-') && interactionState.startText) {
+      if (interactionState.type === 'draw' && interactionState.currentPath) {
+        const finalPath = interactionState.currentPath;
+        if (finalPath.points.length > 1) {
+            updateSettings({ 
+                drawing: { 
+                    ...settings.drawing, 
+                    paths: [...settings.drawing.paths, finalPath] 
+                } 
+            });
+        }
+      } else if (interactionState.type.startsWith('text-resize-') && interactionState.startText) {
           const newTexts = settings.texts.map(t =>
               t.id === interactionState.startText!.id
                   ? { ...t, size: Math.round(t.size) }
@@ -1144,7 +1201,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
       setInteractionState(null);
     }
-  }, [interactionState, settings.texts, updateSettings, collageSettings, updateCollageSettings]);
+  }, [interactionState, settings.drawing, settings.texts, updateSettings, collageSettings, updateCollageSettings]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {
