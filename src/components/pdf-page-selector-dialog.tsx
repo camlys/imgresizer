@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -251,8 +251,15 @@ export function PdfPageSelectorDialog({
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<number[] | null>(null);
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [rangeSelection, setRangeSelection] = useState('');
+
     const visiblePages = pagesMeta.filter(p => !deletedPages.has(p.pageNumber));
     const visiblePageNumbers = visiblePages.map(p => p.pageNumber);
+    
+    const filteredPages = visiblePages.filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.pageNumber.toString().includes(searchQuery)
+    );
 
     useEffect(() => {
         if (pdfDoc && isOpen) {
@@ -268,6 +275,8 @@ export function PdfPageSelectorDialog({
             setDeletedPages(new Set());
             setSelectedPages([]);
             setDeletionHistory([]);
+            setSearchQuery('');
+            setRangeSelection('');
         }
     }, [pdfDoc, isOpen]);
 
@@ -289,6 +298,35 @@ export function PdfPageSelectorDialog({
         } else {
             setSelectedPages(visiblePageNumbers);
         }
+    };
+    
+    const handleRangeSelect = () => {
+        if (!rangeSelection) return;
+        const newSelected = new Set(selectedPages);
+        const ranges = rangeSelection.split(',');
+        
+        ranges.forEach(range => {
+            range = range.trim();
+            if (range.includes('-')) {
+                const [start, end] = range.split('-').map(Number);
+                if (!isNaN(start) && !isNaN(end)) {
+                    for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+                        if (visiblePageNumbers.includes(i)) {
+                            newSelected.add(i);
+                        }
+                    }
+                }
+            } else {
+                const num = Number(range);
+                if (!isNaN(num) && visiblePageNumbers.includes(num)) {
+                    newSelected.add(num);
+                }
+            }
+        });
+        
+        setSelectedPages(Array.from(newSelected).sort((a,b) => a-b));
+        setRangeSelection('');
+        toast({ title: "Selection Updated", description: `${newSelected.size} pages are now selected.`});
     };
 
     const handlePageRotate = (pageNumber: number, degree: number) => {
@@ -488,9 +526,30 @@ export function PdfPageSelectorDialog({
                 </DialogHeader>
                 
                 {!isLoading && (
-                     <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b">
-                         <div className="flex items-center gap-4">
+                     <div className="flex flex-col gap-4 py-2 border-b">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Search by page number or name..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 w-full sm:w-64"
+                                />
+                            </div>
                              <div className="flex items-center gap-2">
+                                <Input
+                                    placeholder="e.g. 1-5, 8, 10-12"
+                                    value={rangeSelection}
+                                    onChange={(e) => setRangeSelection(e.target.value)}
+                                    className="w-48"
+                                />
+                                <Button onClick={handleRangeSelect} variant="secondary">Select from Range</Button>
+                             </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
                                 <Checkbox
                                     id="select-all"
                                     checked={visiblePageNumbers.length > 0 && selectedPages.length === visiblePageNumbers.length}
@@ -499,21 +558,21 @@ export function PdfPageSelectorDialog({
                                 <Label htmlFor="select-all" className="cursor-pointer">
                                     {selectedPages.length === visiblePageNumbers.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
                                 </Label>
-                             </div>
-                             {selectedPages.length > 0 && (
+                                </div>
+                                {selectedPages.length > 0 && (
                                 <Button variant="destructive-outline" size="sm" onClick={() => confirmDelete(selectedPages)}>
                                     <Trash2 size={16} className="mr-2"/>
                                     Delete ({selectedPages.length})
                                 </Button>
-                             )}
-                              {deletionHistory.length > 0 && (
+                                )}
+                                {deletionHistory.length > 0 && (
                                 <div className="text-sm text-muted-foreground">
                                     {deletedPages.size} page(s) deleted.
                                     <Button variant="link" className="p-1 h-auto" onClick={handleUndoDelete}>Undo</Button>
                                 </div>
                             )}
-                         </div>
-                         <div className="flex items-center gap-2">
+                            </div>
+                            <div className="flex items-center gap-2">
                             {source === 'collage' && (
                                 <Button onClick={handleAddSelectedToCollage} disabled={selectedPages.length === 0 || isPageSelecting}>
                                     {isPageSelecting ? (
@@ -543,7 +602,8 @@ export function PdfPageSelectorDialog({
                                 )}
                                 Download ({selectedPages.length})
                             </Button>
-                         </div>
+                            </div>
+                        </div>
                      </div>
                 )}
                
@@ -555,7 +615,7 @@ export function PdfPageSelectorDialog({
                 ) : (
                     <ScrollArea className="flex-1 -mx-6 px-6">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
-                           {visiblePages.map(pageMeta => (
+                           {filteredPages.map(pageMeta => (
                                <PagePreview
                                    key={pageMeta.pageNumber}
                                    pdfDoc={pdfDoc!}
@@ -570,6 +630,11 @@ export function PdfPageSelectorDialog({
                                />
                            ))}
                         </div>
+                         {filteredPages.length === 0 && (
+                            <div className="text-center py-16 text-muted-foreground">
+                                <p>No pages found for your search.</p>
+                            </div>
+                        )}
                     </ScrollArea>
                 )}
                  <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
@@ -590,3 +655,5 @@ export function PdfPageSelectorDialog({
         </Dialog>
     );
 }
+
+    
