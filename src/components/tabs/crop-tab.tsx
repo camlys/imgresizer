@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical, GitCommitVertical, ScanSearch } from 'lucide-react';
-import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, CornerPoints } from '@/lib/types';
 import React, { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -143,6 +143,9 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
       y: Math.round(newY),
     };
     setPendingCrop(newCrop);
+    if(settings.crop) {
+      updateSettings({ crop: { ...settings.crop, x: newCrop.x, y: newCrop.y }});
+    }
     setLastCustomCrop(newCrop);
   };
 

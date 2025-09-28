@@ -7,7 +7,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -575,14 +575,15 @@ export default function Home() {
       return;
     }
     try {
-      const newCrop = await autoDetectBorders(imageElement);
-      setPendingCrop(newCrop);
-      toast({ title: "Success", description: "Border detected." });
+      const newPoints = await autoDetectBorders(imageElement);
+      updateSettings({ perspectivePoints: newPoints, cropMode: 'perspective' });
+      setActiveTab('crop');
+      toast({ title: "Success", description: "Border detected. Switched to Perspective mode." });
     } catch (e) {
       console.error(e);
       toast({ title: "Error", description: "Failed to auto-detect borders.", variant: "destructive" });
     }
-  }, [imageElement, toast]);
+  }, [imageElement, toast, updateSettings]);
 
   const handleApplyPerspectiveCrop = React.useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {

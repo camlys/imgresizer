@@ -19,7 +19,7 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function autoDetectBorders(imageElement: HTMLImageElement): Promise<CropSettings> {
+export async function autoDetectBorders(imageElement: HTMLImageElement): Promise<CornerPoints> {
     const canvas = document.createElement('canvas');
     canvas.width = imageElement.naturalWidth;
     canvas.height = imageElement.naturalHeight;
@@ -31,88 +31,40 @@ export async function autoDetectBorders(imageElement: HTMLImageElement): Promise
     const data = imageData.data;
     const { width, height } = canvas;
 
-    const THRESHOLD = 20; // Color difference threshold
-    const PADDING = 2; // Add a small padding
+    const THRESHOLD = 20;
 
     const getPixel = (x: number, y: number) => {
         const i = (y * width + x) * 4;
         return [data[i], data[i+1], data[i+2], data[i+3]];
     };
     
-    // Get background color from top-left corner
     const bg = getPixel(0, 0);
-    const isSameColor = (p: number[]) => {
+    const isBgColor = (p: number[]) => {
       return Math.abs(p[0]-bg[0]) < THRESHOLD && Math.abs(p[1]-bg[1]) < THRESHOLD && Math.abs(p[2]-bg[2]) < THRESHOLD;
     };
 
-    let top = 0, bottom = height - 1, left = 0, right = width - 1;
-
-    // Find top
-    for (let y = 0; y < height; y++) {
-        let isRowEmpty = true;
-        for (let x = 0; x < width; x++) {
-            if (!isSameColor(getPixel(x, y))) {
-                isRowEmpty = false;
-                break;
+    const findCorner = (startX: number, startY: number, dx: number, dy: number) => {
+        for (let i = 0; i < width + height; i++) {
+            for (let j = 0; j <= i; j++) {
+                const x = startX + j * dx;
+                const y = startY + (i - j) * dy;
+                if (x >= 0 && x < width && y >= 0 && y < height) {
+                    if (!isBgColor(getPixel(x, y))) {
+                        return { x, y };
+                    }
+                }
             }
         }
-        if (!isRowEmpty) {
-            top = y;
-            break;
-        }
-    }
-
-    // Find bottom
-    for (let y = height - 1; y >= 0; y--) {
-        let isRowEmpty = true;
-        for (let x = 0; x < width; x++) {
-            if (!isSameColor(getPixel(x, y))) {
-                isRowEmpty = false;
-                break;
-            }
-        }
-        if (!isRowEmpty) {
-            bottom = y;
-            break;
-        }
-    }
-
-    // Find left
-    for (let x = 0; x < width; x++) {
-        let isColEmpty = true;
-        for (let y = 0; y < height; y++) {
-            if (!isSameColor(getPixel(x, y))) {
-                isColEmpty = false;
-                break;
-            }
-        }
-        if (!isColEmpty) {
-            left = x;
-            break;
-        }
-    }
-
-    // Find right
-    for (let x = width - 1; x >= 0; x--) {
-        let isColEmpty = true;
-        for (let y = 0; y < height; y++) {
-            if (!isSameColor(getPixel(x, y))) {
-                isColEmpty = false;
-                break;
-            }
-        }
-        if (!isColEmpty) {
-            right = x;
-            break;
-        }
-    }
-    
-    return {
-        x: Math.max(0, left - PADDING),
-        y: Math.max(0, top - PADDING),
-        width: Math.min(width, right - left + 1 + PADDING * 2),
-        height: Math.min(height, bottom - top + 1 + PADDING * 2),
+        // Fallback to image corners if no object is found
+        return { x: startX, y: startY };
     };
+
+    const tl = findCorner(0, 0, 1, 1);
+    const tr = findCorner(width - 1, 0, -1, 1);
+    const bl = findCorner(0, height - 1, 1, -1);
+    const br = findCorner(width - 1, height - 1, -1, -1);
+
+    return { tl, tr, bl, br };
 }
 
 
