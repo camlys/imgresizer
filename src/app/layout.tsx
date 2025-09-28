@@ -95,8 +95,8 @@ export default function RootLayout({
         />
         <Analytics />
         <link rel="manifest" href="/site.webmanifest" />
-        <link rel="icon" href="/imgresizerlogo.png" />
-        <link rel="apple-touch-icon" href="/imgresizerlogo.png" />
+        <link rel="icon" href="/imgresizer.jpg" />
+        <link rel="apple-touch-icon" href="/imgresizer.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
