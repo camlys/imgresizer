@@ -20,8 +20,8 @@ interface ImageCanvasProps {
   editorMode: 'single' | 'collage';
   collageSettings: CollageSettings;
   updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
-  selectedLayerId: string | null;
-  setSelectedLayerId: (id: string | null) => void;
+  selectedLayerIds: string[];
+  setSelectedLayerIds: (ids: string[]) => void;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -90,8 +90,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   editorMode,
   collageSettings,
   updateCollageSettings,
-  selectedLayerId,
-  setSelectedLayerId,
+  selectedLayerIds,
+  setSelectedLayerIds,
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -335,9 +335,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.restore();
         }
         
-        if (selectedLayerId) {
-            const selectedLayer = layers.find(l => l.id === selectedLayerId);
-            if (selectedLayer) {
+        if (selectedLayerIds.length > 0) {
+            const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id));
+            for (const selectedLayer of selectedLayers) {
                 const { corners, rotationHandle } = getLayerHandlePositions(selectedLayer, canvas);
                 
                 ctx.save();
@@ -353,26 +353,28 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 ctx.closePath();
                 ctx.stroke();
 
-                // Draw rotation line and handle
-                ctx.beginPath();
-                ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
-                ctx.lineTo(rotationHandle.x, rotationHandle.y);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.arc(rotationHandle.x, rotationHandle.y, LAYER_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
-                ctx.fillStyle = 'white';
-                ctx.fill();
-                ctx.stroke();
-                
-                // Draw resize handles
-                Object.values(corners).forEach(corner => {
+                // Draw rotation line and handle if it is the only selected layer
+                if (selectedLayerIds.length === 1) {
                     ctx.beginPath();
-                    ctx.rect(corner.x - LAYER_RESIZE_HANDLE_SIZE / 2, corner.y - LAYER_RESIZE_HANDLE_SIZE / 2, LAYER_RESIZE_HANDLE_SIZE, LAYER_RESIZE_HANDLE_SIZE);
+                    ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+                    ctx.lineTo(rotationHandle.x, rotationHandle.y);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(rotationHandle.x, rotationHandle.y, LAYER_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
                     ctx.fillStyle = 'white';
                     ctx.fill();
                     ctx.stroke();
-                });
+                    
+                    // Draw resize handles
+                    Object.values(corners).forEach(corner => {
+                        ctx.beginPath();
+                        ctx.rect(corner.x - LAYER_RESIZE_HANDLE_SIZE / 2, corner.y - LAYER_RESIZE_HANDLE_SIZE / 2, LAYER_RESIZE_HANDLE_SIZE, LAYER_RESIZE_HANDLE_SIZE);
+                        ctx.fillStyle = 'white';
+                        ctx.fill();
+                        ctx.stroke();
+                    });
+                }
                 
                 ctx.restore();
             }
@@ -664,7 +666,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerId, getLayerHandlePositions]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -704,9 +706,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           const reversedLayers = [...activePage.layers].reverse();
           for (const layer of reversedLayers) {
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
-            const isSelected = layer.id === selectedLayerId;
+            const isSelected = selectedLayerIds.includes(layer.id);
 
-            if (isSelected) {
+            if (isSelected && selectedLayerIds.length === 1) {
               for (const [key, corner] of Object.entries(corners)) {
                 if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
                   const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
@@ -830,7 +832,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
 
       return null;
-  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerId, getLayerHandlePositions]);
+  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
@@ -849,9 +851,16 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const clickedLayer = activePage.layers.find(l => l.id === layerId);
 
         if (clickedLayer) {
-            if (selectedLayerId !== layerId) {
-                setSelectedLayerId(layerId);
+            if (e.nativeEvent.shiftKey) {
+                // Add/remove from selection with shift key
+                setSelectedLayerIds(prev => 
+                    prev.includes(layerId) ? prev.filter(id => id !== layerId) : [...prev, layerId]
+                );
+            } else if (!selectedLayerIds.includes(layerId)) {
+                // If not in current selection, select only this one
+                setSelectedLayerIds([layerId]);
             }
+            
             setInteractionState({ 
               type: interaction.type,
               startPos: pos,
@@ -871,6 +880,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           if (selectedTextId !== textId) {
             setSelectedTextId(textId);
             setSelectedSignatureId(null);
+            setSelectedLayerIds([]);
           }
           
           if (currentTime - lastClickTime.current < 300 && lastClickTarget.current === textId) {
@@ -901,6 +911,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             if (selectedSignatureId !== signatureId) {
                 setSelectedSignatureId(signatureId);
                 setSelectedTextId(null);
+                setSelectedLayerIds([]);
             }
 
             setInteractionState({
@@ -916,6 +927,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     } else if (interaction?.type.startsWith('crop-') || interaction?.type.startsWith('perspective-')) {
         setSelectedTextId(null);
         setSelectedSignatureId(null);
+        setSelectedLayerIds([]);
         setInteractionState({ 
           type: interaction.type,
           startPos: pos,
@@ -924,6 +936,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     } else if (activeTab === 'crop' && settings.cropMode === 'rect' && imageElement) {
         setSelectedTextId(null);
         setSelectedSignatureId(null);
+        setSelectedLayerIds([]);
         const scale = canvas.width / imageElement.width;
         const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
         setPendingCrop(newCrop);
@@ -931,10 +944,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     } else {
         setSelectedTextId(null);
         setSelectedSignatureId(null);
-        setSelectedLayerId(null);
+        setSelectedLayerIds([]);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, collageSettings, selectedLayerId, setSelectedLayerId, getLayerHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings.texts, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, settings.signatures, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -1163,3 +1176,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+
+    

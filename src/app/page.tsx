@@ -111,7 +111,7 @@ export default function Home() {
   const [selectedSignatureId, setSelectedSignatureId] = React.useState<string | null>(null);
 
   // Collage State
-  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(null);
+  const [selectedLayerIds, setSelectedLayerIds] = React.useState<string[]>([]);
   const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
   React.useEffect(() => {
@@ -158,7 +158,7 @@ export default function Home() {
                     const newPages = [...collageSettings.pages];
                     newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
                     setCollageSettings(prev => ({ ...prev, pages: newPages, layout: 2 }));
-                    setSelectedLayerId(newLayer.id);
+                    setSelectedLayerIds([newLayer.id]);
                 };
                 croppedImage.src = croppedImageSrc;
             }
@@ -191,7 +191,7 @@ export default function Home() {
       setSelectedSignatureId(null);
     }
     if (tab !== 'collage') {
-      setSelectedLayerId(null);
+      setSelectedLayerIds([]);
     }
   };
   
@@ -256,7 +256,7 @@ export default function Home() {
               newPages[prev.activePageIndex] = updatedPage;
               return { ...prev, pages: newPages };
             });
-            setSelectedLayerId(newLayer.id);
+            setSelectedLayerIds([newLayer.id]);
             setActiveTab('collage');
             setEditorMode('collage');
         };
@@ -346,7 +346,7 @@ export default function Home() {
     try {
       let updatedPages = [...collageSettings.pages];
       let currentActivePageIndex = collageSettings.activePageIndex;
-      let lastSelectedLayerId: string | null = null;
+      let lastSelectedLayerIds: string[] = [];
   
       const MARGIN = 2;
       const GRID_COLS = 2;
@@ -403,7 +403,7 @@ export default function Home() {
         };
   
         activePage.layers.push(newLayer);
-        lastSelectedLayerId = newLayer.id;
+        lastSelectedLayerIds = [newLayer.id];
       });
   
       // Single state update
@@ -413,8 +413,8 @@ export default function Home() {
         activePageIndex: currentActivePageIndex,
       }));
   
-      if (lastSelectedLayerId) {
-        setSelectedLayerId(lastSelectedLayerId);
+      if (lastSelectedLayerIds.length > 0) {
+        setSelectedLayerIds(lastSelectedLayerIds);
       }
       setActiveTab('collage');
       setEditorMode('collage');
@@ -438,7 +438,7 @@ export default function Home() {
     // Reset collage mode if a new single file is uploaded
     setEditorMode('single');
     setCollageSettings(initialCollageSettings);
-    setSelectedLayerId(null);
+    setSelectedLayerIds([]);
     if (activeTab === 'collage') setActiveTab('resize');
 
     if (file.type.startsWith('image/')) {
@@ -572,16 +572,17 @@ export default function Home() {
       const updated = { ...prev, ...newSettings };
       if (newSettings.pages) {
         const newActivePage = newSettings.pages[newSettings.activePageIndex ?? prev.activePageIndex];
-        const currentSelectedId = selectedLayerId;
-        const layerExists = newActivePage.layers.some(l => l.id === currentSelectedId);
-        if (!layerExists) {
-            setSelectedLayerId(null);
+        const currentSelectedIds = selectedLayerIds;
+        const existingIds = newActivePage.layers.map(l => l.id);
+        const newSelectedIds = currentSelectedIds.filter(id => existingIds.includes(id));
+        if (newSelectedIds.length !== currentSelectedIds.length) {
+            setSelectedLayerIds(newSelectedIds);
         }
       }
       return updated;
     });
     setProcessedSize(null);
-  }, [selectedLayerId]);
+  }, [selectedLayerIds]);
 
   const handleAutoDetectBorder = React.useCallback(async () => {
     if (!imageElement) {
@@ -1136,8 +1137,8 @@ export default function Home() {
               collageSettings={collageSettings}
               updateCollageSettings={updateCollageSettings}
               onAddImageToCollage={addImageToCollage}
-              selectedLayerId={selectedLayerId}
-              setSelectedLayerId={setSelectedLayerId}
+              selectedLayerIds={selectedLayerIds}
+              setSelectedLayerIds={setSelectedLayerIds}
               onAutoLayout={handleAutoLayout}
               onAutoDetectBorder={handleAutoDetectBorder}
             />
@@ -1160,8 +1161,8 @@ export default function Home() {
               editorMode={editorMode}
               collageSettings={collageSettings}
               updateCollageSettings={updateCollageSettings}
-              selectedLayerId={selectedLayerId}
-              setSelectedLayerId={setSelectedLayerId}
+              selectedLayerIds={selectedLayerIds}
+              setSelectedLayerIds={setSelectedLayerIds}
             />
             {editingText && canvasRef.current && (
               <TextEditor
@@ -1210,5 +1211,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     

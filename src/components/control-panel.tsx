@@ -32,8 +32,8 @@ interface ControlPanelProps {
   collageSettings: CollageSettings;
   updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
   onAddImageToCollage: (file: File) => void;
-  selectedLayerId: string | null;
-  setSelectedLayerId: (id: string | null) => void;
+  selectedLayerIds: string[];
+  setSelectedLayerIds: (ids: string[]) => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
   onAutoDetectBorder: () => void;
 }
@@ -58,8 +58,8 @@ export function ControlPanel({
   collageSettings,
   updateCollageSettings,
   onAddImageToCollage,
-  selectedLayerId,
-  setSelectedLayerId,
+  selectedLayerIds,
+  setSelectedLayerIds,
   onAutoLayout,
   onAutoDetectBorder,
 }: ControlPanelProps) {
@@ -129,8 +129,8 @@ export function ControlPanel({
             settings={collageSettings}
             updateSettings={updateCollageSettings}
             onAddImage={onAddImageToCollage}
-            selectedLayerId={selectedLayerId}
-            setSelectedLayerId={setSelectedLayerId}
+            selectedLayerIds={selectedLayerIds}
+            setSelectedLayerIds={setSelectedLayerIds}
             isFromMultiPagePdf={isFromMultiPagePdf}
             onViewPages={() => onViewPages('collage')}
             onAutoLayout={onAutoLayout}
@@ -140,5 +140,7 @@ export function ControlPanel({
     </Tabs>
   );
 }
+
+    
 
     
