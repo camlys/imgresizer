@@ -69,9 +69,9 @@ export function ControlPanel({
     { value: 'resize', icon: Scan, label: 'Resize' },
     { value: 'crop', icon: Crop, label: 'Crop' },
     { value: 'rotate', icon: RotateCcw, label: 'Rotate' },
-    { value: 'draw', icon: Paintbrush, label: 'Draw' },
     { value: 'text', icon: Type, label: 'Overlays' },
     { value: 'adjustments', icon: SlidersHorizontal, label: 'Adjust' },
+    { value: 'draw', icon: Paintbrush, label: 'Draw' },
     { value: 'collage', icon: Layers, label: 'Collage' },
   ];
 
