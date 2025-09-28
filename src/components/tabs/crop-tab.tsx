@@ -127,11 +127,13 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     const newX = (originalImage.width - pendingCrop.width) / 2;
     const newY = (originalImage.height - pendingCrop.height) / 2;
     
-    setPendingCrop({
+    const newCrop = {
       ...pendingCrop,
       x: Math.round(newX),
       y: Math.round(newY),
-    });
+    };
+    setPendingCrop(newCrop);
+    updateSettings({ crop: newCrop });
   };
 
   const applyChanges = () => {
@@ -288,3 +290,5 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     </div>
   );
 }
+
+    
