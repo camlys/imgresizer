@@ -3,14 +3,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid, Zap } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { ImageSettings, CollageSettings, CollagePage } from '@/lib/types';
+import type { ImageSettings, CollageSettings, CollagePage, QuickActionPreset } from '@/lib/types';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { AppHubCard } from './app-hub-card';
 import { InstallPwaButton } from './install-pwa-button';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -60,6 +61,11 @@ export function AppHeader({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const [isQuickActionPopoverOpen, setIsQuickActionPopoverOpen] = useState(false);
+  const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset | null>(null);
+  const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
 
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
   const currentUpdateSettings = editorMode === 'single' ? updateSettings : (updateCollageSettings as (s: Partial<ImageSettings | CollageSettings>) => void);
@@ -69,6 +75,93 @@ export function AppHeader({
       onUpdateProcessedSize();
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
+
+  useEffect(() => {
+    try {
+      const savedPreset = localStorage.getItem('quickActionPreset');
+      if (savedPreset) {
+        setQuickActionPreset(JSON.parse(savedPreset));
+      }
+    } catch (e) {
+      console.error("Failed to load quick action preset from local storage", e);
+    }
+  }, []);
+
+  const handleSaveQuickActionPreset = () => {
+    try {
+      localStorage.setItem('quickActionPreset', JSON.stringify(quickActionPreset));
+      toast({ title: 'Success', description: 'Quick Action preset saved.' });
+      setIsQuickActionPopoverOpen(false);
+    } catch (e) {
+      console.error("Failed to save quick action preset to local storage", e);
+      toast({ title: 'Error', description: 'Could not save the preset.', variant: 'destructive'});
+    }
+  };
+
+  const handleQuickAction = async () => {
+    if (!quickActionPreset || editorMode === 'collage' || !isImageLoaded) return;
+    
+    setIsProcessingQuickAction(true);
+    
+    const originalSettings = { ...settings };
+
+    try {
+      // 1. Apply dimensions
+      let newWidth = quickActionPreset.width || originalSettings.width;
+      let newHeight = quickActionPreset.height || originalSettings.height;
+      
+      const tempSettings = { ...originalSettings, width: newWidth, height: newHeight };
+      updateSettings(tempSettings);
+
+      // 2. Set format and handle target size
+      let finalQuality = 1.0;
+      if (quickActionPreset.targetSize && (quickActionPreset.format === 'image/jpeg' || quickActionPreset.format === 'image/webp')) {
+          const targetBytes = quickActionPreset.targetUnit === 'KB' 
+              ? quickActionPreset.targetSize * 1024 
+              : quickActionPreset.targetSize * 1024 * 1024;
+          
+          let high = 1.0, low = 0.0, mid = 0.5;
+          for(let i = 0; i < 10; i++) {
+              mid = (low + high) / 2;
+              const tempCanvas = await generateFinalCanvas();
+              const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, quickActionPreset.format, mid));
+              if (!blob) throw new Error("Could not generate blob for quality check.");
+              if(blob.size > targetBytes) high = mid;
+              else low = mid;
+          }
+          finalQuality = mid;
+      }
+      
+      // 3. Generate final canvas and download
+      const finalCanvas = await generateFinalCanvas();
+      const extension = quickActionPreset.format.split('/')[1].split('+')[0];
+      const downloadName = `imgresizer-quick-action.${extension}`;
+      
+      finalCanvas.toBlob((blob) => {
+        if (blob) {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+          toast({
+            title: "Quick Action Complete",
+            description: "Your image has been downloaded.",
+          });
+        }
+      }, quickActionPreset.format, finalQuality);
+
+    } catch (e) {
+      console.error("Quick Action failed:", e);
+      toast({ title: 'Error', description: 'Quick Action failed to process the image.', variant: 'destructive'});
+    } finally {
+      // Revert to original settings
+      updateSettings(originalSettings);
+      setIsProcessingQuickAction(false);
+    }
+  };
 
 
   const handleUploadClick = () => {
@@ -112,8 +205,7 @@ export function AppHeader({
     let bestQuality = 0.5;
     let finalBlob: Blob | null = null;
     
-    // Binary search for the best quality setting to meet the target size
-    for(let i = 0; i < 10; i++) { // 10 iterations are usually enough
+    for(let i = 0; i < 10; i++) { 
       mid = (low + high) / 2;
       const blob = await getBlobFromCanvas(mid);
       if (!blob) {
@@ -130,27 +222,20 @@ export function AppHeader({
       bestQuality = mid;
     }
     
-    // Update both quality and the processed size state in one go
     if (finalBlob) {
         if (editorMode === 'collage') {
             updateCollageSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
         } else {
             updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
         }
-        // This is a direct call to the parent's state update logic via prop
-        // It's a bit of a workaround because AppHeader doesn't own this state.
-        // A better long-term solution might be a shared state manager.
+        
         const parentComponent = {
             setProcessedSize: (size: number | null) => {
-                // In a real scenario, this would be a state setter from parent
-                // For this simulation, we'll assume the parent component re-renders
-                // based on the settings update. The onUpdateProcessedSize call will
-                // ensure the parent knows to recalculate if needed.
-                (currentUpdateSettings as any)({_processedSize: size}); // a dummy update
+                (currentUpdateSettings as any)({_processedSize: size}); 
             }
         };
         parentComponent.setProcessedSize(finalBlob.size);
-        onUpdateProcessedSize(); // Trigger recalculation in parent if needed
+        onUpdateProcessedSize();
     }
     
     setIsOptimizing(false);
@@ -184,10 +269,85 @@ export function AppHeader({
           onOpenChange={setIsUploadTypeDialogOpen}
           onSelectType={handleSelectUploadType}
         />
+        <div className="flex items-center gap-2" style={{minWidth: '290px'}}>
+        {isImageLoaded && editorMode === 'single' && (
+           <Popover open={isQuickActionPopoverOpen} onOpenChange={setIsQuickActionPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" onClick={quickActionPreset ? handleQuickAction : undefined} disabled={isProcessingQuickAction}>
+                  {isProcessingQuickAction ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
+                  {isProcessingQuickAction ? 'Processing...' : 'Quick Action'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
+                  <div className="grid gap-4">
+                      <div className="space-y-2">
+                          <h4 className="font-medium leading-none">Quick Action Preset</h4>
+                          <p className="text-sm text-muted-foreground">
+                          Configure your one-click resize and download settings.
+                          </p>
+                      </div>
+                      <Separator />
+                      <div className="grid gap-2">
+                          <Label>Target Dimensions (Optional)</Label>
+                          <div className="flex items-center gap-2">
+                              <Input 
+                                  type="number" 
+                                  placeholder="Width" 
+                                  value={quickActionPreset?.width || ''} 
+                                  onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
+                              />
+                              <Input 
+                                  type="number" 
+                                  placeholder="Height"
+                                  value={quickActionPreset?.height || ''} 
+                                  onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
+                              />
+                          </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Format</Label>
+                        <Select
+                            value={quickActionPreset?.format || 'image/jpeg'}
+                            onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
+                        >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="image/png">PNG</SelectItem>
+                                <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                <SelectItem value="image/webp">WEBP</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                            <Label>Target File Size (Optional)</Label>
+                            <div className="flex items-center gap-2">
+                            <Input 
+                                type="number"
+                                placeholder="e.g. 500"
+                                value={quickActionPreset?.targetSize || ''}
+                                onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
+                            />
+                            <Select 
+                                value={quickActionPreset?.targetUnit || 'KB'} 
+                                onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
+                            >
+                                <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="KB">KB</SelectItem>
+                                    <SelectItem value="MB">MB</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            </div>
+                        </div>
+                        <Button onClick={handleSaveQuickActionPreset}>Save Preset</Button>
+                  </div>
+              </PopoverContent>
+           </Popover>
+        )}
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline">
+              <Button>
                 <Download className="mr-2" />
                 Download
               </Button>
@@ -301,6 +461,7 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
         )}
+        </div>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="icon">
@@ -315,3 +476,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    

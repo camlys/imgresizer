@@ -16,8 +16,6 @@ const Analytics = () => {
     if (consentValue) {
       setConsent(consentValue === 'true');
     } else {
-      // If no consent is stored, we assume null and the banner will show.
-      // We don't render analytics until consent is explicitly true.
       setConsent(null);
     }
   }, []);
@@ -112,7 +110,7 @@ export default function RootLayout({
         <meta property="og:type" content="website" />
         <meta name="twitter:image" content="https://imgresizer.xyz/og-image.png" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased has-[[data-radix-popper-content-wrapper]]:min-h-screen">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -127,3 +125,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

@@ -105,7 +105,6 @@ export type CollagePage = {
 export type CollageSettings = {
   width: number;
   height: number;
-axxxcha
   backgroundColor: string;
   pages: CollagePage[];
   activePageIndex: number;
@@ -114,3 +113,13 @@ axxxcha
   layout: 2 | 3 | 4 | 5 | 6 | null;
   syncSheetSettings: boolean;
 };
+
+export type QuickActionPreset = {
+  width?: number;
+  height?: number;
+  format: 'image/png' | 'image/jpeg' | 'image/webp';
+  targetSize?: number;
+  targetUnit: 'KB' | 'MB';
+};
+
+    
