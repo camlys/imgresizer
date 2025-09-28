@@ -197,12 +197,14 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       />
       
       <Tabs defaultValue="layers" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-auto">
-          <TabsTrigger value="canvas" className="h-auto py-2 flex-col gap-1"><Layers size={18} /><span className="text-xs">Canvas</span></TabsTrigger>
-          <TabsTrigger value="layout" className="h-auto py-2 flex-col gap-1"><LayoutGrid size={18} /><span className="text-xs">Layout</span></TabsTrigger>
-          <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1"><Book size={18} /><span className="text-xs">Pages</span></TabsTrigger>
-          <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1"><ImageUp size={18} /><span className="text-xs">Layers</span></TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto whitespace-nowrap">
+          <TabsList className="h-auto p-1 inline-flex">
+            <TabsTrigger value="canvas" className="h-auto py-2 flex-col gap-1"><Layers size={18} /><span className="text-xs">Canvas</span></TabsTrigger>
+            <TabsTrigger value="layout" className="h-auto py-2 flex-col gap-1"><LayoutGrid size={18} /><span className="text-xs">Layout</span></TabsTrigger>
+            <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1"><Book size={18} /><span className="text-xs">Pages</span></TabsTrigger>
+            <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1"><ImageUp size={18} /><span className="text-xs">Layers</span></TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="canvas" className="mt-4 space-y-4">
           <Card>
