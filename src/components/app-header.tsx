@@ -62,9 +62,6 @@ export function AppHeader({
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  const [isQuickActionPopoverOpen, setIsQuickActionPopoverOpen] = useState(false);
-  const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset | null>(null);
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
 
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
@@ -76,30 +73,26 @@ export function AppHeader({
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
 
-  useEffect(() => {
+  const handleQuickAction = async () => {
+    if (editorMode === 'collage' || !isImageLoaded) return;
+    
+    let quickActionPreset: QuickActionPreset | null = null;
     try {
       const savedPreset = localStorage.getItem('quickActionPreset');
       if (savedPreset) {
-        setQuickActionPreset(JSON.parse(savedPreset));
+        quickActionPreset = JSON.parse(savedPreset);
       }
     } catch (e) {
       console.error("Failed to load quick action preset from local storage", e);
+      toast({ title: 'Error', description: 'Could not load the Quick Action preset.', variant: 'destructive'});
+      return;
     }
-  }, []);
 
-  const handleSaveQuickActionPreset = () => {
-    try {
-      localStorage.setItem('quickActionPreset', JSON.stringify(quickActionPreset));
-      toast({ title: 'Success', description: 'Quick Action preset saved.' });
-    } catch (e) {
-      console.error("Failed to save quick action preset to local storage", e);
-      toast({ title: 'Error', description: 'Could not save the preset.', variant: 'destructive'});
+    if (!quickActionPreset) {
+       toast({ title: 'No Preset Found', description: 'Please configure and save a Quick Action preset first.', variant: 'destructive'});
+       return;
     }
-  };
 
-  const handleQuickAction = async () => {
-    if (!quickActionPreset || editorMode === 'collage' || !isImageLoaded) return;
-    
     setIsProcessingQuickAction(true);
     
     try {
@@ -157,7 +150,6 @@ export function AppHeader({
       toast({ title: 'Error', description: 'Quick Action failed to process the image.', variant: 'destructive'});
     } finally {
       setIsProcessingQuickAction(false);
-      setIsQuickActionPopoverOpen(false);
     }
   };
 
@@ -269,84 +261,10 @@ export function AppHeader({
         />
         <div className="flex items-center gap-2" style={{minWidth: '290px'}}>
         {isImageLoaded && editorMode === 'single' && (
-           <Popover open={isQuickActionPopoverOpen} onOpenChange={setIsQuickActionPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline">
-                  <Zap className="mr-2"/>
-                  Quick Action
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
-                  <div className="grid gap-4">
-                      <div className="space-y-2">
-                          <h4 className="font-medium leading-none">Quick Action Preset</h4>
-                          <p className="text-sm text-muted-foreground">
-                          Configure and run a one-click resize and download.
-                          </p>
-                      </div>
-                      <Separator />
-                      <div className="grid gap-2">
-                          <Label>Target Dimensions (Optional)</Label>
-                          <div className="flex items-center gap-2">
-                              <Input 
-                                  type="number" 
-                                  placeholder="Width" 
-                                  value={quickActionPreset?.width || ''} 
-                                  onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
-                              />
-                              <Input 
-                                  type="number" 
-                                  placeholder="Height"
-                                  value={quickActionPreset?.height || ''} 
-                                  onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
-                              />
-                          </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Format</Label>
-                        <Select
-                            value={quickActionPreset?.format || 'image/jpeg'}
-                            onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
-                        >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="image/png">PNG</SelectItem>
-                                <SelectItem value="image/jpeg">JPEG</SelectItem>
-                                <SelectItem value="image/webp">WEBP</SelectItem>
-                            </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                            <Label>Target File Size (Optional)</Label>
-                            <div className="flex items-center gap-2">
-                            <Input 
-                                type="number"
-                                placeholder="e.g. 500"
-                                value={quickActionPreset?.targetSize || ''}
-                                onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
-                            />
-                            <Select 
-                                value={quickActionPreset?.targetUnit || 'KB'} 
-                                onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
-                            >
-                                <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="KB">KB</SelectItem>
-                                    <SelectItem value="MB">MB</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
-                           <Button onClick={handleQuickAction} disabled={isProcessingQuickAction || !quickActionPreset} className="w-full">
-                                {isProcessingQuickAction ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
-                                Run
-                           </Button>
-                        </div>
-                  </div>
-              </PopoverContent>
-           </Popover>
+            <Button variant="outline" onClick={handleQuickAction} disabled={isProcessingQuickAction}>
+              {isProcessingQuickAction ? <Loader2 className="animate-spin" /> : <Zap />}
+              Run Quick Action
+            </Button>
         )}
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
