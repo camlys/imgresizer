@@ -447,7 +447,7 @@ export default function Home() {
                     crop: cropData,
                     perspectivePoints: {
                       tl: { x: inset, y: inset },
-                      tr: { x: img.width - inset, y: img.height - inset },
+                      tr: { x: img.width - inset, y: inset },
                       bl: { x: inset, y: img.height - inset },
                       br: { x: img.width - inset, y: img.height - inset },
                     },
