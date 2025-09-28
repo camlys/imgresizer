@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, LayoutGrid } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, LayoutGrid, Palmtree, Scan, Text, WholeWord } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -19,8 +19,8 @@ interface CollageTabProps {
   settings: CollageSettings;
   updateSettings: (newSettings: Partial<CollageSettings>) => void;
   onAddImage: (file: File) => void;
-  selectedLayerId: string | null;
-  setSelectedLayerId: (id: string | null) => void;
+  selectedLayerIds: string[];
+  setSelectedLayerIds: (ids: string[]) => void;
   isFromMultiPagePdf: boolean;
   onViewPages: () => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
@@ -52,7 +52,7 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerId, setSelectedLayerId, isFromMultiPagePdf, onViewPages, onAutoLayout }: CollageTabProps) {
+export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
@@ -61,6 +61,9 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 
   const activePage = settings.pages[settings.activePageIndex];
   if (!activePage) return null; // Should not happen
+  
+  const lastSelectedId = selectedLayerIds.length > 0 ? selectedLayerIds[selectedLayerIds.length - 1] : null;
+  const lastSelectedLayer = lastSelectedId ? activePage.layers.find(l => l.id === lastSelectedId) : null;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,9 +87,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     const newPages = [...settings.pages];
     newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
     updateSettings({ pages: newPages });
-    if (selectedLayerId === id) {
-        setSelectedLayerId(null);
-    }
+    setSelectedLayerIds(selectedLayerIds.filter(layerId => layerId !== id));
   };
   
   const handleQuickRotate = (id: string, currentRotation: number, angle: number) => {
@@ -185,6 +186,23 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       updateSettings({ activePageIndex: newIndex });
     }
   };
+  
+  const applySizeToSelected = () => {
+    if (!lastSelectedLayer || selectedLayerIds.length <= 1) return;
+
+    const targetWidth = lastSelectedLayer.width;
+
+    const newLayers = activePage.layers.map(layer => {
+      if (selectedLayerIds.includes(layer.id) && layer.id !== lastSelectedLayer.id) {
+        return { ...layer, width: targetWidth };
+      }
+      return layer;
+    });
+
+    const newPages = [...settings.pages];
+    newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
+    updateSettings({ pages: newPages });
+  };
 
   return (
     <div className="p-1 space-y-4">
@@ -193,16 +211,30 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept="image/*"
+        accept="image/*,application/pdf"
       />
       
       <Tabs defaultValue="layers" className="w-full">
-        <TabsList>
-          <TabsTrigger value="canvas"><Layers size={16} className="mr-2"/>Canvas</TabsTrigger>
-          <TabsTrigger value="layout"><LayoutGrid size={16} className="mr-2"/>Layout</TabsTrigger>
-          <TabsTrigger value="pages"><Book size={16} className="mr-2"/>Pages</TabsTrigger>
-          <TabsTrigger value="layers"><ImageUp size={16} className="mr-2"/>Layers</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto whitespace-nowrap">
+            <TabsList className="h-auto p-1 inline-flex">
+                <TabsTrigger value="canvas" className="h-auto gap-2 py-2">
+                <Palmtree size={16}/>
+                <span className="text-sm">Canvas</span>
+                </TabsTrigger>
+                <TabsTrigger value="layout" className="h-auto gap-2 py-2">
+                <LayoutGrid size={16}/>
+                <span className="text-sm">Layout</span>
+                </TabsTrigger>
+                <TabsTrigger value="pages" className="h-auto gap-2 py-2">
+                <Book size={16}/>
+                <span className="text-sm">Pages</span>
+                </TabsTrigger>
+                <TabsTrigger value="layers" className="h-auto gap-2 py-2">
+                <Layers size={16}/>
+                <span className="text-sm">Layers</span>
+                </TabsTrigger>
+            </TabsList>
+        </div>
         
         <TabsContent value="canvas" className="mt-4 space-y-4">
           <Card>
@@ -383,109 +415,130 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         <TabsContent value="layers" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between">
-              <CardTitle className="text-base font-medium">Image Layers</CardTitle>
-              {isFromMultiPagePdf && (
-                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                          <BookOpen size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Add more pages from the PDF</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                <CardTitle className="text-base font-medium">Image Layers</CardTitle>
+                <div className='flex items-center'>
+                    {isFromMultiPagePdf && (
+                        <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                        <TooltipProvider>
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                <BookOpen size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Add more pages from the PDF</p>
+                            </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        </div>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8">
+                        <Plus size={16} className="mr-2"/> Add
+                    </Button>
                 </div>
-              )}
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2 mb-4">
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
-                    <Plus size={16} className="mr-2"/> Add Image
-                </Button>
-              </div>
-
-              {activePage.layers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No images on this page. Click "Add Image" to start.</p>
-              ) : (
-                  <Accordion 
-                      type="single" 
-                      collapsible 
-                      className="w-full"
-                      value={selectedLayerId || ""}
-                      onValueChange={(value) => setSelectedLayerId(value || null)}
-                  >
-                      {activePage.layers.map((layer, index) => (
-                          <div 
-                              key={layer.id}
-                              className="flex items-start gap-1"
-                              draggable
-                              onDragStart={() => dragItem.current = layer.id}
-                              onDragEnter={() => dragOverItem.current = layer.id}
-                              onDragEnd={handleDragSort}
-                              onDragOver={(e) => e.preventDefault()}
-                          >
-                              <div className="py-4 cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
-                              <AccordionItem value={layer.id} className="flex-1 border-b">
-                                  <AccordionTrigger>Layer {activePage.layers.length - index}</AccordionTrigger>
-                                  <AccordionContent className="space-y-4">
-                                      <div className="flex items-center gap-2">
-                                          <img src={layer.src} alt={`Layer ${index+1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
-                                          <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
-                                      </div>
-                                      <div className="grid gap-1.5">
-                                          <Label>Size</Label>
-                                          <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                id={`layer-width-${layer.id}`}
-                                                type="number"
-                                                value={Math.round(layer.width / 100 * settings.width)}
-                                                onChange={(e) => {
-                                                    const newPxWidth = parseInt(e.target.value) || 0;
-                                                    const newWidthPercent = (newPxWidth / settings.width) * 100;
-                                                    handleLayerUpdate(layer.id, { width: newWidthPercent });
-                                                }}
-                                                placeholder="Width"
-                                            />
-                                            <Input
-                                                id={`layer-height-${layer.id}`}
-                                                type="number"
-                                                value={Math.round((layer.width / 100 * settings.width) / (layer.originalWidth / layer.originalHeight))}
-                                                onChange={(e) => {
-                                                    const newPxHeight = parseInt(e.target.value) || 0;
-                                                    const newPxWidth = newPxHeight * (layer.originalWidth / layer.originalHeight);
-                                                    const newWidthPercent = (newPxWidth / settings.width) * 100;
-                                                    handleLayerUpdate(layer.id, { width: newWidthPercent });
-                                                }}
-                                                placeholder="Height"
-                                            />
-                                          </div>
-                                      </div>
-                                      <div className="grid gap-1.5">
-                                          <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
-                                          <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label>Rotation</Label>
-                                          <div className="flex items-center gap-2">
-                                              <div className="relative flex-1">
-                                                  <Input type="number" value={Math.round(layer.rotation)} onChange={(e) => handleLayerUpdate(layer.id, { rotation: parseInt(e.target.value) || 0})} min={0} max={360} className="w-full pr-6 text-right" />
-                                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
-                                              </div>
-                                              <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, -90)}><RotateCcw size={16}/></Button>
-                                              <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, 90)}><RotateCw size={16}/></Button>
-                                          </div>
-                                      </div>
-                                      <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove Image</Button>
-                                  </AccordionContent>
-                              </AccordionItem>
-                          </div>
-                      ))}
-                  </Accordion>
-              )}
+                <Tabs defaultValue="layers-list">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="layers-list"><ImageUp size={16} className="mr-2"/>Layers</TabsTrigger>
+                        <TabsTrigger value="size"><Ruler size={16} className="mr-2"/>Size</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="layers-list" className="mt-4">
+                        {activePage.layers.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-4 text-center">No images on this page. Click "Add" to start.</p>
+                        ) : (
+                            <Accordion 
+                                type="multiple" 
+                                className="w-full" 
+                                value={selectedLayerIds}
+                                onValueChange={setSelectedLayerIds}
+                            >
+                                {activePage.layers.map((layer, index) => (
+                                    <div 
+                                        key={layer.id}
+                                        className="flex items-start gap-1"
+                                        draggable
+                                        onDragStart={() => dragItem.current = layer.id}
+                                        onDragEnter={() => dragOverItem.current = layer.id}
+                                        onDragEnd={handleDragSort}
+                                        onDragOver={(e) => e.preventDefault()}
+                                    >
+                                        <div className="py-4 cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
+                                        <AccordionItem value={layer.id} className="flex-1 border-b">
+                                            <AccordionTrigger>Layer {activePage.layers.length - index}</AccordionTrigger>
+                                            <AccordionContent className="space-y-4">
+                                                <div className="flex items-center gap-2">
+                                                    <img src={layer.src} alt={`Layer ${index+1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
+                                                    <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
+                                                </div>
+                                                <div className="grid gap-1.5">
+                                                    <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
+                                                    <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Rotation</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Input type="number" value={Math.round(layer.rotation)} onChange={(e) => handleLayerUpdate(layer.id, { rotation: parseInt(e.target.value) || 0})} min={0} max={360} className="w-full pr-6 text-right" />
+                                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                                                        </div>
+                                                        <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, -90)}><RotateCcw size={16}/></Button>
+                                                        <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, 90)}><RotateCw size={16}/></Button>
+                                                    </div>
+                                                </div>
+                                                <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove Image</Button>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </div>
+                                ))}
+                            </Accordion>
+                        )}
+                    </TabsContent>
+                    <TabsContent value="size" className="mt-4 space-y-4">
+                        {selectedLayerIds.length > 0 && lastSelectedLayer ? (
+                            <div className="space-y-4">
+                               <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="layer-width">Width (px)</Label>
+                                        <Input
+                                            id="layer-width"
+                                            type="number"
+                                            value={Math.round(lastSelectedLayer.width / 100 * settings.width)}
+                                            onChange={(e) => {
+                                                const newPxWidth = parseInt(e.target.value) || 0;
+                                                const newWidthPercent = (newPxWidth / settings.width) * 100;
+                                                handleLayerUpdate(lastSelectedLayer.id, { width: newWidthPercent });
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="layer-height">Height (px)</Label>
+                                        <Input
+                                            id="layer-height"
+                                            type="number"
+                                            value={Math.round((lastSelectedLayer.width / 100 * settings.width) / (lastSelectedLayer.originalWidth / lastSelectedLayer.originalHeight))}
+                                            onChange={(e) => {
+                                                const newPxHeight = parseInt(e.target.value) || 0;
+                                                const newPxWidth = newPxHeight * (lastSelectedLayer.originalWidth / lastSelectedLayer.originalHeight);
+                                                const newWidthPercent = (newPxWidth / settings.width) * 100;
+                                                handleLayerUpdate(lastSelectedLayer.id, { width: newWidthPercent });
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                {selectedLayerIds.length > 1 && (
+                                    <Button onClick={applySizeToSelected} className="w-full">
+                                        Apply Size to All ({selectedLayerIds.length})
+                                    </Button>
+                                )}
+                                <p className="text-xs text-muted-foreground">Editing size for the last selected layer. Use the button above to sync sizes.</p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">Select one or more layers to edit their size.</p>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
