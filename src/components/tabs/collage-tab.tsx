@@ -499,13 +499,15 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                         onDragOver={(e) => e.preventDefault()}
                                     >
                                         <div className="py-4 cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
-                                        <AccordionItem value={layer.id} className="flex-1 border-b">
-                                            <AccordionTrigger>Layer {activePage.layers.length - index}</AccordionTrigger>
-                                            <AccordionContent className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <img src={layer.src} alt={`Layer ${index+1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
-                                                    <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
+                                        <AccordionItem value={layer.id} className="flex-1 border-b-0">
+                                            <AccordionTrigger className={`py-3 transition-colors ${selectedLayerIds.includes(layer.id) ? 'bg-primary/10 hover:bg-primary/20 rounded-md' : 'hover:bg-accent/50'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <img src={layer.src} alt={`Layer ${activePage.layers.length - index}`} className="w-10 h-10 object-contain bg-white p-1 rounded border"/>
+                                                    <span className="font-semibold">Layer {activePage.layers.length - index}</span>
                                                 </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="space-y-4 pt-2">
+                                                <div className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</div>
                                                 <div className="grid gap-1.5">
                                                     <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
                                                     <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />

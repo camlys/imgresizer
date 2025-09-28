@@ -383,9 +383,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         });
 
         const drawSelectionHandles = (id: string, type: 'layer' | 'text' | 'signature') => {
+            const isPrimarySelection = 
+                (type === 'layer' && selectedLayerIds[selectedLayerIds.length - 1] === id) ||
+                (type === 'text' && selectedTextId === id) ||
+                (type === 'signature' && selectedSignatureId === id);
+
             ctx.save();
-            ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `hsl(var(--primary))`;
+            ctx.lineWidth = 2;
             
             let handles: any;
             if (type === 'layer') {
@@ -414,8 +419,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.closePath();
             ctx.stroke();
 
-            // Only show detailed handles if one item is selected
-            if (selectedLayerIds.length + (selectedTextId ? 1 : 0) + (selectedSignatureId ? 1 : 0) === 1) {
+            // Only show detailed handles for the primary selection
+            if (isPrimarySelection) {
                 ctx.beginPath();
                 ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
                 ctx.lineTo(rotationHandle.x, rotationHandle.y);
@@ -674,8 +679,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     const { corners, rotationHandle } = getTextHandlePositions(selectedText, canvas, ctx);
                     
                     ctx.save();
-                    ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
-                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = `hsl(var(--primary))`;
+                    ctx.lineWidth = 2;
 
                     // Draw bounding box
                     ctx.beginPath();
@@ -716,8 +721,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 const { corners, rotationHandle } = getSignatureHandlePositions(selectedSignature, canvas);
                 
                 ctx.save();
-                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = `hsl(var(--primary))`;
+                ctx.lineWidth = 2;
 
                 ctx.beginPath();
                 ctx.moveTo(corners.tl.x, corners.tl.y);
@@ -793,8 +798,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           for (const layer of reversedLayers) {
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
             const isSelected = selectedLayerIds.includes(layer.id);
+            const isPrimarySelection = isSelected && selectedLayerIds[selectedLayerIds.length - 1] === layer.id;
 
-            if (isSelected && selectedLayerIds.length === 1) {
+            if (isPrimarySelection) {
               for (const [key, corner] of Object.entries(corners)) {
                 if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
                   const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
@@ -957,6 +963,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 );
             } else if (!selectedLayerIds.includes(layerId)) {
                 setSelectedLayerIds([layerId]);
+            } else {
+                 // If clicking an already selected layer without shift, make it the primary for handles
+                 setSelectedLayerIds(prev => [...prev.filter(id => id !== layerId), layerId]);
             }
             
             setSelectedTextId(null);
