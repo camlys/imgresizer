@@ -183,21 +183,35 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
            
           <div className="grid gap-2">
             <Label className="text-xs text-muted-foreground">Mode</Label>
-            <RadioGroup 
-                defaultValue="rect" 
-                value={settings.cropMode} 
-                onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}
-                className="flex items-center gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="rect" id="r-rect" />
-                <Label htmlFor="r-rect" className="cursor-pointer">Rectangle</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="perspective" id="r-perspective" />
-                <Label htmlFor="r-perspective" className="cursor-pointer">Perspective</Label>
-              </div>
-            </RadioGroup>
+            <div className="flex items-center justify-between">
+              <RadioGroup 
+                  defaultValue="rect" 
+                  value={settings.cropMode} 
+                  onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}
+                  className="flex items-center gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="rect" id="r-rect" />
+                  <Label htmlFor="r-rect" className="cursor-pointer">Rectangle</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="perspective" id="r-perspective" />
+                  <Label htmlFor="r-perspective" className="cursor-pointer">Perspective</Label>
+                </div>
+              </RadioGroup>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={onAutoDetectBorder} className="h-8 w-8">
+                      <ScanSearch size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Auto-detect Border</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
 
           {hasTransforms && (
@@ -215,12 +229,6 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
               <p className="text-sm text-muted-foreground">
                 Click and drag on the main image to define a crop area, or use the controls below.
               </p>
-              <div>
-                <Button variant="outline" onClick={onAutoDetectBorder} className="w-full">
-                  <ScanSearch size={16} className="mr-2" />
-                  Auto-detect Border
-                </Button>
-              </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
