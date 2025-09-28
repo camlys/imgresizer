@@ -620,9 +620,9 @@ export default function Home() {
     }
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
- const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage): Promise<HTMLCanvasElement> => {
+ const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
-        if (editorMode === 'collage') {
+        if (editorMode === 'collage' && !overrideSettings) {
           const finalCanvas = document.createElement('canvas');
           const finalCtx = finalCanvas.getContext('2d');
           if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
@@ -680,7 +680,8 @@ export default function Home() {
         if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
         
         try {
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = settings;
+            const finalSettings = { ...settings, ...overrideSettings };
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor } = finalSettings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -1179,15 +1180,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    

@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AppHeaderProps {
   onUpload: (file: File) => void;
   onDownload: (filename: string) => Promise<void>;
-  generateFinalCanvas: (pageToRender?: CollagePage) => Promise<HTMLCanvasElement>;
+  generateFinalCanvas: (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>) => Promise<HTMLCanvasElement>;
   onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
@@ -103,20 +103,16 @@ export function AppHeader({
     
     setIsProcessingQuickAction(true);
     
-    const originalSettings = { ...settings };
-
     try {
-      // 1. Apply dimensions
-      let newWidth = quickActionPreset.width || originalSettings.width;
-      let newHeight = quickActionPreset.height || originalSettings.height;
-      
-      const tempSettings = { ...originalSettings, width: newWidth, height: newHeight };
-      updateSettings(tempSettings);
-
       const format = quickActionPreset.format || 'image/jpeg';
-      
-      // 2. Set format and handle target size
       let finalQuality = 1.0;
+
+      const overrideSettings: Partial<ImageSettings> = {
+        width: quickActionPreset.width || settings.width,
+        height: quickActionPreset.height || settings.height,
+        format: format,
+      };
+      
       if (quickActionPreset.targetSize && (format === 'image/jpeg' || format === 'image/webp')) {
           const targetBytes = quickActionPreset.targetUnit === 'KB' 
               ? quickActionPreset.targetSize * 1024 
@@ -125,17 +121,19 @@ export function AppHeader({
           let high = 1.0, low = 0.0, mid = 0.5;
           for(let i = 0; i < 10; i++) {
               mid = (low + high) / 2;
-              const tempCanvas = await generateFinalCanvas();
+              const tempCanvas = await generateFinalCanvas(undefined, { ...overrideSettings, quality: mid });
               const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, format, mid));
               if (!blob) throw new Error("Could not generate blob for quality check.");
+              
               if(blob.size > targetBytes) high = mid;
               else low = mid;
           }
-          finalQuality = mid;
+          finalQuality = (low + high) / 2;
       }
       
-      // 3. Generate final canvas and download
-      const finalCanvas = await generateFinalCanvas();
+      overrideSettings.quality = finalQuality;
+      
+      const finalCanvas = await generateFinalCanvas(undefined, overrideSettings);
       const extension = format.split('/')[1].split('+')[0];
       const downloadName = `imgresizer-quick-action.${extension}`;
       
@@ -150,7 +148,7 @@ export function AppHeader({
           URL.revokeObjectURL(link.href);
           toast({
             title: "Quick Action Complete",
-            description: "Your image has been downloaded.",
+            description: `Your image has been downloaded as a ${extension.toUpperCase()}.`,
           });
         }
       }, format, finalQuality);
@@ -159,8 +157,6 @@ export function AppHeader({
       console.error("Quick Action failed:", e);
       toast({ title: 'Error', description: 'Quick Action failed to process the image.', variant: 'destructive'});
     } finally {
-      // Revert to original settings
-      updateSettings(originalSettings);
       setIsProcessingQuickAction(false);
     }
   };
@@ -478,5 +474,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
