@@ -259,11 +259,10 @@ export function AppHeader({
           onOpenChange={setIsUploadTypeDialogOpen}
           onSelectType={handleSelectUploadType}
         />
-        <div className="flex items-center gap-2" style={{minWidth: '290px'}}>
+        <div className="flex items-center gap-2" style={{minWidth: 'auto'}}>
         {isImageLoaded && editorMode === 'single' && (
-            <Button variant="outline" onClick={handleQuickAction} disabled={isProcessingQuickAction}>
+            <Button variant="outline" size="icon" onClick={handleQuickAction} disabled={isProcessingQuickAction}>
               {isProcessingQuickAction ? <Loader2 className="animate-spin" /> : <Zap />}
-              Run Quick Action
             </Button>
         )}
         {isImageLoaded && (
@@ -398,3 +397,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    

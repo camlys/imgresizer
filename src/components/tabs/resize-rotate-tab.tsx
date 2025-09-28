@@ -11,9 +11,9 @@ import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/li
 import { Lock, Unlock, Scan, BookOpen, Zap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const CM_TO_INCH = 0.393701;
 
@@ -46,7 +46,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit, settings.dpi).toString());
     const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit, settings.dpi).toString());
     const [unit, setUnit] = useState(settings.unit);
-    const [aspectRatio, setAspectRatio] = useState(originalImage.width / originalImage.height);
+    const [aspectRatio, setAspectRatio] = useState(originalImage ? originalImage.width / originalImage.height : 1);
     const { toast } = useToast();
 
     const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset | null>(null);
@@ -74,10 +74,12 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
 
 
     useEffect(() => {
-        if (settings.crop) {
-            setAspectRatio(settings.crop.width / settings.crop.height);
-        } else {
-            setAspectRatio(originalImage.width / originalImage.height);
+        if (originalImage) {
+            if (settings.crop) {
+                setAspectRatio(settings.crop.width / settings.crop.height);
+            } else {
+                setAspectRatio(originalImage.width / originalImage.height);
+            }
         }
     }, [settings.crop, originalImage]);
 
@@ -137,10 +139,15 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     };
     
     const resetDimensions = () => {
+        if (!originalImage) return;
         const resetWidth = settings.crop ? settings.crop.width : originalImage.width;
         const resetHeight = settings.crop ? settings.crop.height : originalImage.height;
         updateSettings({ width: resetWidth, height: resetHeight, unit: 'px', dpi: 96 });
     };
+    
+    if (!originalImage) {
+        return null;
+    }
 
     return (
         <div className="space-y-4 p-1">
@@ -148,81 +155,8 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-base font-medium flex items-center gap-2">
                         <Scan size={18}/> Resize
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
-                                    <Zap size={16}/>
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
-                                  <div className="grid gap-4">
-                                      <div className="space-y-2">
-                                          <h4 className="font-medium leading-none">Quick Action Preset</h4>
-                                          <p className="text-sm text-muted-foreground">
-                                          Configure a one-click resize and download.
-                                          </p>
-                                      </div>
-                                      <Separator />
-                                      <div className="grid gap-2">
-                                          <Label>Target Dimensions (Optional)</Label>
-                                          <div className="flex items-center gap-2">
-                                              <Input 
-                                                  type="number" 
-                                                  placeholder="Width" 
-                                                  value={quickActionPreset?.width || ''} 
-                                                  onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
-                                              />
-                                              <Input 
-                                                  type="number" 
-                                                  placeholder="Height"
-                                                  value={quickActionPreset?.height || ''} 
-                                                  onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
-                                              />
-                                          </div>
-                                      </div>
-                                      <div className="grid gap-2">
-                                        <Label>Format</Label>
-                                        <Select
-                                            value={quickActionPreset?.format || 'image/jpeg'}
-                                            onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
-                                        >
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="image/png">PNG</SelectItem>
-                                                <SelectItem value="image/jpeg">JPEG</SelectItem>
-                                                <SelectItem value="image/webp">WEBP</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="grid gap-2">
-                                            <Label>Target File Size (Optional)</Label>
-                                            <div className="flex items-center gap-2">
-                                            <Input 
-                                                type="number"
-                                                placeholder="e.g. 500"
-                                                value={quickActionPreset?.targetSize || ''}
-                                                onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
-                                            />
-                                            <Select 
-                                                value={quickActionPreset?.targetUnit || 'KB'} 
-                                                onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
-                                            >
-                                                <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="KB">KB</SelectItem>
-                                                    <SelectItem value="MB">MB</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            </div>
-                                        </div>
-                                        <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
-                                  </div>
-                              </PopoverContent>
-                        </Popover>
                     </CardTitle>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={resetDimensions}>Reset</Button>
-                      {isFromMultiPagePdf && (
+                    {isFromMultiPagePdf && (
                           <TooltipProvider>
                               <Tooltip>
                                   <TooltipTrigger asChild>
@@ -236,10 +170,14 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                               </Tooltip>
                           </TooltipProvider>
                       )}
-                    </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
+                  <Tabs defaultValue="manual">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="manual">Manual</TabsTrigger>
+                        <TabsTrigger value="preset"><Zap size={16} className="mr-2"/>Quick Action</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="manual" className="mt-4 space-y-4">
                         <div className="flex items-end gap-2">
                             <div className="grid gap-1.5 flex-1">
                                 <Label htmlFor="width">Width</Label>
@@ -288,7 +226,73 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                 <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
                             </div>
                         </div>
-                    </div>
+                        <Button variant="outline" size="sm" onClick={resetDimensions}>Reset Dimensions</Button>
+                      </TabsContent>
+                       <TabsContent value="preset" className="mt-4 space-y-4">
+                          <div className="space-y-1">
+                            <h4 className="font-medium text-sm">Quick Action Preset</h4>
+                            <p className="text-sm text-muted-foreground">
+                            Configure a one-click resize and download. Use the <Zap size={14} className="inline-block"/> button in the header to run.
+                            </p>
+                          </div>
+                          <Separator />
+                          <div className="grid gap-4">
+                              <div className="grid gap-2">
+                                  <Label>Target Dimensions (Optional)</Label>
+                                  <div className="flex items-center gap-2">
+                                      <Input 
+                                          type="number" 
+                                          placeholder="Width" 
+                                          value={quickActionPreset?.width || ''} 
+                                          onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
+                                      />
+                                      <Input 
+                                          type="number" 
+                                          placeholder="Height"
+                                          value={quickActionPreset?.height || ''} 
+                                          onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
+                                      />
+                                  </div>
+                              </div>
+                              <div className="grid gap-2">
+                                <Label>Format</Label>
+                                <Select
+                                    value={quickActionPreset?.format || 'image/jpeg'}
+                                    onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="image/png">PNG</SelectItem>
+                                        <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                        <SelectItem value="image/webp">WEBP</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="grid gap-2">
+                                    <Label>Target File Size (Optional)</Label>
+                                    <div className="flex items-center gap-2">
+                                    <Input 
+                                        type="number"
+                                        placeholder="e.g. 500"
+                                        value={quickActionPreset?.targetSize || ''}
+                                        onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
+                                    />
+                                    <Select 
+                                        value={quickActionPreset?.targetUnit || 'KB'} 
+                                        onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
+                                    >
+                                        <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="KB">KB</SelectItem>
+                                            <SelectItem value="MB">MB</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    </div>
+                                </div>
+                                <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
+                          </div>
+                      </TabsContent>
+                  </Tabs>
                 </CardContent>
             </Card>
             <ImageInfoPanel 
@@ -299,7 +303,5 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
-
-    
 
     
