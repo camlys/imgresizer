@@ -130,24 +130,38 @@ export default function Home() {
   const handleTabChange = (tab: string) => {
     if (tab === 'collage' && editorMode !== 'collage') {
         setEditorMode('collage');
-        if (originalImage && activePage.layers.length === 0) {
-            const MARGIN = 2;
-            const newLayer: ImageLayer = {
-                id: Date.now().toString(),
-                src: originalImage.src,
-                img: imageElement!,
-                x: MARGIN + 25,
-                y: MARGIN + (25 * (originalImage.height / originalImage.width)),
-                width: 50 - MARGIN,
-                rotation: 0,
-                opacity: 1,
-                originalWidth: originalImage.width,
-                originalHeight: originalImage.height,
-            };
-            const newPages = [...collageSettings.pages];
-            newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
-            setCollageSettings(prev => ({ ...prev, pages: newPages, layout: 2 }));
-            setSelectedLayerId(newLayer.id);
+        if (originalImage && imageElement && activePage.layers.length === 0) {
+            const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = crop.width;
+            tempCanvas.height = crop.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx) {
+                tempCtx.drawImage(imageElement, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+                const croppedImageSrc = tempCanvas.toDataURL();
+                const croppedImage = new Image();
+                croppedImage.onload = () => {
+                    const MARGIN = 2;
+                    const newLayer: ImageLayer = {
+                        id: Date.now().toString(),
+                        src: croppedImageSrc,
+                        img: croppedImage,
+                        x: MARGIN + 25,
+                        y: MARGIN + (25 * (croppedImage.height / croppedImage.width)),
+                        width: 50 - MARGIN,
+                        rotation: 0,
+                        opacity: 1,
+                        originalWidth: croppedImage.width,
+                        originalHeight: croppedImage.height,
+                    };
+                    const newPages = [...collageSettings.pages];
+                    newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
+                    setCollageSettings(prev => ({ ...prev, pages: newPages, layout: 2 }));
+                    setSelectedLayerId(newLayer.id);
+                };
+                croppedImage.src = croppedImageSrc;
+            }
         }
     } else if (tab !== 'collage' && editorMode !== 'single') {
         setEditorMode('single');
@@ -1196,3 +1210,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
