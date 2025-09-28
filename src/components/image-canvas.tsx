@@ -39,9 +39,9 @@ const SIGNATURE_ROTATION_HANDLE_OFFSET = 30;
 const SIGNATURE_RESIZE_HANDLE_SIZE = 14;
 const SIGNATURE_HANDLE_HIT_AREA = 28;
 
-const LAYER_ROTATION_HANDLE_OFFSET = 25;
-const LAYER_RESIZE_HANDLE_SIZE = 10;
-const LAYER_HANDLE_HIT_AREA = 20;
+const LAYER_ROTATION_HANDLE_OFFSET = 30;
+const LAYER_RESIZE_HANDLE_SIZE = 14;
+const LAYER_HANDLE_HIT_AREA = 28;
 
 
 type InteractionType = 
@@ -390,7 +390,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
             ctx.save();
             ctx.strokeStyle = `hsl(var(--primary))`;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 4;
             
             let handles: any;
             if (type === 'layer') {
@@ -1321,5 +1321,7 @@ ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
 
+
+    
 
     
