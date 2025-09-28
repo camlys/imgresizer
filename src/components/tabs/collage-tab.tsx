@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, LayoutGrid } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -196,12 +196,20 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         accept="image/*"
       />
       
-      <Accordion type="multiple" defaultValue={['canvas-settings', 'image-layers', 'layout-tools']} className="w-full">
-        <AccordionItem value="canvas-settings">
-          <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Canvas Settings</h3>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
+      <Tabs defaultValue="layers" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsTrigger value="canvas" className="h-auto py-2 flex-col gap-1"><Layers size={18} /><span className="text-xs">Canvas</span></TabsTrigger>
+          <TabsTrigger value="layout" className="h-auto py-2 flex-col gap-1"><LayoutGrid size={18} /><span className="text-xs">Layout</span></TabsTrigger>
+          <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1"><Book size={18} /><span className="text-xs">Pages</span></TabsTrigger>
+          <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1"><ImageUp size={18} /><span className="text-xs">Layers</span></TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="canvas" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">Canvas Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-1.5">
                       <Label htmlFor="canvas-width">Width (px)</Label>
@@ -231,45 +239,119 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                       <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={settings.backgroundColor} onChange={e => updateSettings({ backgroundColor: e.target.value })}/>
                   </div>
               </div>
-           </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="auto-layout">
-          <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Layers size={18} /> Auto-Layout</h3>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <p className="text-sm text-muted-foreground">Arrange the first N images into a grid. This will reset their position and rotation.</p>
-            <div className="grid grid-cols-5 gap-2">
-                {[2, 3, 4, 5, 6].map(num => (
-                    <Button
-                        key={num}
-                        variant={settings.layout === num ? 'default' : 'outline'}
-                        onClick={() => onAutoLayout(num as 2 | 3 | 4 | 5 | 6)}
-                        disabled={activePage.layers.length < num}
-                    >
-                        {num}
-                    </Button>
-                ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+            </CardContent>
+          </Card>
+        </TabsContent>
         
-        <AccordionItem value="layout-tools">
-           <AccordionTrigger>
-              <h3 className="text-base font-medium flex items-center gap-2"><Brush size={18} /> Layout Tools</h3>
-          </AccordionTrigger>
-          <AccordionContent className="pt-2">
-            <Tabs defaultValue="pages">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="pages"><Book size={16} className="mr-2"/>Pages</TabsTrigger>
-                <TabsTrigger value="sheet"><Notebook size={16} className="mr-2"/>Sheet</TabsTrigger>
-              </TabsList>
-              <TabsContent value="pages" className="mt-2 space-y-4">
-                 <Button onClick={addPage} variant="outline" size="sm" className="w-full">
+        <TabsContent value="layout" className="mt-4 space-y-4">
+           <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">Auto-Layout</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Arrange the first N images into a grid. This will reset their position and rotation.</p>
+              <div className="grid grid-cols-5 gap-2">
+                  {[2, 3, 4, 5, 6].map(num => (
+                      <Button
+                          key={num}
+                          variant={settings.layout === num ? 'default' : 'outline'}
+                          onClick={() => onAutoLayout(num as 2 | 3 | 4 | 5 | 6)}
+                          disabled={activePage.layers.length < num}
+                      >
+                          {num}
+                      </Button>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium flex items-center justify-between">
+                  <span>Sheet Overlay</span>
+                   <Button variant="ghost" size="sm" onClick={resetSheetSettings}>Reset</Button>
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                  <Label htmlFor="sheet-enabled">Enable Sheet</Label>
+                  <p className="text-xs text-muted-foreground">For current page</p>
+                  </div>
+                  <Switch
+                  id="sheet-enabled"
+                  checked={activePage.sheet.enabled}
+                  onCheckedChange={(checked) => handleSheetChange({ enabled: checked })}
+                  />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                  <Label htmlFor="sheet-apply-all">Sync Across All Pages</Label>
+                  <p className="text-xs text-muted-foreground">Apply changes to all pages</p>
+                  </div>
+                    <Switch
+                      id="sheet-apply-all"
+                      checked={settings.syncSheetSettings}
+                      onCheckedChange={(checked) => updateSettings({ syncSheetSettings: checked })}
+                  />
+              </div>
+              {activePage.sheet.enabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                      <Label htmlFor="h-lines" className="flex items-center gap-2"><Rows size={16}/> Horizontal Lines</Label>
+                      <Switch
+                      id="h-lines"
+                      checked={activePage.sheet.horizontalLines}
+                      onCheckedChange={(checked) => handleSheetChange({ horizontalLines: checked })}
+                      />
+                  </div>
+                  <div className="flex items-center justify-between">
+                      <Label htmlFor="v-lines" className="flex items-center gap-2"><Columns size={16}/>Vertical Lines</Label>
+                      <Switch
+                      id="v-lines"
+                      checked={activePage.sheet.verticalLines}
+                      onCheckedChange={(checked) => handleSheetChange({ verticalLines: checked })}
+                      />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-1.5">
+                          <Label htmlFor="sheet-spacing">Spacing (px)</Label>
+                          <Input id="sheet-spacing" type="number" value={activePage.sheet.spacing} onChange={e => handleSheetChange({ spacing: parseInt(e.target.value) || 0 })}/>
+                      </div>
+                      <div className="grid gap-1.5">
+                          <Label htmlFor="sheet-color">Line Color</Label>
+                          <div className="relative">
+                              <Input id="sheet-color" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
+                              <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
+                          </div>
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-1.5">
+                          <Label htmlFor="sheet-margin-top">Top Margin (px)</Label>
+                          <Input id="sheet-margin-top" type="number" value={activePage.sheet.marginTop} onChange={e => handleSheetChange({ marginTop: parseInt(e.target.value) || 0 })}/>
+                      </div>
+                      <div className="grid gap-1.5">
+                          <Label htmlFor="sheet-margin-left">Left Margin (px)</Label>
+                          <Input id="sheet-margin-left" type="number" value={activePage.sheet.marginLeft} onChange={e => handleSheetChange({ marginLeft: parseInt(e.target.value) || 0 })}/>
+                      </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="pages" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Page Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                <Button onClick={addPage} variant="outline" size="sm" className="w-full">
                   <FilePlus size={16} className="mr-2"/> Add New Page
                 </Button>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {settings.pages.map((page, index) => (
                     <div 
                       key={page.id}
@@ -294,178 +376,98 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                     </div>
                   ))}
                 </div>
-              </TabsContent>
-              <TabsContent value="sheet" className="mt-2 space-y-4">
-                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                    <Label htmlFor="sheet-enabled">Enable Sheet Overlay</Label>
-                    <p className="text-xs text-muted-foreground">For current page</p>
-                    </div>
-                    <Switch
-                    id="sheet-enabled"
-                    checked={activePage.sheet.enabled}
-                    onCheckedChange={(checked) => handleSheetChange({ enabled: checked })}
-                    />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="layers" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <CardTitle className="text-base font-medium">Image Layers</CardTitle>
+              {isFromMultiPagePdf && (
+                <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                          <BookOpen size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add more pages from the PDF</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                    <Label htmlFor="sheet-apply-all">Sync Across All Pages</Label>
-                    <p className="text-xs text-muted-foreground">Apply changes to all pages</p>
-                    </div>
-                     <Switch
-                        id="sheet-apply-all"
-                        checked={settings.syncSheetSettings}
-                        onCheckedChange={(checked) => updateSettings({ syncSheetSettings: checked })}
-                    />
-                </div>
-
-
-                {activePage.sheet.enabled && (
-                    <div className="space-y-4">
-                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                        <Label htmlFor="h-lines" className="flex items-center gap-2"><Rows size={16}/> Horizontal Lines</Label>
-                        </div>
-                        <Switch
-                        id="h-lines"
-                        checked={activePage.sheet.horizontalLines}
-                        onCheckedChange={(checked) => handleSheetChange({ horizontalLines: checked })}
-                        />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                        <Label htmlFor="v-lines" className="flex items-center gap-2"><Columns size={16}/>Vertical Lines</Label>
-                        </div>
-                        <Switch
-                        id="v-lines"
-                        checked={activePage.sheet.verticalLines}
-                        onCheckedChange={(checked) => handleSheetChange({ verticalLines: checked })}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="sheet-spacing">Spacing (px)</Label>
-                            <Input id="sheet-spacing" type="number" value={activePage.sheet.spacing} onChange={e => handleSheetChange({ spacing: parseInt(e.target.value) || 0 })}/>
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="sheet-color">Line Color</Label>
-                            <div className="relative">
-                                <Input id="sheet-color" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
-                                <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={activePage.sheet.lineColor} onChange={e => handleSheetChange({ lineColor: e.target.value })}/>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="sheet-margin-top">Top Margin (px)</Label>
-                            <Input id="sheet-margin-top" type="number" value={activePage.sheet.marginTop} onChange={e => handleSheetChange({ marginTop: parseInt(e.target.value) || 0 })}/>
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="sheet-margin-left">Left Margin (px)</Label>
-                            <Input id="sheet-margin-left" type="number" value={activePage.sheet.marginLeft} onChange={e => handleSheetChange({ marginLeft: parseInt(e.target.value) || 0 })}/>
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={resetSheetSettings}>
-                        <RefreshCw size={14} className="mr-2"/>
-                        Reset Sheet Settings
-                    </Button>
-                    </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </AccordionContent>
-        </AccordionItem>
-        
-         <AccordionItem value="image-layers">
-          <div className="flex items-center">
-            <AccordionTrigger className="flex-1">
-              <h3 className="text-base font-medium flex items-center gap-2">
-                <ImageUp size={18} /> Image Layers
-              </h3>
-            </AccordionTrigger>
-            {isFromMultiPagePdf && (
-              <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                        <BookOpen size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add more pages from the PDF</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-4">
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                    <Plus size={16} className="mr-2"/> Add Image
+                </Button>
               </div>
-            )}
-          </div>
-            <AccordionContent className="pt-4">
-                <div className="flex gap-2 mb-4">
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
-                      <Plus size={16} className="mr-2"/> Add Image
-                  </Button>
-                </div>
 
-                {activePage.layers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No images on this page. Click "Add Image" to start.</p>
-                ) : (
-                    <Accordion 
-                        type="single" 
-                        collapsible 
-                        className="w-full"
-                        value={selectedLayerId || ""}
-                        onValueChange={(value) => setSelectedLayerId(value || null)}
-                    >
-                        {activePage.layers.map((layer, index) => (
-                            <div 
-                                key={layer.id}
-                                className="flex items-start gap-1"
-                                draggable
-                                onDragStart={() => dragItem.current = layer.id}
-                                onDragEnter={() => dragOverItem.current = layer.id}
-                                onDragEnd={handleDragSort}
-                                onDragOver={(e) => e.preventDefault()}
-                            >
-                                <div className="py-4 cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
-                                <AccordionItem value={layer.id} className="flex-1 border-b">
-                                    <AccordionTrigger>Layer {activePage.layers.length - index}</AccordionTrigger>
-                                    <AccordionContent className="space-y-4">
-                                        <div className="flex items-center gap-2">
-                                            <img src={layer.src} alt={`Layer ${index+1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
-                                            <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
-                                        </div>
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor={`layer-width-${layer.id}`}>Size (%)</Label>
-                                            <Slider id={`layer-width-${layer.id}`} value={[layer.width]} onValueChange={([val]) => handleLayerUpdate(layer.id, { width: val })} min={1} max={200} step={1} />
-                                        </div>
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
-                                            <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Rotation</Label>
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative flex-1">
-                                                    <Input type="number" value={Math.round(layer.rotation)} onChange={(e) => handleLayerUpdate(layer.id, { rotation: parseInt(e.target.value) || 0})} min={0} max={360} className="w-full pr-6 text-right" />
-                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
-                                                </div>
-                                                <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, -90)}><RotateCcw size={16}/></Button>
-                                                <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, 90)}><RotateCw size={16}/></Button>
-                                            </div>
-                                        </div>
-                                        <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove Image</Button>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </div>
-                        ))}
-                    </Accordion>
-                )}
-            </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-
+              {activePage.layers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No images on this page. Click "Add Image" to start.</p>
+              ) : (
+                  <Accordion 
+                      type="single" 
+                      collapsible 
+                      className="w-full"
+                      value={selectedLayerId || ""}
+                      onValueChange={(value) => setSelectedLayerId(value || null)}
+                  >
+                      {activePage.layers.map((layer, index) => (
+                          <div 
+                              key={layer.id}
+                              className="flex items-start gap-1"
+                              draggable
+                              onDragStart={() => dragItem.current = layer.id}
+                              onDragEnter={() => dragOverItem.current = layer.id}
+                              onDragEnd={handleDragSort}
+                              onDragOver={(e) => e.preventDefault()}
+                          >
+                              <div className="py-4 cursor-grab text-muted-foreground"><GripVertical size={18} /></div>
+                              <AccordionItem value={layer.id} className="flex-1 border-b">
+                                  <AccordionTrigger>Layer {activePage.layers.length - index}</AccordionTrigger>
+                                  <AccordionContent className="space-y-4">
+                                      <div className="flex items-center gap-2">
+                                          <img src={layer.src} alt={`Layer ${index+1}`} className="w-16 h-auto bg-white p-1 rounded border"/>
+                                          <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
+                                      </div>
+                                      <div className="grid gap-1.5">
+                                          <Label htmlFor={`layer-width-${layer.id}`}>Size (%)</Label>
+                                          <Slider id={`layer-width-${layer.id}`} value={[layer.width]} onValueChange={([val]) => handleLayerUpdate(layer.id, { width: val })} min={1} max={200} step={1} />
+                                      </div>
+                                      <div className="grid gap-1.5">
+                                          <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
+                                          <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label>Rotation</Label>
+                                          <div className="flex items-center gap-2">
+                                              <div className="relative flex-1">
+                                                  <Input type="number" value={Math.round(layer.rotation)} onChange={(e) => handleLayerUpdate(layer.id, { rotation: parseInt(e.target.value) || 0})} min={0} max={360} className="w-full pr-6 text-right" />
+                                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">°</span>
+                                              </div>
+                                              <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, -90)}><RotateCcw size={16}/></Button>
+                                              <Button variant="outline" size="icon" onClick={() => handleQuickRotate(layer.id, layer.rotation, 90)}><RotateCw size={16}/></Button>
+                                          </div>
+                                      </div>
+                                      <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)} className="w-full"><Trash2 size={16} className="mr-2"/> Remove Image</Button>
+                                  </AccordionContent>
+                              </AccordionItem>
+                          </div>
+                      ))}
+                  </Accordion>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
+
+    
