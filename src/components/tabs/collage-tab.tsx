@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Notebook, Rows, Columns, RefreshCw, Copy, Book, FilePlus, BookOpen, Brush, Ruler, Palmtree, Scan, Text, WholeWord, LayoutGrid } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -534,13 +534,15 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                             <div className="space-y-4">
                                <div className="grid gap-2">
                                   <Label>Size Presets</Label>
-                                  <div className="grid grid-cols-3 gap-2">
-                                      {[25, 33, 50, 66, 75, 100].map(p => (
-                                          <Button key={p} variant="outline" onClick={() => applyPresetSizeToSelected(p)}>
-                                              {p}%
-                                          </Button>
-                                      ))}
-                                  </div>
+                                    <div className="overflow-x-auto pb-2">
+                                        <div className="flex gap-2 whitespace-nowrap">
+                                            {[25, 33, 50, 66, 75, 100].map(p => (
+                                                <Button key={p} variant="outline" onClick={() => applyPresetSizeToSelected(p)} className="shrink-0">
+                                                    {p}%
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="grid gap-1.5">
