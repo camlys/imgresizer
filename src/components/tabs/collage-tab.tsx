@@ -197,14 +197,12 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       />
       
       <Tabs defaultValue="layers" className="w-full">
-        <div className="w-full overflow-x-auto whitespace-nowrap">
-          <TabsList className="h-auto p-1 inline-flex">
-            <TabsTrigger value="canvas" className="h-auto py-2 flex-col gap-1"><Layers size={18} /><span className="text-xs">Canvas</span></TabsTrigger>
-            <TabsTrigger value="layout" className="h-auto py-2 flex-col gap-1"><LayoutGrid size={18} /><span className="text-xs">Layout</span></TabsTrigger>
-            <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1"><Book size={18} /><span className="text-xs">Pages</span></TabsTrigger>
-            <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1"><ImageUp size={18} /><span className="text-xs">Layers</span></TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList>
+          <TabsTrigger value="canvas"><Layers size={16} className="mr-2"/>Canvas</TabsTrigger>
+          <TabsTrigger value="layout"><LayoutGrid size={16} className="mr-2"/>Layout</TabsTrigger>
+          <TabsTrigger value="pages"><Book size={16} className="mr-2"/>Pages</TabsTrigger>
+          <TabsTrigger value="layers"><ImageUp size={16} className="mr-2"/>Layers</TabsTrigger>
+        </TabsList>
         
         <TabsContent value="canvas" className="mt-4 space-y-4">
           <Card>
@@ -439,8 +437,32 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                           <p className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</p>
                                       </div>
                                       <div className="grid gap-1.5">
-                                          <Label htmlFor={`layer-width-${layer.id}`}>Size (%)</Label>
-                                          <Slider id={`layer-width-${layer.id}`} value={[layer.width]} onValueChange={([val]) => handleLayerUpdate(layer.id, { width: val })} min={1} max={200} step={1} />
+                                          <Label>Size</Label>
+                                          <div className="grid grid-cols-2 gap-2">
+                                            <Input
+                                                id={`layer-width-${layer.id}`}
+                                                type="number"
+                                                value={Math.round(layer.width / 100 * settings.width)}
+                                                onChange={(e) => {
+                                                    const newPxWidth = parseInt(e.target.value) || 0;
+                                                    const newWidthPercent = (newPxWidth / settings.width) * 100;
+                                                    handleLayerUpdate(layer.id, { width: newWidthPercent });
+                                                }}
+                                                placeholder="Width"
+                                            />
+                                            <Input
+                                                id={`layer-height-${layer.id}`}
+                                                type="number"
+                                                value={Math.round((layer.width / 100 * settings.width) / (layer.originalWidth / layer.originalHeight))}
+                                                onChange={(e) => {
+                                                    const newPxHeight = parseInt(e.target.value) || 0;
+                                                    const newPxWidth = newPxHeight * (layer.originalWidth / layer.originalHeight);
+                                                    const newWidthPercent = (newPxWidth / settings.width) * 100;
+                                                    handleLayerUpdate(layer.id, { width: newWidthPercent });
+                                                }}
+                                                placeholder="Height"
+                                            />
+                                          </div>
                                       </div>
                                       <div className="grid gap-1.5">
                                           <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
