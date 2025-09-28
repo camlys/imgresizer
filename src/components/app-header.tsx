@@ -113,9 +113,11 @@ export function AppHeader({
       const tempSettings = { ...originalSettings, width: newWidth, height: newHeight };
       updateSettings(tempSettings);
 
+      const format = quickActionPreset.format || 'image/jpeg';
+      
       // 2. Set format and handle target size
       let finalQuality = 1.0;
-      if (quickActionPreset.targetSize && (quickActionPreset.format === 'image/jpeg' || quickActionPreset.format === 'image/webp')) {
+      if (quickActionPreset.targetSize && (format === 'image/jpeg' || format === 'image/webp')) {
           const targetBytes = quickActionPreset.targetUnit === 'KB' 
               ? quickActionPreset.targetSize * 1024 
               : quickActionPreset.targetSize * 1024 * 1024;
@@ -124,7 +126,7 @@ export function AppHeader({
           for(let i = 0; i < 10; i++) {
               mid = (low + high) / 2;
               const tempCanvas = await generateFinalCanvas();
-              const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, quickActionPreset.format, mid));
+              const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, format, mid));
               if (!blob) throw new Error("Could not generate blob for quality check.");
               if(blob.size > targetBytes) high = mid;
               else low = mid;
@@ -134,7 +136,7 @@ export function AppHeader({
       
       // 3. Generate final canvas and download
       const finalCanvas = await generateFinalCanvas();
-      const extension = quickActionPreset.format.split('/')[1].split('+')[0];
+      const extension = format.split('/')[1].split('+')[0];
       const downloadName = `imgresizer-quick-action.${extension}`;
       
       finalCanvas.toBlob((blob) => {
@@ -151,7 +153,7 @@ export function AppHeader({
             description: "Your image has been downloaded.",
           });
         }
-      }, quickActionPreset.format, finalQuality);
+      }, format, finalQuality);
 
     } catch (e) {
       console.error("Quick Action failed:", e);
