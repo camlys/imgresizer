@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical, GitCommitVertical, ScanSearch } from 'lucide-react';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -36,6 +36,7 @@ const aspectRatios = [
 export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange, onApplyPerspectiveCrop, onAutoDetectBorder }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
   const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
+  const [lastCustomCrop, setLastCustomCrop] = useState<CropSettings | null>(null);
 
   const handleCropChange = (field: keyof typeof crop, value: string) => {
     const numericValue = parseInt(value, 10) || 0;
@@ -56,23 +57,35 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
         break;
     }
 
-    setPendingCrop({
+    const finalCrop = {
       x: Math.round(newCrop.x),
       y: Math.round(newCrop.y),
       width: Math.round(newCrop.width),
       height: Math.round(newCrop.height),
-    });
+    };
+
+    setPendingCrop(finalCrop);
+    if (finalCrop.width !== originalImage.width || finalCrop.height !== originalImage.height) {
+        setLastCustomCrop(finalCrop);
+    }
   };
   
-  const resetCrop = () => {
+  const toggleCropReset = () => {
     if (settings.cropMode === 'rect') {
-      const newCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-      setPendingCrop(newCrop);
-      updateSettings({ 
-        crop: newCrop,
-        width: originalImage.width,
-        height: originalImage.height
-      });
+      const fullCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+      const isCurrentlyFullCrop = pendingCrop && pendingCrop.x === 0 && pendingCrop.y === 0 && pendingCrop.width === originalImage.width && pendingCrop.height === originalImage.height;
+
+      if (isCurrentlyFullCrop && lastCustomCrop) {
+        // Restore last custom crop
+        setPendingCrop(lastCustomCrop);
+      } else {
+        // Save current crop if it's custom and not already saved
+        if (pendingCrop && !isCurrentlyFullCrop) {
+            setLastCustomCrop(pendingCrop);
+        }
+        // Reset to full crop
+        setPendingCrop(fullCrop);
+      }
     } else {
        const INSET_PX = 38; // Approx 10mm
        const inset = Math.min(INSET_PX, originalImage.width / 4, originalImage.height / 4);
@@ -88,8 +101,9 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
   };
   
   const applyAspectRatio = (ratioValue: number) => {
+    const fullCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
     if (ratioValue === 0) {
-      resetCrop();
+      setPendingCrop(fullCrop);
       return;
     }
     
@@ -114,11 +128,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     };
 
     setPendingCrop(newCrop);
-    updateSettings({ 
-      crop: newCrop,
-      width: newCrop.width,
-      height: newCrop.height
-    });
+    setLastCustomCrop(newCrop);
   };
   
   const centerCrop = () => {
@@ -133,7 +143,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
       y: Math.round(newY),
     };
     setPendingCrop(newCrop);
-    updateSettings({ crop: newCrop });
+    setLastCustomCrop(newCrop);
   };
 
   const applyChanges = () => {
@@ -170,12 +180,12 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
               )}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={resetCrop} className="h-8 w-8">
+                  <Button variant="ghost" size="icon" onClick={toggleCropReset} className="h-8 w-8">
                     <RefreshCw size={16}/>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Reset</p>
+                  <p>Reset / Toggle Crop</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -290,5 +300,3 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     </div>
   );
 }
-
-    
