@@ -204,6 +204,21 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     updateSettings({ pages: newPages });
   };
 
+  const applyPresetSizeToSelected = (widthPercent: number) => {
+    if (selectedLayerIds.length === 0) return;
+
+    const newLayers = activePage.layers.map(layer => {
+      if (selectedLayerIds.includes(layer.id)) {
+        return { ...layer, width: widthPercent };
+      }
+      return layer;
+    });
+    
+    const newPages = [...settings.pages];
+    newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
+    updateSettings({ pages: newPages });
+  };
+
   return (
     <div className="p-1 space-y-4">
       <input
@@ -217,21 +232,21 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
       <Tabs defaultValue="layers" className="w-full">
         <div className="w-full overflow-x-auto whitespace-nowrap">
             <TabsList className="h-auto p-1 inline-flex">
-                <TabsTrigger value="canvas" className="h-auto gap-2 py-2">
-                <Palmtree size={16}/>
-                <span className="text-sm">Canvas</span>
+                <TabsTrigger value="canvas" className="h-auto py-2 flex-col gap-1">
+                  <Palmtree size={18} />
+                  <span className="text-xs">Canvas</span>
                 </TabsTrigger>
-                <TabsTrigger value="layout" className="h-auto gap-2 py-2">
-                <LayoutGrid size={16}/>
-                <span className="text-sm">Layout</span>
+                <TabsTrigger value="layout" className="h-auto py-2 flex-col gap-1">
+                  <LayoutGrid size={18} />
+                  <span className="text-xs">Layout</span>
                 </TabsTrigger>
-                <TabsTrigger value="pages" className="h-auto gap-2 py-2">
-                <Book size={16}/>
-                <span className="text-sm">Pages</span>
+                <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1">
+                  <Book size={18} />
+                  <span className="text-xs">Pages</span>
                 </TabsTrigger>
-                <TabsTrigger value="layers" className="h-auto gap-2 py-2">
-                <Layers size={16}/>
-                <span className="text-sm">Layers</span>
+                <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1">
+                  <ImageUp size={18} />
+                  <span className="text-xs">Layers</span>
                 </TabsTrigger>
             </TabsList>
         </div>
@@ -277,8 +292,20 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         
         <TabsContent value="layout" className="mt-4 space-y-4">
            <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex-row items-center justify-between">
               <CardTitle className="text-base font-medium">Auto-Layout</CardTitle>
+               <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
+                          <Ruler size={16} />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Show/Hide Smart Guides</p>
+                    </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Arrange the first N images into a grid. This will reset their position and rotation.</p>
@@ -498,7 +525,17 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                     <TabsContent value="size" className="mt-4 space-y-4">
                         {selectedLayerIds.length > 0 && lastSelectedLayer ? (
                             <div className="space-y-4">
-                               <div className="grid grid-cols-2 gap-2">
+                               <div className="grid gap-2">
+                                  <Label>Size Presets</Label>
+                                  <div className="grid grid-cols-3 gap-2">
+                                      {[25, 33, 50, 66, 75, 100].map(p => (
+                                          <Button key={p} variant="outline" onClick={() => applyPresetSizeToSelected(p)}>
+                                              {p}%
+                                          </Button>
+                                      ))}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
                                     <div className="grid gap-1.5">
                                         <Label htmlFor="layer-width">Width (px)</Label>
                                         <Input
@@ -546,5 +583,3 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
-
-    
