@@ -9,7 +9,7 @@ import { TextTab } from '@/components/tabs/text-tab';
 import { DrawTab } from '@/components/tabs/draw-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
-import type { ImageSettings, OriginalImage, CropSettings, CollageSettings } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, CollageSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Paintbrush } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -74,6 +74,21 @@ export function ControlPanel({
     { value: 'draw', icon: Paintbrush, label: 'Draw' },
     { value: 'collage', icon: Layers, label: 'Collage' },
   ];
+  
+  const activePage = collageSettings.pages[collageSettings.activePageIndex];
+
+  const collageTextSettings: ImageSettings = {
+      ...settings, // fallback
+      texts: activePage?.texts || [],
+      signatures: activePage?.signatures || [],
+  };
+
+  const collageUpdateTextSettings = (newItems: Partial<{texts: TextOverlay[], signatures: SignatureOverlay[]}>) => {
+    const newPages = [...collageSettings.pages];
+    const newActivePage = {...activePage, ...newItems};
+    newPages[collageSettings.activePageIndex] = newActivePage;
+    updateCollageSettings({ pages: newPages });
+  }
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full flex flex-col h-full overflow-hidden">
@@ -118,8 +133,8 @@ export function ControlPanel({
         </TabsContent>
         <TabsContent value="text" className="mt-0">
           <TextTab 
-            settings={settings} 
-            updateSettings={updateSettings}
+            settings={editorMode === 'single' ? settings : collageTextSettings} 
+            updateSettings={editorMode === 'single' ? updateSettings : collageUpdateTextSettings as any}
             selectedTextId={selectedTextId}
             setSelectedTextId={setSelectedTextId}
             selectedSignatureId={selectedSignatureId}
@@ -139,6 +154,16 @@ export function ControlPanel({
             isFromMultiPagePdf={isFromMultiPagePdf}
             onViewPages={() => onViewPages('collage')}
             onAutoLayout={onAutoLayout}
+            textTabContent={
+               <TextTab 
+                settings={collageTextSettings} 
+                updateSettings={collageUpdateTextSettings as any}
+                selectedTextId={selectedTextId}
+                setSelectedTextId={setSelectedTextId}
+                selectedSignatureId={selectedSignatureId}
+                setSelectedSignatureId={setSelectedSignatureId}
+              />
+            }
           />
         </TabsContent>
       </ScrollArea>

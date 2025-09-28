@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -24,6 +24,7 @@ interface CollageTabProps {
   isFromMultiPagePdf: boolean;
   onViewPages: () => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
+  textTabContent: React.ReactNode;
 }
 
 const canvasSizes = [
@@ -52,7 +53,7 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout }: CollageTabProps) {
+export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout, textTabContent }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
@@ -154,6 +155,8 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     const newPage: CollagePage = {
       id: Date.now().toString(),
       layers: [],
+      texts: [],
+      signatures: [],
       sheet: settings.syncSheetSettings ? activePage.sheet : initialSheetSettings
     };
     const newPages = [...settings.pages, newPage];
@@ -247,6 +250,10 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                 <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1">
                   <ImageUp size={18} />
                   <span className="text-xs">Layers</span>
+                </TabsTrigger>
+                <TabsTrigger value="overlays" className="h-auto py-2 flex-col gap-1">
+                  <Type size={18} />
+                  <span className="text-xs">Overlays</span>
                 </TabsTrigger>
             </TabsList>
         </div>
@@ -587,6 +594,10 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                 </Tabs>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="overlays" className="mt-4">
+            {textTabContent}
         </TabsContent>
       </Tabs>
     </div>

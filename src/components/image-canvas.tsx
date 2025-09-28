@@ -297,7 +297,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const activePage = pages[activePageIndex];
         if (!activePage) return;
 
-        const { layers, sheet } = activePage;
+        const { layers, sheet, texts, signatures } = activePage;
         canvas.width = width;
         canvas.height = height;
 
@@ -338,50 +338,110 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.drawImage(layer.img, -layerWidthPx / 2, -layerHeightPx / 2, layerWidthPx, layerHeightPx);
             ctx.restore();
         }
-        
-        if (selectedLayerIds.length > 0) {
-            const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id));
-            for (const selectedLayer of selectedLayers) {
-                const { corners, rotationHandle } = getLayerHandlePositions(selectedLayer, canvas);
-                
-                ctx.save();
-                ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)'; // Muted Indigo
-                ctx.lineWidth = 1;
 
-                // Draw bounding box
+        signatures.forEach(sig => {
+          if (sig.img) {
+            const sigWidth = (sig.width / 100) * width;
+            const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+            const sigX = (sig.x / 100) * width;
+            const sigY = (sig.y / 100) * height;
+
+            ctx.save();
+            ctx.translate(sigX, sigY);
+            ctx.rotate(sig.rotation * Math.PI / 180);
+            ctx.globalAlpha = sig.opacity;
+            ctx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+            ctx.restore();
+          }
+        });
+
+        texts.forEach(text => {
+            const textX = (text.x / 100) * width;
+            const textY = (text.y / 100) * height;
+
+            ctx.save();
+            ctx.translate(textX, textY);
+            ctx.rotate(text.rotation * Math.PI / 180);
+
+            ctx.font = `${text.size}px ${text.font}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const padding = text.padding || 0;
+            if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                const metrics = ctx.measureText(text.text);
+                 const fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+                const rectWidth = metrics.width + padding * 2;
+                const rectHeight = fontHeight + padding * 2;
+                ctx.fillStyle = text.backgroundColor;
+                ctx.fillRect(-rectWidth / 2, -rectHeight / 2, rectWidth, rectHeight);
+            }
+
+            ctx.fillStyle = text.color;
+            ctx.fillText(text.text, 0, 0);
+            ctx.restore();
+        });
+
+        const drawSelectionHandles = (id: string, type: 'layer' | 'text' | 'signature') => {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(75, 0, 130, 0.9)';
+            ctx.lineWidth = 1;
+            
+            let handles: any;
+            if (type === 'layer') {
+                const layer = layers.find(l => l.id === id);
+                if (!layer) return;
+                handles = getLayerHandlePositions(layer, canvas);
+            } else if (type === 'text') {
+                const text = texts.find(t => t.id === id);
+                if (!text) return;
+                handles = getTextHandlePositions(text, canvas, ctx);
+            } else if (type === 'signature') {
+                const signature = signatures.find(s => s.id === id);
+                if (!signature) return;
+                handles = getSignatureHandlePositions(signature, canvas);
+            } else {
+                return;
+            }
+
+            const { corners, rotationHandle } = handles;
+            // Draw bounding box
+            ctx.beginPath();
+            ctx.moveTo(corners.tl.x, corners.tl.y);
+            ctx.lineTo(corners.tr.x, corners.tr.y);
+            ctx.lineTo(corners.br.x, corners.br.y);
+            ctx.lineTo(corners.bl.x, corners.bl.y);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Only show detailed handles if one item is selected
+            if (selectedLayerIds.length + (selectedTextId ? 1 : 0) + (selectedSignatureId ? 1 : 0) === 1) {
                 ctx.beginPath();
-                ctx.moveTo(corners.tl.x, corners.tl.y);
-                ctx.lineTo(corners.tr.x, corners.tr.y);
-                ctx.lineTo(corners.br.x, corners.br.y);
-                ctx.lineTo(corners.bl.x, corners.bl.y);
-                ctx.closePath();
+                ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
+                ctx.lineTo(rotationHandle.x, rotationHandle.y);
                 ctx.stroke();
-
-                // Draw rotation line and handle if it is the only selected layer
-                if (selectedLayerIds.length === 1) {
+                
+                ctx.beginPath();
+                ctx.arc(rotationHandle.x, rotationHandle.y, LAYER_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.stroke();
+                
+                Object.values(corners).forEach((corner: any) => {
                     ctx.beginPath();
-                    ctx.moveTo((corners.tr.x + corners.tl.x) / 2, (corners.tr.y + corners.tl.y) / 2);
-                    ctx.lineTo(rotationHandle.x, rotationHandle.y);
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.arc(rotationHandle.x, rotationHandle.y, LAYER_RESIZE_HANDLE_SIZE / 1.5, 0, 2 * Math.PI);
+                    ctx.rect(corner.x - LAYER_RESIZE_HANDLE_SIZE / 2, corner.y - LAYER_RESIZE_HANDLE_SIZE / 2, LAYER_RESIZE_HANDLE_SIZE, LAYER_RESIZE_HANDLE_SIZE);
                     ctx.fillStyle = 'white';
                     ctx.fill();
                     ctx.stroke();
-                    
-                    // Draw resize handles
-                    Object.values(corners).forEach(corner => {
-                        ctx.beginPath();
-                        ctx.rect(corner.x - LAYER_RESIZE_HANDLE_SIZE / 2, corner.y - LAYER_RESIZE_HANDLE_SIZE / 2, LAYER_RESIZE_HANDLE_SIZE, LAYER_RESIZE_HANDLE_SIZE);
-                        ctx.fillStyle = 'white';
-                        ctx.fill();
-                        ctx.stroke();
-                    });
-                }
-                
-                ctx.restore();
+                });
             }
+            ctx.restore();
+        };
+
+        if (activeTab === 'collage' || activeTab === 'text') {
+            if (selectedTextId) drawSelectionHandles(selectedTextId, 'text');
+            if (selectedSignatureId) drawSelectionHandles(selectedSignatureId, 'signature');
+            selectedLayerIds.forEach(id => drawSelectionHandles(id, 'layer'));
         }
         return;
     }
@@ -724,11 +784,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       const img = imageElement;
       if (!canvas || !ctx) return null;
       
-      if (editorMode === 'collage') {
-          const activePage = collageSettings.pages[collageSettings.activePageIndex];
-          if (!activePage) return null;
+      const currentTexts = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex]?.texts || [] : settings.texts;
+      const currentSignatures = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex]?.signatures || [] : settings.signatures;
+      const currentLayers = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex]?.layers || [] : [];
 
-          const reversedLayers = [...activePage.layers].reverse();
+      if (editorMode === 'collage') {
+          const reversedLayers = [...currentLayers].reverse();
           for (const layer of reversedLayers) {
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
             const isSelected = selectedLayerIds.includes(layer.id);
@@ -757,18 +818,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
             }
           }
-          return null;
       }
 
-      if (!img) return null;
+      if (!img && editorMode === 'single') return null;
 
-      if (activeTab === 'draw') {
+      if (activeTab === 'draw' && editorMode === 'single') {
         return { type: 'draw', cursor: 'crosshair' };
       }
 
-      if (activeTab === 'crop') {
+      if (activeTab === 'crop' && editorMode === 'single') {
          if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
-            const scale = canvas.width / img.width;
+            const scale = canvas.width / img!.width;
             const corners = Object.entries(settings.perspectivePoints);
             for (const [key, point] of corners) {
                 const dist = Math.sqrt(Math.pow(pos.x - point.x * scale, 2) + Math.pow(pos.y - point.y * scale, 2));
@@ -777,7 +837,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 }
             }
           } else if (settings.cropMode === 'rect' && pendingCrop) {
-            const scale = canvas.width / img.width;
+            const scale = canvas.width / img!.width;
             const sx = pendingCrop.x * scale;
             const sy = pendingCrop.y * scale;
             const sWidth = pendingCrop.width * scale;
@@ -793,9 +853,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               return { type: 'crop-move', cursor: 'move' };
             }
           }
-      } else if (activeTab === 'text') {
-          // Check signatures first, as they might be on top
-          const reversedSignatures = [...settings.signatures].reverse();
+      } else if (activeTab === 'text' || activeTab === 'collage') {
+          const reversedSignatures = [...currentSignatures].reverse();
           for (const sig of reversedSignatures) {
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getSignatureHandlePositions(sig, canvas);
             const isSelected = sig.id === selectedSignatureId;
@@ -825,27 +884,24 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
           }
 
-          const reversedTexts = [...settings.texts].reverse();
+          const reversedTexts = [...currentTexts].reverse();
           for (const text of reversedTexts) {
               const { corners, rotationHandle, center, unrotatedBoundingBox } = getTextHandlePositions(text, canvas, ctx);
               
               const isSelected = text.id === selectedTextId;
 
               if (isSelected) {
-                  // Check resize handles first
                   for (const [key, corner] of Object.entries(corners)) {
                       if (Math.abs(pos.x - corner.x) < TEXT_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < TEXT_HANDLE_HIT_AREA / 2) {
                            const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
                            return { type: `text-resize-${key}` as InteractionType, textId: text.id, cursor: cursorMap[key as keyof typeof cursorMap]};
                       }
                   }
-                  // Check rotation handle
                   if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < TEXT_HANDLE_HIT_AREA / 2) {
                       return { type: 'text-rotate', textId: text.id, cursor: 'crosshair' };
                   }
               }
 
-              // Check for move
               const translatedX = pos.x - center.x;
               const translatedY = pos.y - center.y;
               const angleRad = -text.rotation * Math.PI / 180;
@@ -865,7 +921,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
-    if (e.button === 2) return; // Ignore right-clicks
+    if (e.button === 2) return;
 
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
@@ -873,7 +929,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     const interaction = getInteractionType(pos);
     const currentTime = new Date().getTime();
-    const activePage = collageSettings.pages[collageSettings.activePageIndex];
+    
+    let activePage = collageSettings.pages[collageSettings.activePageIndex];
+    if (editorMode === 'collage' && !activePage) return;
 
     if (interaction?.type === 'draw') {
         const newPath: DrawingPath = {
@@ -894,14 +952,15 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
         if (clickedLayer) {
             if (e.nativeEvent.shiftKey) {
-                // Add/remove from selection with shift key
                 setSelectedLayerIds(prev => 
                     prev.includes(layerId) ? prev.filter(id => id !== layerId) : [...prev, layerId]
                 );
             } else if (!selectedLayerIds.includes(layerId)) {
-                // If not in current selection, select only this one
                 setSelectedLayerIds([layerId]);
             }
+            
+            setSelectedTextId(null);
+            setSelectedSignatureId(null);
             
             setInteractionState({ 
               type: interaction.type,
@@ -916,7 +975,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     } else if (interaction?.type.startsWith('text-')) {
         const textId = interaction.textId!;
-        const clickedText = settings.texts.find(t => t.id === textId);
+        const clickedText = editorMode === 'single'
+            ? settings.texts.find(t => t.id === textId)
+            : activePage?.texts.find(t => t.id === textId);
 
         if (clickedText) {
           if (selectedTextId !== textId) {
@@ -926,12 +987,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           }
           
           if (currentTime - lastClickTime.current < 300 && lastClickTarget.current === textId) {
-             // Double click
              setEditingTextId(textId);
-             setInteractionState(null); // Explicitly stop any interaction
+             setInteractionState(null);
              lastClickTime.current = 0;
              lastClickTarget.current = null;
-             return; // Stop further processing
+             return;
           }
 
           setInteractionState({ 
@@ -947,7 +1007,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
     } else if (interaction?.type.startsWith('signature-')) {
         const signatureId = interaction.signatureId!;
-        const clickedSignature = settings.signatures.find(s => s.id === signatureId);
+        const clickedSignature = editorMode === 'single'
+            ? settings.signatures.find(s => s.id === signatureId)
+            : activePage?.signatures.find(s => s.id === signatureId);
 
         if (clickedSignature) {
             if (selectedSignatureId !== signatureId) {
@@ -989,7 +1051,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedLayerIds([]);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions, settings.texts, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -1001,18 +1063,18 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if (!canvas || !ctx) return;
 
         const { type, startPos, startText, startSignature, startLayer, currentPath } = interactionState;
+        
+        let activePage = collageSettings.pages[collageSettings.activePageIndex];
+        if (editorMode === 'collage' && !activePage) return;
 
         if (type === 'draw' && currentPath) {
           const newPath = { ...currentPath, points: [...currentPath.points, pos] };
           setInteractionState(prev => prev ? { ...prev, currentPath: newPath } : null);
-        } else if (type.startsWith('layer-') && startLayer) {
-            const activePage = collageSettings.pages[collageSettings.activePageIndex];
-            if (!activePage) return;
-
+        } else if (type.startsWith('layer-') && startLayer && activePage) {
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
                 const newPages = [...collageSettings.pages];
-                newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
+                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
                 updateCollageSettings({ pages: newPages });
             };
 
@@ -1042,21 +1104,29 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 }
             }
         } else if (type.startsWith('text-') && startText) {
+            const updateTextInState = (updatedText: TextOverlay) => {
+              if (editorMode === 'single') {
+                updateSettings({ texts: settings.texts.map(t => t.id === updatedText.id ? updatedText : t) });
+              } else if (activePage) {
+                const newTexts = activePage.texts.map(t => t.id === updatedText.id ? updatedText : t);
+                const newPages = [...collageSettings.pages];
+                newPages[collageSettings.activePageIndex] = { ...activePage, texts: newTexts };
+                updateCollageSettings({ pages: newPages });
+              }
+            };
             if (type === 'text-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-                const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, 
+                updateTextInState({ ...startText, 
                     x: Math.max(0, Math.min(100, startText.x + dx_percent)),
                     y: Math.max(0, Math.min(100, startText.y + dy_percent)),
-                } : t);
-                updateSettings({ texts: newTexts });
+                });
             } else if (type === 'text-rotate' && interactionState.textCenter) {
                 const startAngle = Math.atan2(startPos.y - interactionState.textCenter.y, startPos.x - interactionState.textCenter.x);
                 const currentAngle = Math.atan2(pos.y - interactionState.textCenter.y, pos.x - interactionState.textCenter.x);
                 const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
                 let newRotation = startText.rotation + angleDiff;
-                const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, rotation: newRotation } : t);
-                updateSettings({ texts: newTexts });
+                updateTextInState({ ...startText, rotation: newRotation });
             } else if (type.startsWith('text-resize-') && interactionState.textCenter) {
                 const center = interactionState.textCenter;
                 const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
@@ -1064,28 +1134,34 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
                 if (startDist > 0) {
                     const scaleFactor = currentDist / startDist;
-                    const newSize = Math.max(8, startText.size * scaleFactor); // Min font size of 8
-                    
-                    const newTexts = settings.texts.map(t => t.id === startText.id ? { ...t, size: newSize } : t);
-                    updateSettings({ texts: newTexts });
+                    const newSize = Math.max(8, startText.size * scaleFactor);
+                    updateTextInState({ ...startText, size: newSize });
                 }
             }
         } else if (type.startsWith('signature-') && startSignature) {
+            const updateSignatureInState = (updatedSignature: SignatureOverlay) => {
+              if (editorMode === 'single') {
+                updateSettings({ signatures: settings.signatures.map(s => s.id === updatedSignature.id ? updatedSignature : s) });
+              } else if (activePage) {
+                const newSignatures = activePage.signatures.map(s => s.id === updatedSignature.id ? updatedSignature : s);
+                const newPages = [...collageSettings.pages];
+                newPages[collageSettings.activePageIndex] = { ...activePage, signatures: newSignatures };
+                updateCollageSettings({ pages: newPages });
+              }
+            };
              if (type === 'signature-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-                const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s,
+                updateSignatureInState({ ...startSignature,
                     x: Math.max(0, Math.min(100, startSignature.x + dx_percent)),
                     y: Math.max(0, Math.min(100, startSignature.y + dy_percent)),
-                } : s);
-                updateSettings({ signatures: newSignatures });
+                });
             } else if (type === 'signature-rotate' && interactionState.signatureCenter) {
                 const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.x);
                 const currentAngle = Math.atan2(pos.y - interactionState.signatureCenter.y, pos.x - interactionState.signatureCenter.x);
                 const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
                 const newRotation = startSignature.rotation + angleDiff;
-                const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s, rotation: newRotation } : s);
-                updateSettings({ signatures: newSignatures });
+                updateSignatureInState({ ...startSignature, rotation: newRotation });
             } else if (type.startsWith('signature-resize-') && interactionState.signatureCenter) {
                 const center = interactionState.signatureCenter;
                 const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
@@ -1096,10 +1172,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     const sigWidthPx = (startSignature.width / 100) * canvas.width;
                     const newSigWidthPx = sigWidthPx * scaleFactor;
                     const newWidthPercent = (newSigWidthPx / canvas.width) * 100;
-                    const newWidth = Math.max(1, newWidthPercent); // Min width 1%
-                    
-                    const newSignatures = settings.signatures.map(s => s.id === startSignature.id ? { ...s, width: newWidth } : s);
-                    updateSettings({ signatures: newSignatures });
+                    const newWidth = Math.max(1, newWidthPercent);
+                    updateSignatureInState({ ...startSignature, width: newWidth });
                 }
             }
         } else if (type.startsWith('crop-') && imageElement) {
@@ -1166,10 +1240,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings, editorMode]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
+      const activePage = collageSettings.pages[collageSettings.activePageIndex];
       if (interactionState.type === 'draw' && interactionState.currentPath) {
         const finalPath = interactionState.currentPath;
         if (finalPath.points.length > 1) {
@@ -1181,14 +1256,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             });
         }
       } else if (interactionState.type.startsWith('text-resize-') && interactionState.startText) {
-          const newTexts = settings.texts.map(t =>
-              t.id === interactionState.startText!.id
-                  ? { ...t, size: Math.round(t.size) }
-                  : t
-          );
-          updateSettings({ texts: newTexts });
+          const newSize = Math.round(interactionState.startText.size);
+          if (editorMode === 'single') {
+            const newTexts = settings.texts.map(t => t.id === interactionState.startText!.id ? { ...t, size: newSize } : t);
+            updateSettings({ texts: newTexts });
+          } else if (activePage) {
+            const newTexts = activePage.texts.map(t => t.id === interactionState.startText!.id ? { ...t, size: newSize } : t);
+            const newPages = [...collageSettings.pages];
+            newPages[collageSettings.activePageIndex] = { ...activePage, texts: newTexts };
+            updateCollageSettings({ pages: newPages });
+          }
       } else if (interactionState.type.startsWith('layer-resize-') && interactionState.startLayer) {
-          const activePage = collageSettings.pages[collageSettings.activePageIndex];
           if (!activePage) return;
           const newLayers = activePage.layers.map(l =>
               l.id === interactionState.startLayer!.id
@@ -1201,7 +1279,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
       setInteractionState(null);
     }
-  }, [interactionState, settings.drawing, settings.texts, updateSettings, collageSettings, updateCollageSettings]);
+  }, [interactionState, settings.drawing, settings.texts, updateSettings, collageSettings, updateCollageSettings, editorMode]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {

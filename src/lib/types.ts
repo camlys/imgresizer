@@ -113,6 +113,8 @@ export type ImageLayer = {
 export type CollagePage = {
   id: string;
   layers: ImageLayer[];
+  texts: TextOverlay[];
+  signatures: SignatureOverlay[];
   sheet: SheetSettings;
 };
 

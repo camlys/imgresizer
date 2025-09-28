@@ -76,6 +76,8 @@ const initialCollageSettings: CollageSettings = {
   pages: [{
     id: Date.now().toString(),
     layers: [],
+    texts: [],
+    signatures: [],
     sheet: initialSheetSettings,
   }],
   activePageIndex: 0,
@@ -382,6 +384,8 @@ export default function Home() {
           const newPage: CollagePage = {
             id: `${Date.now()}-page-${pageNum}`,
             layers: [],
+            texts: [],
+            signatures: [],
             sheet: initialSheetSettings,
           };
           updatedPages.push(newPage);
@@ -576,19 +580,39 @@ export default function Home() {
   const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
     setCollageSettings(prev => {
       const updated = { ...prev, ...newSettings };
-      if (newSettings.pages) {
-        const newActivePage = newSettings.pages[newSettings.activePageIndex ?? prev.activePageIndex];
-        const currentSelectedIds = selectedLayerIds;
-        const existingIds = newActivePage.layers.map(l => l.id);
-        const newSelectedIds = currentSelectedIds.filter(id => existingIds.includes(id));
-        if (newSelectedIds.length !== currentSelectedIds.length) {
-            setSelectedLayerIds(newSelectedIds);
-        }
+      const newActivePage = updated.pages[updated.activePageIndex];
+
+      // Handle layer selection
+      const currentSelectedLayerIds = selectedLayerIds;
+      const existingLayerIds = newActivePage.layers.map(l => l.id);
+      const newSelectedLayerIds = currentSelectedLayerIds.filter(id => existingLayerIds.includes(id));
+      if (newSelectedLayerIds.length !== currentSelectedLayerIds.length) {
+          setSelectedLayerIds(newSelectedLayerIds);
       }
+      
+      // Handle text selection
+      const currentSelectedTextId = selectedTextId;
+      if (currentSelectedTextId) {
+          const textExists = newActivePage.texts.some(t => t.id === currentSelectedTextId);
+          if (!textExists) {
+              setSelectedTextId(null);
+              setEditingTextId(null);
+          }
+      }
+
+      // Handle signature selection
+      const currentSelectedSignatureId = selectedSignatureId;
+      if (currentSelectedSignatureId) {
+          const signatureExists = newActivePage.signatures.some(s => s.id === currentSelectedSignatureId);
+          if (!signatureExists) {
+              setSelectedSignatureId(null);
+          }
+      }
+
       return updated;
     });
     setProcessedSize(null);
-  }, [selectedLayerIds]);
+  }, [selectedLayerIds, selectedTextId, selectedSignatureId]);
 
   const handleAutoDetectBorder = React.useCallback(async () => {
     if (!imageElement) {
@@ -666,7 +690,7 @@ export default function Home() {
           const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
 
           const { width, height, backgroundColor } = collageSettings;
-          const { layers, sheet } = page;
+          const { layers, sheet, texts, signatures } = page;
           finalCanvas.width = width;
           finalCanvas.height = height;
 
@@ -708,6 +732,42 @@ export default function Home() {
               finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
               finalCtx.restore();
           }
+          
+            signatures.forEach(sig => {
+                if (sig.img) {
+                    const sigWidth = (sig.width / 100) * width;
+                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+                    const sigX = (sig.x / 100) * width;
+                    const sigY = (sig.y / 100) * height;
+
+                    finalCtx.save();
+                    finalCtx.translate(sigX, sigY);
+                    finalCtx.rotate(sig.rotation * Math.PI / 180);
+                    finalCtx.globalAlpha = sig.opacity;
+                    finalCtx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+                    finalCtx.restore();
+                }
+            });
+
+            texts.forEach(text => {
+                const textX = (text.x / 100) * width;
+                const textY = (text.y / 100) * height;
+                finalCtx.font = `${text.size}px ${text.font}`;
+                finalCtx.textAlign = 'center';
+                finalCtx.textBaseline = 'middle';
+                const padding = text.padding || 0;
+                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                    const metrics = finalCtx.measureText(text.text);
+                    const rectWidth = metrics.width + padding * 2;
+                    const rectHeight = text.size + padding * 2;
+                    const rectX = textX - rectWidth / 2;
+                    const rectY = textY - rectHeight / 2;
+                    finalCtx.fillStyle = text.backgroundColor;
+                    finalCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                }
+                finalCtx.fillStyle = text.color;
+                finalCtx.fillText(text.text, textX, textY);
+            });
 
           resolve(finalCanvas);
           return;
@@ -1063,7 +1123,9 @@ export default function Home() {
     updateCollageSettings({ pages: newPages, layout: count });
   }, [activePage, collageSettings.pages, updateCollageSettings]);
 
-  const editingText = settings.texts.find(t => t.id === editingTextId);
+  const editingTextObj = editorMode === 'single' 
+    ? settings.texts.find(t => t.id === editingTextId)
+    : activePage?.texts.find(t => t.id === editingTextId);
   
   if (!originalImage && editorMode === 'single') {
     return (
@@ -1188,15 +1250,23 @@ export default function Home() {
               selectedLayerIds={selectedLayerIds}
               setSelectedLayerIds={setSelectedLayerIds}
             />
-            {editingText && canvasRef.current && (
+            {editingTextObj && canvasRef.current && (
               <TextEditor
-                  text={editingText}
+                  text={editingTextObj}
                   canvas={canvasRef.current}
                   onSave={(newContent) => {
-                      const newTexts = settings.texts.map(t =>
-                          t.id === editingTextId ? { ...t, text: newContent } : t
-                      );
-                      updateSettings({ texts: newTexts });
+                      if (editorMode === 'single') {
+                        const newTexts = settings.texts.map(t =>
+                            t.id === editingTextId ? { ...t, text: newContent } : t
+                        );
+                        updateSettings({ texts: newTexts });
+                      } else {
+                        const newPageTexts = activePage.texts.map(t =>
+                            t.id === editingTextId ? { ...t, text: newContent } : t
+                        );
+                        const newPages = collageSettings.pages.map((p, i) => i === collageSettings.activePageIndex ? {...p, texts: newPageTexts} : p);
+                        updateCollageSettings({ pages: newPages });
+                      }
                       setEditingTextId(null);
                   }}
                   onCancel={() => setEditingTextId(null)}
