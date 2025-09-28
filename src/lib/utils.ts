@@ -1,6 +1,7 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { CornerPoints } from './types';
+import type { CornerPoints, CropSettings } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -16,6 +17,102 @@ export function formatBytes(bytes: number, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+export async function autoDetectBorders(imageElement: HTMLImageElement): Promise<CropSettings> {
+    const canvas = document.createElement('canvas');
+    canvas.width = imageElement.naturalWidth;
+    canvas.height = imageElement.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw new Error("Could not get canvas context for border detection");
+
+    ctx.drawImage(imageElement, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const { width, height } = canvas;
+
+    const THRESHOLD = 20; // Color difference threshold
+    const PADDING = 2; // Add a small padding
+
+    const getPixel = (x: number, y: number) => {
+        const i = (y * width + x) * 4;
+        return [data[i], data[i+1], data[i+2], data[i+3]];
+    };
+    
+    // Get background color from top-left corner
+    const bg = getPixel(0, 0);
+    const isSameColor = (p: number[]) => {
+      return Math.abs(p[0]-bg[0]) < THRESHOLD && Math.abs(p[1]-bg[1]) < THRESHOLD && Math.abs(p[2]-bg[2]) < THRESHOLD;
+    };
+
+    let top = 0, bottom = height - 1, left = 0, right = width - 1;
+
+    // Find top
+    for (let y = 0; y < height; y++) {
+        let isRowEmpty = true;
+        for (let x = 0; x < width; x++) {
+            if (!isSameColor(getPixel(x, y))) {
+                isRowEmpty = false;
+                break;
+            }
+        }
+        if (!isRowEmpty) {
+            top = y;
+            break;
+        }
+    }
+
+    // Find bottom
+    for (let y = height - 1; y >= 0; y--) {
+        let isRowEmpty = true;
+        for (let x = 0; x < width; x++) {
+            if (!isSameColor(getPixel(x, y))) {
+                isRowEmpty = false;
+                break;
+            }
+        }
+        if (!isRowEmpty) {
+            bottom = y;
+            break;
+        }
+    }
+
+    // Find left
+    for (let x = 0; x < width; x++) {
+        let isColEmpty = true;
+        for (let y = 0; y < height; y++) {
+            if (!isSameColor(getPixel(x, y))) {
+                isColEmpty = false;
+                break;
+            }
+        }
+        if (!isColEmpty) {
+            left = x;
+            break;
+        }
+    }
+
+    // Find right
+    for (let x = width - 1; x >= 0; x--) {
+        let isColEmpty = true;
+        for (let y = 0; y < height; y++) {
+            if (!isSameColor(getPixel(x, y))) {
+                isColEmpty = false;
+                break;
+            }
+        }
+        if (!isColEmpty) {
+            right = x;
+            break;
+        }
+    }
+    
+    return {
+        x: Math.max(0, left - PADDING),
+        y: Math.max(0, top - PADDING),
+        width: Math.min(width, right - left + 1 + PADDING * 2),
+        height: Math.min(height, bottom - top + 1 + PADDING * 2),
+    };
 }
 
 

@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SeoContent } from '@/components/seo-content';
-import { applyPerspectiveTransform } from '@/lib/utils';
+import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
@@ -279,7 +279,6 @@ export default function Home() {
             br: { x: img.width - inset, y: img.height - inset },
           },
         });
-        setEditorMode('single');
         setPendingCrop(null);
         setActiveTab('resize');
         setProcessedSize(null);
@@ -569,6 +568,21 @@ export default function Home() {
     });
     setProcessedSize(null);
   }, [selectedLayerId]);
+
+  const handleAutoDetectBorder = React.useCallback(async () => {
+    if (!imageElement) {
+      toast({ title: "Error", description: "Image not loaded for border detection.", variant: "destructive" });
+      return;
+    }
+    try {
+      const newCrop = await autoDetectBorders(imageElement);
+      setPendingCrop(newCrop);
+      toast({ title: "Success", description: "Border detected." });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Failed to auto-detect borders.", variant: "destructive" });
+    }
+  }, [imageElement, toast]);
 
   const handleApplyPerspectiveCrop = React.useCallback(async () => {
     if (!imageElement || !settings.perspectivePoints) {
@@ -1110,6 +1124,7 @@ export default function Home() {
               selectedLayerId={selectedLayerId}
               setSelectedLayerId={setSelectedLayerId}
               onAutoLayout={handleAutoLayout}
+              onAutoDetectBorder={handleAutoDetectBorder}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">

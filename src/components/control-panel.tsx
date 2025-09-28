@@ -35,6 +35,7 @@ interface ControlPanelProps {
   selectedLayerId: string | null;
   setSelectedLayerId: (id: string | null) => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
+  onAutoDetectBorder: () => void;
 }
 
 export function ControlPanel({ 
@@ -60,6 +61,7 @@ export function ControlPanel({
   selectedLayerId,
   setSelectedLayerId,
   onAutoLayout,
+  onAutoDetectBorder,
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -103,6 +105,7 @@ export function ControlPanel({
             setPendingCrop={setPendingCrop}
             onTabChange={onTabChange}
             onApplyPerspectiveCrop={onApplyPerspectiveCrop}
+            onAutoDetectBorder={onAutoDetectBorder}
           />
         </TabsContent>
         <TabsContent value="rotate" className="mt-0">

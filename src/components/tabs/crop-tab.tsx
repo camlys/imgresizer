@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical, GitCommitVertical } from 'lucide-react';
+import { Crop, Check, Info, RefreshCw, Move, Square, RectangleHorizontal, RectangleVertical, GitCommitVertical, ScanSearch } from 'lucide-react';
 import type { ImageSettings, OriginalImage, CropSettings } from '@/lib/types';
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,6 +20,7 @@ interface CropTabProps {
   setPendingCrop: (crop: CropSettings | null) => void;
   onTabChange: (tab: string) => void;
   onApplyPerspectiveCrop: () => void;
+  onAutoDetectBorder: () => void;
 }
 
 const aspectRatios = [
@@ -31,7 +33,7 @@ const aspectRatios = [
   { name: '4:5 Portrait', value: 4/5, icon: RectangleVertical },
 ];
 
-export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange, onApplyPerspectiveCrop }: CropTabProps) {
+export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange, onApplyPerspectiveCrop, onAutoDetectBorder }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
   const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
 
@@ -213,6 +215,12 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
               <p className="text-sm text-muted-foreground">
                 Click and drag on the main image to define a crop area, or use the controls below.
               </p>
+              <div>
+                <Button variant="outline" onClick={onAutoDetectBorder} className="w-full">
+                  <ScanSearch size={16} className="mr-2" />
+                  Auto-detect Border
+                </Button>
+              </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Aspect Ratio Presets</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
