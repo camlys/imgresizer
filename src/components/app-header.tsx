@@ -251,7 +251,7 @@ export function AppHeader({
     const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
 
     return new Promise((resolve) => {
-        canvas.toBlob(resolve, format, quality);
+        canvas.toBlob(resolve, format === 'application/pdf' ? 'image/jpeg' : format, quality);
     });
   }, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
 
@@ -464,6 +464,8 @@ export function AppHeader({
     </header>
   );
 }
+
+    
 
     
 
