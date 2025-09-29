@@ -40,6 +40,7 @@ interface AppHeaderProps {
   onUpdateProcessedSize: () => void;
   editorMode: 'single' | 'collage';
   imageElement: HTMLImageElement | null;
+  setProcessedSize: (size: number | null) => void;
 }
 
 export function AppHeader({ 
@@ -55,7 +56,8 @@ export function AppHeader({
   processedSize,
   onUpdateProcessedSize,
   editorMode,
-  imageElement
+  imageElement,
+  setProcessedSize,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -68,7 +70,7 @@ export function AppHeader({
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
   
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
-  const currentUpdateSettings = editorMode === 'single' ? updateSettings : (updateCollageSettings as (s: Partial<ImageSettings | CollageSettings>) => void);
+  const currentUpdateSettings = editorMode === 'single' ? updateSettings as (s: Partial<ImageSettings>) => void : updateCollageSettings as (s: Partial<CollageSettings>) => void;
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -282,8 +284,12 @@ export function AppHeader({
     
     if (finalBlob) {
         const quality = parseFloat(bestQuality.toFixed(2));
-        currentUpdateSettings({ quality });
-        onUpdateProcessedSize();
+        if (editorMode === 'single') {
+            (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ quality });
+        } else {
+            (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ quality });
+        }
+        setProcessedSize(finalBlob.size);
     }
     
     setIsOptimizing(false);
@@ -298,9 +304,9 @@ export function AppHeader({
     <header className="flex items-center justify-between p-2 sm:p-4 sm:pl-6 border-b bg-card overflow-hidden">
       <Link href="https://www.imgresizer.xyz/" className="flex flex-col md:flex-row md:items-center md:gap-3">
         <LogoIcon className="size-8 md:size-9" />
-        <h1 className="text-sm -mt-1 md:mt-0 md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
+        <div className="text-sm -mt-1 md:mt-0 md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary bg-[size:200%_auto] animate-gradient-shift font-headline tracking-tight">
             ImgResizer
-        </h1>
+        </div>
       </Link>
       <div className="flex items-center gap-2">
         <input
@@ -358,11 +364,16 @@ export function AppHeader({
                       <Select
                         value={currentSettings.format}
                         onValueChange={(value) => {
+                          setProcessedSize(null);
                           const newSettings: Partial<ImageSettings | CollageSettings> = { format: value as any };
                           if (value === 'image/svg+xml') {
                             newSettings.quality = 1.0;
                           }
-                          currentUpdateSettings(newSettings);
+                           if (editorMode === 'single') {
+                                (currentUpdateSettings as (s: Partial<ImageSettings>) => void)(newSettings);
+                            } else {
+                                (currentUpdateSettings as (s: Partial<CollageSettings>) => void)(newSettings);
+                            }
                           setTimeout(onUpdateProcessedSize, 100);
                         }}
                       >
@@ -392,7 +403,11 @@ export function AppHeader({
                             min={0} max={1} step={0.01}
                             value={[currentSettings.quality]}
                             onValueChange={(value) => {
-                                currentUpdateSettings({ quality: value[0] });
+                                if (editorMode === 'single') {
+                                    (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ quality: value[0] });
+                                } else {
+                                    (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ quality: value[0] });
+                                }
                             }}
                             onValueCommit={() => onUpdateProcessedSize()}
                           />
@@ -457,5 +472,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
