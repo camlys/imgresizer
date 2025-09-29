@@ -23,7 +23,7 @@ export function SiteFooter() {
       // Prevent the default mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
-      setInstallPrompt(e as BeforeInstallPromptEvent);
+      setInstallPrompt(e as BeforeInstallpwaomptEvent);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
