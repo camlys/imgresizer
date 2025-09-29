@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -251,15 +251,17 @@ export function PdfPageSelectorDialog({
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<number[] | null>(null);
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [rangeSelection, setRangeSelection] = useState('');
+    const [searchMode, setSearchMode] = useState<'text' | 'range'>('text');
+    const [searchValue, setSearchValue] = useState('');
 
     const visiblePages = pagesMeta.filter(p => !deletedPages.has(p.pageNumber));
     const visiblePageNumbers = visiblePages.map(p => p.pageNumber);
     
-    const filteredPages = visiblePages.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.pageNumber.toString().includes(searchQuery)
-    );
+    const filteredPages = searchMode === 'text'
+      ? visiblePages.filter(p =>
+          p.name.toLowerCase().includes(searchValue.toLowerCase()) || p.pageNumber.toString().includes(searchValue)
+        )
+      : visiblePages;
 
     useEffect(() => {
         if (pdfDoc && isOpen) {
@@ -275,8 +277,8 @@ export function PdfPageSelectorDialog({
             setDeletedPages(new Set());
             setSelectedPages([]);
             setDeletionHistory([]);
-            setSearchQuery('');
-            setRangeSelection('');
+            setSearchValue('');
+            setSearchMode('text');
         }
     }, [pdfDoc, isOpen]);
 
@@ -301,9 +303,9 @@ export function PdfPageSelectorDialog({
     };
     
     const handleRangeSelect = () => {
-        if (!rangeSelection) return;
+        if (!searchValue) return;
         const newSelected = new Set(selectedPages);
-        const ranges = rangeSelection.split(',');
+        const ranges = searchValue.split(',');
         
         ranges.forEach(range => {
             range = range.trim();
@@ -325,8 +327,14 @@ export function PdfPageSelectorDialog({
         });
         
         setSelectedPages(Array.from(newSelected).sort((a,b) => a-b));
-        setRangeSelection('');
+        setSearchValue('');
         toast({ title: "Selection Updated", description: `${newSelected.size} pages are now selected.`});
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && searchMode === 'range') {
+        handleRangeSelect();
+      }
     };
 
     const handlePageRotate = (pageNumber: number, degree: number) => {
@@ -528,24 +536,40 @@ export function PdfPageSelectorDialog({
                 {!isLoading && (
                      <div className="flex flex-col gap-4 py-2 border-b">
                         <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <div className="flex-1 relative min-w-[200px] max-w-sm">
+                                <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
+                                    {searchMode === 'text' ? 
+                                        <Search className="h-4 w-4 text-muted-foreground" /> :
+                                        <List className="h-4 w-4 text-muted-foreground" />
+                                    }
+                                </div>
                                 <Input 
-                                    placeholder="Search by page number or name..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 w-full sm:w-64"
+                                    placeholder={searchMode === 'text' ? 'Search by name or number...' : 'e.g., 1-5, 8, 10-12'}
+                                    value={searchValue}
+                                    onChange={(e) => setSearchValue(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    className="pl-8 pr-10"
                                 />
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                           <Button
+                                              variant="ghost" size="icon"
+                                              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                              onClick={() => {
+                                                  setSearchMode(prev => prev === 'text' ? 'range' : 'text');
+                                                  setSearchValue('');
+                                              }}
+                                           >
+                                             {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
+                                           </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
-                             <div className="flex items-center gap-2">
-                                <Input
-                                    placeholder="e.g. 1-5, 8, 10-12"
-                                    value={rangeSelection}
-                                    onChange={(e) => setRangeSelection(e.target.value)}
-                                    className="w-48"
-                                />
-                                <Button onClick={handleRangeSelect} variant="secondary">Select from Range</Button>
-                             </div>
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -655,5 +679,3 @@ export function PdfPageSelectorDialog({
         </Dialog>
     );
 }
-
-    
