@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Github, Twitter, Facebook, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // Define the event type for beforeinstallprompt
 interface BeforeInstallPromptEvent extends Event {
@@ -17,7 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function SiteFooter() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -25,7 +26,6 @@ export function SiteFooter() {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setInstallPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -36,23 +36,25 @@ export function SiteFooter() {
   }, []);
 
   const handleInstallClick = useCallback((e: React.MouseEvent) => {
-    if (!installPrompt) {
-      return;
-    }
     e.preventDefault();
-    // Show the prompt
-    installPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    installPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-        setIsInstallable(false);
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      setInstallPrompt(null);
-    });
-  }, [installPrompt]);
+    if (installPrompt) {
+        installPrompt.prompt();
+        installPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+            setInstallPrompt(null);
+        });
+    } else {
+        // Fallback for browsers that don't support the prompt or if it was already used
+        toast({
+            title: "How to Install",
+            description: "To install, use your browser's menu. In Chrome, look for 'Install ImgResizer...'. In Safari, use 'File > Add to Dock'.",
+        });
+    }
+  }, [installPrompt, toast]);
   
   return (
     <footer className="bg-card border-t">
@@ -83,8 +85,7 @@ export function SiteFooter() {
                   <a 
                     href="#" 
                     onClick={handleInstallClick} 
-                    className={`flex items-center ${!isInstallable ? 'text-muted-foreground/50 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
-                    aria-disabled={!isInstallable}
+                    className='flex items-center text-muted-foreground hover:text-foreground'
                   >
                     Install App <Download size={14} className="ml-2" />
                   </a>
