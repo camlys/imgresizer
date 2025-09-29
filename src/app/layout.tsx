@@ -146,6 +146,7 @@ export default function RootLayout({
         />
         <Analytics />
         <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#ffffff" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
