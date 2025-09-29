@@ -8,7 +8,7 @@ import { Check } from 'lucide-react';
 export const metadata: Metadata = {
     title: 'Advanced Image Editing SEO Information | ImgResizer',
     description: 'A comprehensive overview of ImgResizer\'s features, including image resizing, cropping, format conversion (PNG, JPEG, PDF), and privacy details. Your go-to free online photo editor for all editing needs.',
-    keywords: 'image resizer, photo editor, online image editor, free photo editor, crop image, resize image, convert image format, private image editor, ImgResizer, SEO, metadata, keywords, free image editor no watermark, online photo collage maker, pdf to jpg converter online, perspective correction',
+    keywords: 'image resizer, photo editor, online image editor, free photo editor, crop image, resize image, convert image format, private image editor, ImgResizer, SEO, metadata, keywords, free image editor no watermark, online photo collage maker, pdf to jpg converter online, perspective correction, photo resizer, JPG converter, image to PDF, online picture editor, photo collage maker',
 };
 
 const keywordList = [
