@@ -223,7 +223,7 @@ export function AppHeader({
       
       const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
       const pdf = new jsPDF({
-        orientation: orientation,
+        orientation,
         unit: 'pt',
         format: [pdfWidth, pdfHeight]
       });
@@ -457,3 +457,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    
