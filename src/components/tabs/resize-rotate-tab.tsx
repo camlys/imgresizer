@@ -262,11 +262,12 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button 
-                                                        variant={quickActionPreset.autoCrop ? "secondary" : "outline"}
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className={quickActionPreset.autoCrop ? 'bg-[#e0f2e0]' : ''}
                                                         onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
                                                     >
-                                                        <ScanSearch size={16} className="mr-2"/>
-                                                        {quickActionPreset.autoCrop ? "Enabled" : "Disabled"}
+                                                        <ScanSearch size={16}/>
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
