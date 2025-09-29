@@ -527,15 +527,15 @@ export function PdfPageSelectorDialog({
         }}>
             <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
                 <DialogHeader>
-                  <div className="flex sm:items-center justify-between flex-col sm:flex-row gap-4">
-                      <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex-1">
                           <DialogTitle>Organize and Select Pages</DialogTitle>
-                          <DialogDescription>
+                          <DialogDescription className="hidden sm:block">
                               Click a page to edit, or select multiple to download or add to collage.
                           </DialogDescription>
                       </div>
                        {!isLoading && (
-                        <div className="relative min-w-[200px] max-w-sm sm:w-64">
+                        <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
                             <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
                                 {searchMode === 'text' ? 
                                     <Search className="h-4 w-4 text-muted-foreground" /> :
@@ -575,15 +575,15 @@ export function PdfPageSelectorDialog({
                 
                 {!isLoading && (
                      <div className="flex flex-col gap-4 py-2 border-b">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-2">
                                 <Checkbox
                                     id="select-all"
                                     checked={visiblePageNumbers.length > 0 && selectedPages.length === visiblePageNumbers.length}
                                     onCheckedChange={handleToggleSelectAll}
                                 />
-                                <Label htmlFor="select-all" className="cursor-pointer">
+                                <Label htmlFor="select-all" className="cursor-pointer text-sm">
                                     {selectedPages.length === visiblePageNumbers.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
                                 </Label>
                                 </div>
@@ -600,9 +600,9 @@ export function PdfPageSelectorDialog({
                                 </div>
                             )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                             {source === 'collage' && (
-                                <Button onClick={handleAddSelectedToCollage} disabled={selectedPages.length === 0 || isPageSelecting}>
+                                <Button onClick={handleAddSelectedToCollage} disabled={selectedPages.length === 0 || isPageSelecting} size="sm">
                                     {isPageSelecting ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     ) : (
@@ -612,7 +612,7 @@ export function PdfPageSelectorDialog({
                                 </Button>
                             )}
                             <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
-                                <SelectTrigger className="w-[120px]">
+                                <SelectTrigger className="w-[120px] h-9 text-sm">
                                     <SelectValue placeholder="Format" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -622,7 +622,7 @@ export function PdfPageSelectorDialog({
                                     <SelectItem value="image/webp">WEBP</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button onClick={handleDownloadSelected} disabled={selectedPages.length === 0 || isDownloading} className="min-w-[160px]">
+                            <Button onClick={handleDownloadSelected} disabled={selectedPages.length === 0 || isDownloading} size="sm" className="min-w-[150px]">
                                 {isDownloading ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
