@@ -66,8 +66,7 @@ export function AppHeader({
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
   const { toast } = useToast();
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
-  const [localProcessedSize, setLocalProcessedSize] = useState<number | null>(null);
-
+  
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
   const currentUpdateSettings = editorMode === 'single' ? updateSettings : (updateCollageSettings as (s: Partial<ImageSettings | CollageSettings>) => void);
 
@@ -76,11 +75,6 @@ export function AppHeader({
       onUpdateProcessedSize();
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
-  
-  useEffect(() => {
-    setLocalProcessedSize(processedSize);
-  }, [processedSize]);
-
 
   const handleQuickAction = async () => {
     if (editorMode === 'collage' || !isImageLoaded || !imageElement) return;
@@ -223,7 +217,7 @@ export function AppHeader({
     if (format === 'application/pdf') {
       const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
       
-      const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality: quality });
+      const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
       const pdfWidth = (firstPageCanvas.width / 300) * 72;
       const pdfHeight = (firstPageCanvas.height / 300) * 72;
       
@@ -248,7 +242,7 @@ export function AppHeader({
     }
 
     const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
-    const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
+    const canvas = await generateFinalCanvas(pageToRender, { quality });
 
     return new Promise((resolve) => {
         canvas.toBlob(resolve, format === 'application/pdf' ? 'image/jpeg' : format, quality);
@@ -289,7 +283,7 @@ export function AppHeader({
     if (finalBlob) {
         const quality = parseFloat(bestQuality.toFixed(2));
         currentUpdateSettings({ quality });
-        setLocalProcessedSize(finalBlob.size);
+        onUpdateProcessedSize();
     }
     
     setIsOptimizing(false);
@@ -399,7 +393,6 @@ export function AppHeader({
                             value={[currentSettings.quality]}
                             onValueChange={(value) => {
                                 currentUpdateSettings({ quality: value[0] });
-                                setLocalProcessedSize(null); // Invalidate size
                             }}
                             onValueCommit={() => onUpdateProcessedSize()}
                           />
@@ -432,7 +425,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : localProcessedSize !== null ? formatBytes(localProcessedSize) : 'Calculating...'}
+                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -464,9 +457,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
-
-    
-
-    
