@@ -8,13 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, ScanSearch } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '../ui/switch';
 
 const CM_TO_INCH = 0.393701;
 
@@ -242,19 +241,41 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                           </div>
                           <Separator />
                           <div className="grid gap-4">
-                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                  <div className="space-y-0.5">
-                                  <Label htmlFor="auto-crop">Auto Crop</Label>
-                                  <p className="text-xs text-muted-foreground">
-                                      Detect and crop borders automatically.
-                                  </p>
-                                  </div>
-                                  <Switch
-                                    id="auto-crop"
-                                    checked={quickActionPreset.autoCrop}
-                                    onCheckedChange={(checked) => setQuickActionPreset(p => ({...p, autoCrop: checked}))}
-                                  />
-                              </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Format</Label>
+                                        <Select
+                                            value={quickActionPreset?.format}
+                                            onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
+                                        >
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="image/png">PNG</SelectItem>
+                                                <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                                <SelectItem value="image/webp">WEBP</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Auto Crop</Label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button 
+                                                        variant={quickActionPreset.autoCrop ? "secondary" : "outline"}
+                                                        onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
+                                                    >
+                                                        <ScanSearch size={16} className="mr-2"/>
+                                                        {quickActionPreset.autoCrop ? "Enabled" : "Disabled"}
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Toggle automatic border detection and cropping.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                </div>
                               <div className="grid gap-2">
                                   <Label>Target Dimensions (Optional)</Label>
                                   <div className="flex items-center gap-2">
@@ -271,20 +292,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                           onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
                                       />
                                   </div>
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Format</Label>
-                                <Select
-                                    value={quickActionPreset?.format}
-                                    onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="image/png">PNG</SelectItem>
-                                        <SelectItem value="image/jpeg">JPEG</SelectItem>
-                                        <SelectItem value="image/webp">WEBP</SelectItem>
-                                    </SelectContent>
-                                </Select>
                               </div>
                               <div className="grid gap-2">
                                     <Label>Target File Size (Optional)</Label>
