@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -44,8 +44,13 @@ const faqs = [
 ];
 
 function FaqSection() {
-    const [activeFaq, setActiveFaq] = React.useState(faqs[0].id);
+    const [activeFaq, setActiveFaq] = useState(faqs[0].id);
+    const [isClient, setIsClient] = useState(false);
     const activeFaqContent = faqs.find(faq => faq.id === activeFaq);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     return (
         <section>
@@ -82,20 +87,28 @@ function FaqSection() {
                 </div>
                 <div className="relative">
                     <Card className="sticky top-24 p-8 min-h-[300px] shadow-lg overflow-hidden">
-                        <AnimatePresence mode="wait">
-                            {activeFaqContent && (
-                                <motion.div
-                                    key={activeFaqContent.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <h3 className="text-xl font-bold text-foreground mb-4">{activeFaqContent.question}</h3>
-                                    <p className="text-muted-foreground text-lg leading-relaxed">{activeFaqContent.answer}</p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {isClient && (
+                            <AnimatePresence mode="wait">
+                                {activeFaqContent && (
+                                    <motion.div
+                                        key={activeFaqContent.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <h3 className="text-xl font-bold text-foreground mb-4">{activeFaqContent.question}</h3>
+                                        <p className="text-muted-foreground text-lg leading-relaxed">{activeFaqContent.answer}</p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        )}
+                        {!isClient && activeFaqContent && (
+                             <div>
+                                <h3 className="text-xl font-bold text-foreground mb-4">{activeFaqContent.question}</h3>
+                                <p className="text-muted-foreground text-lg leading-relaxed">{activeFaqContent.answer}</p>
+                            </div>
+                        )}
                     </Card>
                 </div>
             </div>
