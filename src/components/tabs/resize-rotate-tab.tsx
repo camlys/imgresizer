@@ -264,7 +264,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                                     <Button 
                                                         variant="outline"
                                                         size="icon"
-                                                        className={quickActionPreset.autoCrop ? 'bg-[#e0f2e0]' : ''}
+                                                        className={quickActionPreset.autoCrop ? 'bg-[#00FF00]' : ''}
                                                         onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
                                                     >
                                                         <ScanSearch size={16}/>
