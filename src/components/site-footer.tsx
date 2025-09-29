@@ -45,10 +45,12 @@ export function SiteFooter() {
             } else {
                 console.log('User dismissed the install prompt');
             }
+            // We can't reuse the install prompt, so we null it out.
+            // If the user uninstalls, the `beforeinstallprompt` event will fire again.
             setInstallPrompt(null);
         });
     } else {
-        // Fallback for browsers that don't support the prompt or if it was already used
+        // Fallback for browsers that don't support the prompt or if it was already used/dismissed
         toast({
             title: "How to Install",
             description: "To install, use your browser's menu. In Chrome, look for 'Install ImgResizer...'. In Safari, use 'File > Add to Dock'.",
