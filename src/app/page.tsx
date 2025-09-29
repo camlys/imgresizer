@@ -983,12 +983,12 @@ export default function Home() {
 
             for (const page of pagesToRender) {
                 const canvas = await generateFinalCanvas(page);
-                const imgData = canvas.toDataURL('image/png', currentQuality);
+                const imgData = canvas.toDataURL('image/jpeg', currentQuality);
                 const pagePdfWidth = (canvas.width / 300) * 72;
                 const pagePdfHeight = (canvas.height / 300) * 72;
 
                 pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
-                pdf.addImage(imgData, 'PNG', 0, 0, pagePdfWidth, pagePdfHeight);
+                pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
             }
 
             pdf.save(`${downloadName}.pdf`);
@@ -1337,3 +1337,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

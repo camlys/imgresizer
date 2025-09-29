@@ -164,8 +164,8 @@ export function AppHeader({
           unit: 'pt',
           format: [pdfWidth, pdfHeight]
         });
-        const imgData = finalCanvas.toDataURL('image/png', 1.0);
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const imgData = finalCanvas.toDataURL('image/jpeg', finalQuality);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
         pdf.save('imgresizer-quick-action.pdf');
       } else {
         const extension = format.split('/')[1].split('+')[0];
@@ -464,5 +464,7 @@ export function AppHeader({
     </header>
   );
 }
+
+    
 
     
