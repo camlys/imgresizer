@@ -1,9 +1,10 @@
+"use client";
 
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -13,10 +14,13 @@ import {
 import type { Metadata } from 'next';
 
 
-export const metadata: Metadata = {
-    title: 'Features - ImgResizer | Free Online Image & Photo Editor',
-    description: 'Explore all the features of ImgResizer, including precision resizing, perspective correction, color adjustments, text overlays, format conversion (PNG, JPEG, PDF), and more. All private and free.',
-};
+// Note: Metadata is exported from client components is not supported by Next.js.
+// This is here for organizational purposes and would need to be moved to a parent layout
+// or the page itself if it were a server component.
+// export const metadata: Metadata = {
+//     title: 'Features - ImgResizer | Free Online Image & Photo Editor',
+//     description: 'Explore all the features of ImgResizer, including precision resizing, perspective correction, color adjustments, text overlays, format conversion (PNG, JPEG, PDF), and more. All private and free.',
+// };
 
 const faqs = [
   {
