@@ -213,7 +213,6 @@ export function AppHeader({
   
   const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
     const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
-    const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
     const format = currentSettings.format;
 
     if (format === 'application/pdf') {
@@ -242,6 +241,8 @@ export function AppHeader({
       }
       return pdf.output('blob');
     }
+
+    const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
 
     return new Promise((resolve) => {
         canvas.toBlob(resolve, format, quality);
@@ -276,7 +277,7 @@ export function AppHeader({
       } else {
         low = mid;
       }
-      bestQuality = mid;
+      bestQuality = (low + high) / 2;
     }
     
     if (finalBlob) {
@@ -286,12 +287,8 @@ export function AppHeader({
             updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
         }
         
-        const parentComponent = {
-            setProcessedSize: (size: number | null) => {
-                (currentUpdateSettings as any)({_processedSize: size}); 
-            }
-        };
-        parentComponent.setProcessedSize(finalBlob.size);
+        // This is the direct fix.
+        (currentUpdateSettings as (s: Partial<ImageSettings | CollageSettings> & {_processedSize: number}) => void)({_processedSize: finalBlob.size});
         onUpdateProcessedSize();
     }
     
