@@ -168,6 +168,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
           width: pendingCrop.width,
           height: pendingCrop.height
         });
+        onTabChange('resize');
       } else if (settings.cropMode === 'perspective') {
         onApplyPerspectiveCrop();
       }
