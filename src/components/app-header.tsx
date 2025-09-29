@@ -213,9 +213,38 @@ export function AppHeader({
   
   const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
     const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
-    const canvas = await generateFinalCanvas(pageToRender);
+    const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
+    const format = currentSettings.format;
+
+    if (format === 'application/pdf') {
+      const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
+      
+      const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality: quality });
+      const pdfWidth = (firstPageCanvas.width / 300) * 72;
+      const pdfHeight = (firstPageCanvas.height / 300) * 72;
+      
+      const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+      const pdf = new jsPDF({
+        orientation: orientation,
+        unit: 'pt',
+        format: [pdfWidth, pdfHeight]
+      });
+      pdf.deletePage(1);
+
+      for (const page of pagesToRender) {
+          const canvas = await generateFinalCanvas(page, { quality: quality });
+          const imgData = canvas.toDataURL('image/jpeg', quality);
+          const pagePdfWidth = (canvas.width / 300) * 72;
+          const pagePdfHeight = (canvas.height / 300) * 72;
+
+          pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
+          pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
+      }
+      return pdf.output('blob');
+    }
+
     return new Promise((resolve) => {
-        canvas.toBlob(resolve, currentSettings.format, quality);
+        canvas.toBlob(resolve, format, quality);
     });
   }, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
 
@@ -360,7 +389,7 @@ export function AppHeader({
                         </SelectContent>
                       </Select>
                     </div>
-                    {(currentSettings.format === 'image/jpeg' || currentSettings.format === 'image/webp') && (
+                    {(currentSettings.format === 'image/jpeg' || currentSettings.format === 'image/webp' || currentSettings.format === 'application/pdf') && (
                       <>
                         <div className="grid gap-2">
                           <div className="flex justify-between items-center">
@@ -373,6 +402,7 @@ export function AppHeader({
                             value={[currentSettings.quality]}
                             onValueChange={(value) => currentUpdateSettings({ quality: value[0] })}
                             onValueCommit={() => onUpdateProcessedSize()}
+                            disabled={currentSettings.format === 'application/pdf'}
                           />
                         </div>
                         <div className="space-y-2">
@@ -435,3 +465,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    
