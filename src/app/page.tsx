@@ -678,7 +678,6 @@ export default function Home() {
         });
         setPendingCrop(null);
         toast({ title: "Success", description: "Perspective crop applied." });
-        setActiveTab('resize');
       };
       img.src = newDataUrl;
 
