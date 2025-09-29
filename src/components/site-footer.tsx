@@ -76,6 +76,13 @@ export function SiteFooter() {
             <div>
               <h4 className="font-semibold text-foreground">Company</h4>
               <ul className="mt-4 space-y-2 text-sm">
+                {installPrompt && (
+                   <li>
+                     <a href="#" onClick={handleInstallClick} className="text-muted-foreground hover:text-foreground flex items-center">
+                       Install App <Download size={14} className="ml-2" />
+                     </a>
+                   </li>
+                 )}
                 <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
               </ul>
@@ -95,13 +102,6 @@ export function SiteFooter() {
                 <li><Link href="/" className="text-muted-foreground hover:text-foreground">Image Resizer</Link></li>
                  <li><Link href="/" className="text-muted-foreground hover:text-foreground">PDF Converter</Link></li>
                  <li><Link href="/seo-info" className="text-muted-foreground hover:text-foreground">SEO Info</Link></li>
-                 {installPrompt && (
-                   <li>
-                     <a href="#" onClick={handleInstallClick} className="text-muted-foreground hover:text-foreground flex items-center">
-                       Install App <Download size={14} className="ml-2" />
-                     </a>
-                   </li>
-                 )}
               </ul>
             </div>
           </div>
