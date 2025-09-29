@@ -559,7 +559,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                         <Input
                                             id="layer-width"
                                             type="number"
-                                            value={Math.round(lastSelectedLayer.width / 100 * settings.width)}
+                                            value={Math.round((lastSelectedLayer.width / 100) * settings.width)}
                                             onChange={(e) => {
                                                 const newPxWidth = parseInt(e.target.value) || 0;
                                                 const newWidthPercent = (newPxWidth / settings.width) * 100;
@@ -572,7 +572,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                         <Input
                                             id="layer-height"
                                             type="number"
-                                            value={Math.round((lastSelectedLayer.width / 100 * settings.width) / (lastSelectedLayer.originalWidth / lastSelectedLayer.originalHeight))}
+                                            value={Math.round(((lastSelectedLayer.width / 100) * settings.width) / (lastSelectedLayer.originalWidth / lastSelectedLayer.originalHeight))}
                                             onChange={(e) => {
                                                 const newPxHeight = parseInt(e.target.value) || 0;
                                                 const newPxWidth = newPxHeight * (lastSelectedLayer.originalWidth / lastSelectedLayer.originalHeight);
@@ -607,3 +607,4 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 }
 
     
+

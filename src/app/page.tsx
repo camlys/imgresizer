@@ -150,15 +150,15 @@ export default function Home() {
                 const croppedImageSrc = tempCanvas.toDataURL();
                 const croppedImage = new Image();
                 croppedImage.onload = () => {
-                    const MARGIN = 12; // 1mm at 300 dpi
+                    const MARGIN_PERCENT = 2;
+                    const layerWidthPercent = 100 - MARGIN_PERCENT * 2;
                     const newLayer: ImageLayer = {
                         id: Date.now().toString(),
                         src: croppedImageSrc,
                         img: croppedImage,
-                        x: MARGIN,
-                        y: MARGIN,
-                        width: collageSettings.width - MARGIN * 2,
-                        height: collageSettings.height - MARGIN * 2,
+                        x: 50,
+                        y: 50,
+                        width: layerWidthPercent,
                         rotation: 0,
                         opacity: 1,
                         originalWidth: croppedImage.width,
@@ -224,52 +224,61 @@ export default function Home() {
     const addImageToCollageFromSrc = React.useCallback((src: string) => {
         const img = new Image();
         img.onload = () => {
-             const MARGIN = 12; // 1mm at 300 dpi
+             const MARGIN_PERCENT = 2;
              const numLayers = activePage.layers.length;
              let x, y, width, height;
 
              const gridCols = 2;
-             const gridRows = 2;
-             const itemWidth = (collageSettings.width - MARGIN * (gridCols + 1)) / gridCols;
-             const itemHeight = (collageSettings.height - MARGIN * (gridRows + 1)) / gridRows;
+             const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
 
-             const row = Math.floor(numLayers / gridCols);
              const col = numLayers % gridCols;
+             const row = Math.floor(numLayers / gridCols);
              
              if (numLayers < 4) {
-                 x = MARGIN + col * (itemWidth + MARGIN);
-                 y = MARGIN + row * (itemHeight + MARGIN);
-                 width = itemWidth;
-                 height = itemHeight;
+                 const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
+                 const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT); // Assuming square-ish grid items for Y
+                 
+                 const newLayer: ImageLayer = {
+                    id: Date.now().toString(),
+                    src: img.src,
+                    img: img,
+                    x: xPercent + itemWidthPercent / 2, // Center X
+                    y: yPercent + itemWidthPercent / 2, // Center Y
+                    width: itemWidthPercent,
+                    rotation: 0,
+                    opacity: 1,
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                };
+                setCollageSettings(prev => {
+                  const newPages = [...prev.pages];
+                  const updatedPage = { ...newPages[prev.activePageIndex], layers: [...newPages[prev.activePageIndex].layers, newLayer] };
+                  newPages[prev.activePageIndex] = updatedPage;
+                  return { ...prev, pages: newPages };
+                });
+                setSelectedLayerIds([newLayer.id]);
              } else {
-                 // Fallback for more than 4 images - just stack them
-                 x = MARGIN + numLayers * 10;
-                 y = MARGIN + numLayers * 10;
-                 width = itemWidth;
-                 height = itemHeight;
+                 // Fallback for more than 4 images
+                 const newLayer: ImageLayer = {
+                    id: Date.now().toString(),
+                    src: img.src,
+                    img: img,
+                    x: 50,
+                    y: 50,
+                    width: 50,
+                    rotation: 0,
+                    opacity: 1,
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                };
+                 setCollageSettings(prev => {
+                  const newPages = [...prev.pages];
+                  const updatedPage = { ...newPages[prev.activePageIndex], layers: [...newPages[prev.activePageIndex].layers, newLayer] };
+                  newPages[prev.activePageIndex] = updatedPage;
+                  return { ...prev, pages: newPages };
+                });
+                setSelectedLayerIds([newLayer.id]);
              }
-             
-
-             const newLayer: ImageLayer = {
-                id: Date.now().toString(),
-                src: img.src,
-                img: img,
-                x: x,
-                y: y,
-                width: width,
-                height: height,
-                rotation: 0,
-                opacity: 1,
-                originalWidth: img.width,
-                originalHeight: img.height,
-            };
-            setCollageSettings(prev => {
-              const newPages = [...prev.pages];
-              const updatedPage = { ...newPages[prev.activePageIndex], layers: [...newPages[prev.activePageIndex].layers, newLayer] };
-              newPages[prev.activePageIndex] = updatedPage;
-              return { ...prev, pages: newPages };
-            });
-            setSelectedLayerIds([newLayer.id]);
             setActiveTab('collage');
             setEditorMode('collage');
         };
@@ -277,7 +286,7 @@ export default function Home() {
             toast({ title: "Error", description: "Could not load image to add to collage.", variant: "destructive" });
         }
         img.src = src;
-    }, [activePage, toast, collageSettings.width, collageSettings.height]);
+    }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages]);
 
 
     const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
@@ -413,7 +422,6 @@ export default function Home() {
           x: MARGIN + col * (itemWidth + MARGIN),
           y: MARGIN + row * (itemHeight + MARGIN),
           width: itemWidth,
-          height: itemHeight,
           rotation: 0,
           opacity: 1,
           originalWidth: img.width,
@@ -727,13 +735,13 @@ export default function Home() {
 
           // Draw layers in order
           for (const layer of layers) {
-              const layerWidth = layer.width;
-              const layerHeight = layer.height
-              const layerX = layer.x;
-              const layerY = layer.y;
+              const layerWidth = (layer.width / 100) * width;
+              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
+              const layerX = (layer.x / 100) * width;
+              const layerY = (layer.y / 100) * height;
 
               finalCtx.save();
-              finalCtx.translate(layerX + layerWidth / 2, layerY + layerHeight / 2);
+              finalCtx.translate(layerX, layerY);
               finalCtx.rotate(layer.rotation * Math.PI / 180);
               finalCtx.globalAlpha = layer.opacity;
               finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
