@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type, Ban } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -222,6 +222,11 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     updateSettings({ pages: newPages });
   };
 
+  const toggleBackgroundTransparency = () => {
+    const newColor = settings.backgroundColor === 'transparent' ? '#ffffff' : 'transparent';
+    updateSettings({ backgroundColor: newColor });
+  };
+
   return (
     <div className="p-1 space-y-4">
       <input
@@ -287,10 +292,36 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   </Select>
               </div>
               <div className="grid gap-1.5">
-                  <Label htmlFor="canvas-bg">Background Color</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="canvas-bg">Background Color</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleBackgroundTransparency}>
+                            <Ban size={16}/>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Toggle transparent background</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="relative">
-                      <Input id="canvas-bg" value={settings.backgroundColor} onChange={e => updateSettings({ backgroundColor: e.target.value })}/>
-                      <Input type="color" className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none" value={settings.backgroundColor} onChange={e => updateSettings({ backgroundColor: e.target.value })}/>
+                      <Input
+                          id="canvas-bg"
+                          value={settings.backgroundColor}
+                          onChange={e => updateSettings({ backgroundColor: e.target.value })}
+                          placeholder="e.g. #FFF, transparent"
+                          className="pr-10"
+                      />
+                      <Input
+                          type="color"
+                          className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          value={settings.backgroundColor.startsWith('#') ? settings.backgroundColor : '#ffffff'}
+                          onChange={e => updateSettings({ backgroundColor: e.target.value })}
+                          disabled={settings.backgroundColor === 'transparent'}
+                      />
                   </div>
               </div>
             </CardContent>
@@ -607,4 +638,5 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 }
 
     
+
 

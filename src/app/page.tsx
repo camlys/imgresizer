@@ -709,13 +709,15 @@ export default function Home() {
           
           const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
 
-          const { width, height, backgroundColor } = collageSettings;
+          const { width, height, backgroundColor, format } = collageSettings;
           const { layers, sheet, texts, signatures } = page;
           finalCanvas.width = width;
           finalCanvas.height = height;
-
-          finalCtx.fillStyle = backgroundColor;
-          finalCtx.fillRect(0, 0, width, height);
+          
+          if (backgroundColor !== 'transparent' || format !== 'image/png') {
+            finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
+            finalCtx.fillRect(0, 0, width, height);
+          }
           
           if (sheet.enabled) {
               finalCtx.strokeStyle = sheet.lineColor;
@@ -798,7 +800,7 @@ export default function Home() {
         
         try {
             const finalSettings = { ...settings, ...overrideSettings };
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, drawing } = finalSettings;
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, drawing, format } = finalSettings;
 
             const adjustedCanvas = document.createElement('canvas');
             const adjustedCtx = adjustedCanvas.getContext('2d');
@@ -835,8 +837,8 @@ export default function Home() {
             finalCanvas.width = width;
             finalCanvas.height = height;
 
-            if (backgroundColor !== 'transparent') {
-                finalCtx.fillStyle = backgroundColor;
+            if (backgroundColor !== 'transparent' || format !== 'image/png') {
+                finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
                 finalCtx.fillRect(0, 0, width, height);
             }
             
