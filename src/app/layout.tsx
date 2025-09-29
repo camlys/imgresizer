@@ -46,6 +46,48 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Disable F12
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+      }
+      // Disable Ctrl+Shift+I
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+      }
+      // Disable Ctrl+Shift+J
+      if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+        e.preventDefault();
+      }
+       // Disable Ctrl+Shift+C
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+      }
+      // Disable Ctrl+U
+      if (e.ctrlKey && e.key === 'U') {
+        e.preventDefault();
+      }
+    };
+    
+    // Log a warning message to the console
+    console.log('%cHold Up!', 'color: red; font-size: 50px; font-weight: bold;');
+    console.log('%cThis area is for developers. Please do not copy or paste any code here.', 'font-size: 18px;');
+
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -125,5 +167,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
