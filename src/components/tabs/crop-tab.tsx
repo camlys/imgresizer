@@ -162,6 +162,23 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
       }
   }
 
+  const handleModeChange = (value: 'rect' | 'perspective') => {
+    updateSettings({ cropMode: value });
+    if (value === 'rect') {
+      const INSET_PX = 38;
+      const insetX = Math.min(INSET_PX, originalImage.width / 4);
+      const insetY = Math.min(INSET_PX, originalImage.height / 4);
+
+      const insetCrop = {
+        x: Math.round(insetX),
+        y: Math.round(insetY),
+        width: Math.round(originalImage.width - insetX * 2),
+        height: Math.round(originalImage.height - insetY * 2),
+      };
+      setPendingCrop(insetCrop);
+    }
+  };
+
   return (
     <div className="space-y-4 p-1">
       <Card>
@@ -202,7 +219,7 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
               <RadioGroup 
                   defaultValue="rect" 
                   value={settings.cropMode} 
-                  onValueChange={(value) => updateSettings({ cropMode: value as 'rect' | 'perspective' })}
+                  onValueChange={(value) => handleModeChange(value as 'rect' | 'perspective')}
                   className="flex items-center gap-4"
               >
                 <div className="flex items-center space-x-2">
