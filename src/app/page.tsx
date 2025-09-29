@@ -1034,7 +1034,7 @@ export default function Home() {
 
   const handleShare = React.useCallback(async () => {
     const fallbackShare = async () => {
-        const url = 'https://imgresizer.xyz/';
+        const url = 'https://www.imgresizer.xyz/';
         await navigator.clipboard.writeText(url);
         toast({
             title: "Link Copied!",
@@ -1051,7 +1051,7 @@ export default function Home() {
             const shareData: ShareData = {
                 title: 'ImgResizer: Free Online Image Editor',
                 text: 'Check out this image I edited with the free and private ImgResizer web app!',
-                url: 'https://imgresizer.xyz/',
+                url: 'https://www.imgresizer.xyz/',
             };
 
             if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: blob.type })] })) {

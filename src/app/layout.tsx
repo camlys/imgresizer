@@ -101,7 +101,7 @@ export default function RootLayout({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: 'ImgResizer',
-    url: 'https://imgresizer.xyz',
+    url: 'https://www.imgresizer.xyz',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
     description: 'A free, privacy-focused online tool to resize, crop, and edit images and photos directly in your browser.',
@@ -126,13 +126,14 @@ export default function RootLayout({
     creator: {
       '@type': 'Organization',
       name: 'ImgResizer',
-      url: 'https://imgresizer.xyz'
+      url: 'https://www.imgresizer.xyz'
     }
   };
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="canonical" href="https://www.imgresizer.xyz" />
         <meta name="google-site-verification" content="vAXaQAf1AwfzrK402zrQbne-DlogUKuiHaQAWg7P09A" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -152,7 +153,7 @@ export default function RootLayout({
         <meta name="twitter:creator" content="@ImgResizer" />
         <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
-        <meta property="og:url" content="https://imgresizer.xyz" />
+        <meta property="og:url" content="https://www.imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
         <meta property="og:image" content="https://imgresizer.xyz/og-image.png" />
         <meta property="og:image:width" content="1200" />

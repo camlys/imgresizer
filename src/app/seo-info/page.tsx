@@ -72,7 +72,7 @@ export default function SeoInfoPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-xl font-semibold text-foreground flex items-center"><Check className="text-primary mr-2" />Image Resizing and Scaling</h3>
-                  <p>Easily <strong className="text-primary">change image size</strong> using pixels (px), centimeters (cm), or inches. Our tool helps you prepare images for any platform, whether you need to <strong className="text-primary">resize a photo for social media</strong> or for professional printing with DPI controls. It's the perfect <Link href="/" className="text-primary hover:underline">photo resizer</Link> for any task.</p>
+                  <p>Easily <strong className="text-primary">change image size</strong> using pixels (px), centimeters (cm), or inches. Our tool helps you prepare images for any platform, whether you need to <strong className="text-primary">resize a photo for social media</strong> or for professional printing with DPI controls. It's the perfect <Link href="https://www.imgresizer.xyz" className="text-primary hover:underline">photo resizer</Link> for any task.</p>
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-foreground flex items-center"><Check className="text-primary mr-2" />Cropping and Composition</h3>
@@ -129,7 +129,7 @@ export default function SeoInfoPage() {
                     <li><strong className="text-primary">Unmatched Privacy:</strong> Your data stays on your device thanks to client-side processing. No server uploads mean zero risk of data breaches for your files.</li>
                     <li><strong className="text-primary">Completely Free & No Watermarks:</strong> All professional-grade features are available for free, and we never add a watermark to your edited images. It's the best <strong className="text-primary">free photo editor</strong>, no strings attached.</li>
                     <li><strong className="text-primary">Instant & Cross-Platform:</strong> Works on any modern browser, on any device, without any installation. The experience is fast, responsive, and seamless.</li>
-                    <li><strong className="text-primary">Rich Feature Set:</strong> From a simple <Link href="/" className="text-primary hover:underline">image resizer online</Link> to multi-page PDF creation and collage layouts, we cover all bases for a complete <strong className="text-primary">online picture editor</strong>. See all our capabilities on the <Link href="/features" className="text-primary hover:underline">features page</Link>.</li>
+                    <li><strong className="text-primary">Rich Feature Set:</strong> From a simple <Link href="https://www.imgresizer.xyz" className="text-primary hover:underline">image resizer online</Link> to multi-page PDF creation and collage layouts, we cover all bases for a complete <strong className="text-primary">online picture editor</strong>. See all our capabilities on the <Link href="/features" className="text-primary hover:underline">features page</Link>.</li>
                 </ul>
             </section>
           </CardContent>
