@@ -50,6 +50,10 @@ export default function RootLayout({
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
     };
+    
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Disable F12
@@ -81,10 +85,15 @@ export default function RootLayout({
 
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCopy);
+
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('cut', handleCopy);
     };
   }, []);
 
