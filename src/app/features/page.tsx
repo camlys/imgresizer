@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SiteHeader } from '@/components/site-header';
@@ -11,16 +12,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import type { Metadata } from 'next';
+import { AnimatePresence, motion } from 'framer-motion';
 
-
-// Note: Metadata is exported from client components is not supported by Next.js.
-// This is here for organizational purposes and would need to be moved to a parent layout
-// or the page itself if it were a server component.
-// export const metadata: Metadata = {
-//     title: 'Features - ImgResizer | Free Online Image & Photo Editor',
-//     description: 'Explore all the features of ImgResizer, including precision resizing, perspective correction, color adjustments, text overlays, format conversion (PNG, JPEG, PDF), and more. All private and free.',
-// };
 
 const faqs = [
   {
@@ -51,8 +44,8 @@ const faqs = [
 ];
 
 function FaqSection() {
-    // This state is not used on server, but good for potential future client-side enhancements
     const [activeFaq, setActiveFaq] = React.useState(faqs[0].id);
+    const activeFaqContent = faqs.find(faq => faq.id === activeFaq);
 
     return (
         <section>
@@ -80,20 +73,29 @@ function FaqSection() {
                     {faqs.map(faq => (
                         <Card 
                             key={faq.id}
-                            className={`p-6 rounded-lg text-left transition-all duration-300 cursor-pointer bg-muted/50 hover:bg-muted`}
+                            onClick={() => setActiveFaq(faq.id)}
+                            className={`p-6 rounded-lg text-left transition-all duration-300 cursor-pointer ${activeFaq === faq.id ? 'bg-primary/10 border-primary' : 'bg-muted/50 hover:bg-muted'}`}
                         >
                             <h4 className="text-lg font-semibold">{faq.question}</h4>
                         </Card>
                     ))}
                 </div>
                 <div className="relative">
-                    <Card className="sticky top-24 p-8 min-h-[300px] shadow-lg">
-                        {faqs.map(faq => (
-                             <div key={faq.id} className={`transition-opacity duration-300 opacity-100`}>
-                                <h3 className="text-xl font-bold text-foreground mb-4">{faq.question}</h3>
-                                <p className="text-muted-foreground text-lg leading-relaxed">{faq.answer}</p>
-                            </div>
-                        ))[0]}
+                    <Card className="sticky top-24 p-8 min-h-[300px] shadow-lg overflow-hidden">
+                        <AnimatePresence mode="wait">
+                            {activeFaqContent && (
+                                <motion.div
+                                    key={activeFaqContent.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <h3 className="text-xl font-bold text-foreground mb-4">{activeFaqContent.question}</h3>
+                                    <p className="text-muted-foreground text-lg leading-relaxed">{activeFaqContent.answer}</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </Card>
                 </div>
             </div>
@@ -212,3 +214,5 @@ export default function FeaturesPage() {
     </div>
   );
 }
+
+    
