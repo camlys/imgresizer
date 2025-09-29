@@ -153,12 +153,12 @@ export default function RootLayout({
         <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
         <meta name="twitter:creator" content="@ImgResizer" />
-        <meta name="twitter:image" content="https://www.imgresizer.xyz/og-image.png" />
+        <meta name="twitter:image" content="https://www.imgresizer.xyz/camly.png" />
         <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
         <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
         <meta property="og:url" content="https://www.imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
-        <meta property="og:image" content="https://www.imgresizer.xyz/og-image.png" />
+        <meta property="og:image" content="https://www.imgresizer.xyz/camly.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="en_US" />
