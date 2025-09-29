@@ -133,7 +133,7 @@ export type CollageSettings = {
 export type QuickActionPreset = {
   width?: number;
   height?: number;
-  format: 'image/png' | 'image/jpeg' | 'image/webp';
+  format: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf';
   targetSize?: number;
   targetUnit: 'KB' | 'MB';
   autoCrop?: boolean;

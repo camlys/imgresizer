@@ -24,6 +24,7 @@ import {
 import { AppHubCard } from './app-hub-card';
 import { InstallPwaButton } from './install-pwa-button';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -147,24 +148,40 @@ export function AppHeader({
       
       toast({ title: 'Quick Action', description: 'Generating final image...' });
       const finalCanvas = await generateFinalCanvas(undefined, overrideSettings, currentImageElement);
-      const extension = format.split('/')[1].split('+')[0];
-      const downloadName = `imgresizer-quick-action.${extension}`;
       
-      finalCanvas.toBlob((blob) => {
-        if (blob) {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = downloadName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(link.href);
-          toast({
-            title: "Quick Action Complete",
-            description: `Your image has been downloaded as a ${extension.toUpperCase()}.`,
-          });
-        }
-      }, format, finalQuality);
+      if (format === 'application/pdf') {
+        const pdfWidth = (finalCanvas.width / 300) * 72;
+        const pdfHeight = (finalCanvas.height / 300) * 72;
+        const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+        const pdf = new jsPDF({
+          orientation: orientation,
+          unit: 'pt',
+          format: [pdfWidth, pdfHeight]
+        });
+        const imgData = finalCanvas.toDataURL('image/png', 1.0);
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save('imgresizer-quick-action.pdf');
+      } else {
+        const extension = format.split('/')[1].split('+')[0];
+        const downloadName = `imgresizer-quick-action.${extension}`;
+        
+        finalCanvas.toBlob((blob) => {
+          if (blob) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = downloadName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+          }
+        }, format, finalQuality);
+      }
+      
+      toast({
+        title: "Quick Action Complete",
+        description: `Your image has been downloaded.`,
+      });
 
     } catch (e) {
       console.error("Quick Action failed:", e);

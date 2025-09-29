@@ -253,6 +253,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                                 <SelectItem value="image/png">PNG</SelectItem>
                                                 <SelectItem value="image/jpeg">JPEG</SelectItem>
                                                 <SelectItem value="image/webp">WEBP</SelectItem>
+                                                <SelectItem value="application/pdf">PDF</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
