@@ -918,14 +918,27 @@ export default function Home() {
   const updateProcessedSize = React.useCallback(async () => {
     try {
         const pageToRender = editorMode === 'collage' ? activePage : undefined;
-        const canvas = await generateFinalCanvas(pageToRender);
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
-        if (currentFormat === 'image/svg+xml' || currentFormat === 'application/pdf') {
+        if (currentFormat === 'image/svg+xml') {
             setProcessedSize(null);
             return;
         }
+
+        if (currentFormat === 'application/pdf') {
+            const pdf = new jsPDF();
+            const canvas = await generateFinalCanvas(pageToRender);
+            const imgData = canvas.toDataURL('image/jpeg', currentQuality);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            const blob = pdf.output('blob');
+            setProcessedSize(blob.size);
+            return;
+        }
+
+        const canvas = await generateFinalCanvas(pageToRender);
         canvas.toBlob(
             (blob) => {
                 if (blob) setProcessedSize(blob.size);

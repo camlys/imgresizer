@@ -368,7 +368,7 @@ export function AppHeader({
                         value={currentSettings.format}
                         onValueChange={(value) => {
                           const newSettings: Partial<ImageSettings | CollageSettings> = { format: value as any };
-                          if (value === 'application/pdf' || value === 'image/svg+xml') {
+                          if (value === 'image/svg+xml') {
                             newSettings.quality = 1.0;
                           }
                           currentUpdateSettings(newSettings);
@@ -402,7 +402,6 @@ export function AppHeader({
                             value={[currentSettings.quality]}
                             onValueChange={(value) => currentUpdateSettings({ quality: value[0] })}
                             onValueCommit={() => onUpdateProcessedSize()}
-                            disabled={currentSettings.format === 'application/pdf'}
                           />
                         </div>
                         <div className="space-y-2">
@@ -433,7 +432,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {currentSettings.format === 'image/svg+xml' || (editorMode === 'collage' && currentSettings.format === 'application/pdf') ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -465,5 +464,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
