@@ -527,50 +527,54 @@ export function PdfPageSelectorDialog({
         }}>
             <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Organize and Select Pages</DialogTitle>
-                    <DialogDescription>
-                        Click a page to edit, or select multiple to download or add to collage.
-                    </DialogDescription>
+                  <div className="flex sm:items-center justify-between flex-col sm:flex-row gap-4">
+                      <div>
+                          <DialogTitle>Organize and Select Pages</DialogTitle>
+                          <DialogDescription>
+                              Click a page to edit, or select multiple to download or add to collage.
+                          </DialogDescription>
+                      </div>
+                       {!isLoading && (
+                        <div className="relative min-w-[200px] max-w-sm sm:w-64">
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
+                                {searchMode === 'text' ? 
+                                    <Search className="h-4 w-4 text-muted-foreground" /> :
+                                    <List className="h-4 w-4 text-muted-foreground" />
+                                }
+                            </div>
+                            <Input 
+                                placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="pl-8 pr-10 h-9"
+                            />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                          variant="ghost" size="icon"
+                                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                          onClick={() => {
+                                              setSearchMode(prev => prev === 'text' ? 'range' : 'text');
+                                              setSearchValue('');
+                                          }}
+                                      >
+                                        {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                       )}
+                  </div>
                 </DialogHeader>
                 
                 {!isLoading && (
                      <div className="flex flex-col gap-4 py-2 border-b">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex-1 relative min-w-[200px] max-w-sm">
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
-                                    {searchMode === 'text' ? 
-                                        <Search className="h-4 w-4 text-muted-foreground" /> :
-                                        <List className="h-4 w-4 text-muted-foreground" />
-                                    }
-                                </div>
-                                <Input 
-                                    placeholder={searchMode === 'text' ? 'Search by name or number...' : 'e.g., 1-5, 8, 10-12'}
-                                    value={searchValue}
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    onKeyDown={handleSearchKeyDown}
-                                    className="pl-8 pr-10"
-                                />
-                                 <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                           <Button
-                                              variant="ghost" size="icon"
-                                              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                              onClick={() => {
-                                                  setSearchMode(prev => prev === 'text' ? 'range' : 'text');
-                                                  setSearchValue('');
-                                              }}
-                                           >
-                                             {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
-                                           </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                        </div>
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
