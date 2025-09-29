@@ -13,7 +13,6 @@ import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
-import { SeoContent } from '@/components/seo-content';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
@@ -1177,7 +1176,6 @@ export default function Home() {
             </p>
           </section>
           <FeatureGrid />
-          <SeoContent isEditing={false} />
         </main>
         <SiteFooter />
         <InstallPwaBanner />
@@ -1320,9 +1318,6 @@ export default function Home() {
             />
           )}
       </div>
-      <SeoContent isEditing={true}>
-        <FeatureGrid />
-      </SeoContent>
       <SiteFooter />
     </div>
   );
