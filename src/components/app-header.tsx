@@ -66,6 +66,7 @@ export function AppHeader({
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
   const { toast } = useToast();
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
+  const [localProcessedSize, setLocalProcessedSize] = useState<number | null>(null);
 
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
   const currentUpdateSettings = editorMode === 'single' ? updateSettings : (updateCollageSettings as (s: Partial<ImageSettings | CollageSettings>) => void);
@@ -75,6 +76,11 @@ export function AppHeader({
       onUpdateProcessedSize();
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
+  
+  useEffect(() => {
+    setLocalProcessedSize(processedSize);
+  }, [processedSize]);
+
 
   const handleQuickAction = async () => {
     if (editorMode === 'collage' || !isImageLoaded || !imageElement) return;
@@ -212,7 +218,6 @@ export function AppHeader({
   };
   
   const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
-    const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
     const format = currentSettings.format;
 
     if (format === 'application/pdf') {
@@ -242,6 +247,7 @@ export function AppHeader({
       return pdf.output('blob');
     }
 
+    const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
     const canvas = await generateFinalCanvas(pageToRender, { quality: quality });
 
     return new Promise((resolve) => {
@@ -281,15 +287,9 @@ export function AppHeader({
     }
     
     if (finalBlob) {
-        if (editorMode === 'collage') {
-            updateCollageSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
-        } else {
-            updateSettings({ quality: parseFloat(bestQuality.toFixed(2)) });
-        }
-        
-        // This is the direct fix.
-        (currentUpdateSettings as (s: Partial<ImageSettings | CollageSettings> & {_processedSize: number}) => void)({_processedSize: finalBlob.size});
-        onUpdateProcessedSize();
+        const quality = parseFloat(bestQuality.toFixed(2));
+        currentUpdateSettings({ quality });
+        setLocalProcessedSize(finalBlob.size);
     }
     
     setIsOptimizing(false);
@@ -397,7 +397,10 @@ export function AppHeader({
                             id="quality"
                             min={0} max={1} step={0.01}
                             value={[currentSettings.quality]}
-                            onValueChange={(value) => currentUpdateSettings({ quality: value[0] })}
+                            onValueChange={(value) => {
+                                currentUpdateSettings({ quality: value[0] });
+                                setLocalProcessedSize(null); // Invalidate size
+                            }}
                             onValueCommit={() => onUpdateProcessedSize()}
                           />
                         </div>
@@ -429,7 +432,7 @@ export function AppHeader({
                     )}
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
-                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : localProcessedSize !== null ? formatBytes(localProcessedSize) : 'Calculating...'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -461,3 +464,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    
