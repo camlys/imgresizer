@@ -151,14 +151,18 @@ export default function Home() {
                 const croppedImage = new Image();
                 croppedImage.onload = () => {
                     const MARGIN_PERCENT = 2;
-                    const layerWidthPercent = 100 - MARGIN_PERCENT * 2;
+                    const gridCols = 2;
+                    const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
+                    const xPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
+                    const yPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
+
                     const newLayer: ImageLayer = {
                         id: Date.now().toString(),
                         src: croppedImageSrc,
                         img: croppedImage,
-                        x: 50,
-                        y: 50,
-                        width: layerWidthPercent,
+                        x: xPercent + itemWidthPercent / 2, // Center X
+                        y: yPercent + itemWidthPercent / 2, // Center Y
+                        width: itemWidthPercent,
                         rotation: 0,
                         opacity: 1,
                         originalWidth: croppedImage.width,
