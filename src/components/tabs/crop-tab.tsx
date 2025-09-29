@@ -33,6 +33,8 @@ const aspectRatios = [
   { name: '4:5 Portrait', value: 4/5, icon: RectangleVertical },
 ];
 
+const INSET_PX = 38; // Approx 10mm at high DPI
+
 export function CropTab({ settings, updateSettings, originalImage, pendingCrop, setPendingCrop, onTabChange, onApplyPerspectiveCrop, onAutoDetectBorder }: CropTabProps) {
   const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
   const hasTransforms = settings.rotation !== 0 || settings.flipHorizontal || settings.flipVertical;
@@ -87,7 +89,6 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
         setPendingCrop(fullCrop);
       }
     } else {
-       const INSET_PX = 38; // Approx 10mm
        const inset = Math.min(INSET_PX, originalImage.width / 4, originalImage.height / 4);
        updateSettings({
         perspectivePoints: {
@@ -131,22 +132,33 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
     setLastCustomCrop(newCrop);
   };
   
-  const centerCrop = () => {
+  const toggleCenterCrop = () => {
     if (!pendingCrop) return;
 
-    const newX = (originalImage.width - pendingCrop.width) / 2;
-    const newY = (originalImage.height - pendingCrop.height) / 2;
+    const fullCrop = { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
     
-    const newCrop = {
-      ...pendingCrop,
-      x: Math.round(newX),
-      y: Math.round(newY),
+    const insetX = Math.min(INSET_PX, originalImage.width / 4);
+    const insetY = Math.min(INSET_PX, originalImage.height / 4);
+    const insetCrop = {
+      x: Math.round(insetX),
+      y: Math.round(insetY),
+      width: Math.round(originalImage.width - insetX * 2),
+      height: Math.round(originalImage.height - insetY * 2),
     };
-    setPendingCrop(newCrop);
-    if(settings.crop) {
-      updateSettings({ crop: { ...settings.crop, x: newCrop.x, y: newCrop.y }});
+    
+    const isFullCrop = pendingCrop.x === fullCrop.x && pendingCrop.y === fullCrop.y && pendingCrop.width === fullCrop.width && pendingCrop.height === fullCrop.height;
+    const isInsetCrop = pendingCrop.x === insetCrop.x && pendingCrop.y === insetCrop.y && pendingCrop.width === insetCrop.width && pendingCrop.height === insetCrop.height;
+
+    if (isFullCrop) {
+      setPendingCrop(insetCrop);
+      setLastCustomCrop(insetCrop);
+    } else if (isInsetCrop) {
+      setPendingCrop(fullCrop);
+      setLastCustomCrop(null);
+    } else {
+      setPendingCrop(insetCrop);
+      setLastCustomCrop(insetCrop);
     }
-    setLastCustomCrop(newCrop);
   };
 
   const applyChanges = () => {
@@ -164,11 +176,9 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
 
   const handleModeChange = (value: 'rect' | 'perspective') => {
     updateSettings({ cropMode: value });
-    if (value === 'rect') {
-      const INSET_PX = 38;
+    if (value === 'rect' && (!pendingCrop || settings.cropMode === 'perspective')) {
       const insetX = Math.min(INSET_PX, originalImage.width / 4);
       const insetY = Math.min(INSET_PX, originalImage.height / 4);
-
       const insetCrop = {
         x: Math.round(insetX),
         y: Math.round(insetY),
@@ -189,12 +199,12 @@ export function CropTab({ settings, updateSettings, originalImage, pendingCrop, 
               {settings.cropMode === 'rect' && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={centerCrop} className="h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={toggleCenterCrop} className="h-8 w-8">
                       <Move size={16}/>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Center Crop</p>
+                    <p>Center / Inset Crop</p>
                   </TooltipContent>
                 </Tooltip>
               )}
