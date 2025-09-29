@@ -700,6 +700,8 @@ export default function Home() {
 
  const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageForCanvas?: HTMLImageElement): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
+        const currentQuality = overrideSettings?.quality ?? (editorMode === 'single' ? settings.quality : collageSettings.quality);
+
         if (editorMode === 'collage' && !overrideSettings) {
           const finalCanvas = document.createElement('canvas');
           const finalCtx = finalCanvas.getContext('2d');
@@ -981,7 +983,7 @@ export default function Home() {
 
             for (const page of pagesToRender) {
                 const canvas = await generateFinalCanvas(page);
-                const imgData = canvas.toDataURL('image/png', 1.0); // Use high quality PNG for PDF
+                const imgData = canvas.toDataURL('image/png', currentQuality);
                 const pagePdfWidth = (canvas.width / 300) * 72;
                 const pagePdfHeight = (canvas.height / 300) * 72;
 
