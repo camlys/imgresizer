@@ -136,4 +136,5 @@ export type QuickActionPreset = {
   format: 'image/png' | 'image/jpeg' | 'image/webp';
   targetSize?: number;
   targetUnit: 'KB' | 'MB';
+  autoCrop?: boolean;
 };

@@ -14,6 +14,7 @@ import { ImageInfoPanel } from '../image-info-panel';
 import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '../ui/switch';
 
 const CM_TO_INCH = 0.393701;
 
@@ -49,7 +50,11 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const [aspectRatio, setAspectRatio] = useState(originalImage ? originalImage.width / originalImage.height : 1);
     const { toast } = useToast();
 
-    const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset | null>(null);
+    const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset>({
+        format: 'image/jpeg',
+        targetUnit: 'KB',
+        autoCrop: false,
+    });
 
     useEffect(() => {
         try {
@@ -232,11 +237,24 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                           <div className="space-y-1">
                             <h4 className="font-medium text-sm">Quick Action Preset</h4>
                             <p className="text-sm text-muted-foreground">
-                            Configure a one-click resize and download. Use the <Zap size={14} className="inline-block"/> button in the header to run.
+                            Configure a one-click process. Use the <Zap size={14} className="inline-block"/> button in the header to run.
                             </p>
                           </div>
                           <Separator />
                           <div className="grid gap-4">
+                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                  <Label htmlFor="auto-crop">Auto Crop</Label>
+                                  <p className="text-xs text-muted-foreground">
+                                      Detect and crop borders automatically.
+                                  </p>
+                                  </div>
+                                  <Switch
+                                    id="auto-crop"
+                                    checked={quickActionPreset.autoCrop}
+                                    onCheckedChange={(checked) => setQuickActionPreset(p => ({...p, autoCrop: checked}))}
+                                  />
+                              </div>
                               <div className="grid gap-2">
                                   <Label>Target Dimensions (Optional)</Label>
                                   <div className="flex items-center gap-2">
@@ -257,7 +275,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                               <div className="grid gap-2">
                                 <Label>Format</Label>
                                 <Select
-                                    value={quickActionPreset?.format || 'image/jpeg'}
+                                    value={quickActionPreset?.format}
                                     onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
                                 >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -278,7 +296,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                         onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
                                     />
                                     <Select 
-                                        value={quickActionPreset?.targetUnit || 'KB'} 
+                                        value={quickActionPreset?.targetUnit} 
                                         onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
                                     >
                                         <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
@@ -303,5 +321,3 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
-
-    

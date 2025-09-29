@@ -150,14 +150,15 @@ export default function Home() {
                 const croppedImageSrc = tempCanvas.toDataURL();
                 const croppedImage = new Image();
                 croppedImage.onload = () => {
-                    const MARGIN = 2;
+                    const MARGIN = 12; // 1mm at 300 dpi
                     const newLayer: ImageLayer = {
                         id: Date.now().toString(),
                         src: croppedImageSrc,
                         img: croppedImage,
-                        x: MARGIN + 25,
-                        y: MARGIN + (25 * (croppedImage.height / croppedImage.width)),
-                        width: 50 - MARGIN,
+                        x: MARGIN,
+                        y: MARGIN,
+                        width: collageSettings.width - MARGIN * 2,
+                        height: collageSettings.height - MARGIN * 2,
                         rotation: 0,
                         opacity: 1,
                         originalWidth: croppedImage.width,
@@ -165,7 +166,7 @@ export default function Home() {
                     };
                     const newPages = [...collageSettings.pages];
                     newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
-                    setCollageSettings(prev => ({ ...prev, pages: newPages, layout: 2 }));
+                    setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
                     setSelectedLayerIds([newLayer.id]);
                 };
                 croppedImage.src = croppedImageSrc;
@@ -223,26 +224,29 @@ export default function Home() {
     const addImageToCollageFromSrc = React.useCallback((src: string) => {
         const img = new Image();
         img.onload = () => {
-             const MARGIN = 2; // 2% margin
+             const MARGIN = 12; // 1mm at 300 dpi
              const numLayers = activePage.layers.length;
              let x, y, width, height;
 
              const gridCols = 2;
              const gridRows = 2;
-             const itemWidth = (100 - MARGIN * (gridCols + 1)) / gridCols;
-             const itemHeight = itemWidth; // For square-like items
+             const itemWidth = (collageSettings.width - MARGIN * (gridCols + 1)) / gridCols;
+             const itemHeight = (collageSettings.height - MARGIN * (gridRows + 1)) / gridRows;
 
              const row = Math.floor(numLayers / gridCols);
              const col = numLayers % gridCols;
              
              if (numLayers < 4) {
-                 x = MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2;
-                 y = MARGIN + row * (itemHeight + MARGIN) + itemHeight / 2;
+                 x = MARGIN + col * (itemWidth + MARGIN);
+                 y = MARGIN + row * (itemHeight + MARGIN);
                  width = itemWidth;
+                 height = itemHeight;
              } else {
-                 x = 50;
-                 y = 50;
-                 width = 25;
+                 // Fallback for more than 4 images - just stack them
+                 x = MARGIN + numLayers * 10;
+                 y = MARGIN + numLayers * 10;
+                 width = itemWidth;
+                 height = itemHeight;
              }
              
 
@@ -253,6 +257,7 @@ export default function Home() {
                 x: x,
                 y: y,
                 width: width,
+                height: height,
                 rotation: 0,
                 opacity: 1,
                 originalWidth: img.width,
@@ -272,7 +277,7 @@ export default function Home() {
             toast({ title: "Error", description: "Could not load image to add to collage.", variant: "destructive" });
         }
         img.src = src;
-    }, [activePage, toast]);
+    }, [activePage, toast, collageSettings.width, collageSettings.height]);
 
 
     const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
@@ -356,8 +361,9 @@ export default function Home() {
       let currentActivePageIndex = collageSettings.activePageIndex;
       let lastSelectedLayerIds: string[] = [];
   
-      const MARGIN = 2;
+      const MARGIN = 12; // 1mm at 300 dpi
       const GRID_COLS = 2;
+      const GRID_ROWS = 2;
       const MAX_IMAGES_PER_PAGE = 4;
   
       // Batch-process all page renderings first
@@ -395,7 +401,8 @@ export default function Home() {
   
         // Add layer to the (potentially new) active page
         const layerIndex = activePage.layers.length;
-        const itemWidth = (100 - MARGIN * (GRID_COLS + 1)) / GRID_COLS;
+        const itemWidth = (collageSettings.width - MARGIN * (GRID_COLS + 1)) / GRID_COLS;
+        const itemHeight = (collageSettings.height - MARGIN * (GRID_ROWS + 1)) / GRID_ROWS;
         const row = Math.floor(layerIndex / GRID_COLS);
         const col = layerIndex % GRID_COLS;
   
@@ -403,9 +410,10 @@ export default function Home() {
           id: `${Date.now()}-${pageNum}`,
           src: img.src,
           img: img,
-          x: MARGIN + col * (itemWidth + MARGIN) + itemWidth / 2,
-          y: MARGIN + row * (itemWidth + MARGIN) + itemWidth / 2,
+          x: MARGIN + col * (itemWidth + MARGIN),
+          y: MARGIN + row * (itemHeight + MARGIN),
           width: itemWidth,
+          height: itemHeight,
           rotation: 0,
           opacity: 1,
           originalWidth: img.width,
@@ -680,7 +688,7 @@ export default function Home() {
     }
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
- const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>): Promise<HTMLCanvasElement> => {
+ const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageForCanvas?: HTMLImageElement): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
         if (editorMode === 'collage' && !overrideSettings) {
           const finalCanvas = document.createElement('canvas');
@@ -720,13 +728,13 @@ export default function Home() {
 
           // Draw layers in order
           for (const layer of layers) {
-              const layerWidth = (layer.width / 100) * width;
-              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
-              const layerX = (layer.x / 100) * width;
-              const layerY = (layer.y / 100) * height;
+              const layerWidth = layer.width;
+              const layerHeight = layer.height
+              const layerX = layer.x;
+              const layerY = layer.y;
 
               finalCtx.save();
-              finalCtx.translate(layerX, layerY);
+              finalCtx.translate(layerX + layerWidth / 2, layerY + layerHeight / 2);
               finalCtx.rotate(layer.rotation * Math.PI / 180);
               finalCtx.globalAlpha = layer.opacity;
               finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
@@ -773,7 +781,8 @@ export default function Home() {
           return;
         }
 
-        if (!originalImage || !imageElement) return reject(new Error("No original image loaded."));
+        const currentImageElement = imageForCanvas || imageElement;
+        if (!originalImage || !currentImageElement) return reject(new Error("No original image loaded."));
         
         try {
             const finalSettings = { ...settings, ...overrideSettings };
@@ -783,11 +792,11 @@ export default function Home() {
             const adjustedCtx = adjustedCanvas.getContext('2d');
             if (!adjustedCtx) return reject(new Error("Could not create adjusted canvas context."));
 
-            const cropData = crop || { x: 0, y: 0, width: imageElement.width, height: imageElement.height };
+            const cropData = crop || { x: 0, y: 0, width: currentImageElement.width, height: currentImageElement.height };
             adjustedCanvas.width = cropData.width;
             adjustedCanvas.height = cropData.height;
 
-            adjustedCtx.drawImage(imageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+            adjustedCtx.drawImage(currentImageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
             
             if (Object.values(adjustments).some((v, i) => v !== Object.values(initialSettings.adjustments)[i])) {
                 let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
@@ -1143,6 +1152,7 @@ export default function Home() {
           generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
           editorMode={editorMode}
+          imageElement={imageElement}
         />
         <main className="flex-1 w-full overflow-y-auto">
           <HeroSection onUpload={handleImageUpload} />
@@ -1197,6 +1207,7 @@ export default function Home() {
           generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
           editorMode={editorMode}
+          imageElement={imageElement}
         />
         <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto md:overflow-hidden">
           <div className="w-full md:w-[380px] md:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
@@ -1305,7 +1316,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    

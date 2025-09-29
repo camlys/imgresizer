@@ -11,7 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { ImageSettings, CollageSettings, CollagePage, QuickActionPreset } from '@/lib/types';
-import { formatBytes } from '@/lib/utils';
+import { formatBytes, autoDetectBorders, applyPerspectiveTransform } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AppHeaderProps {
   onUpload: (file: File) => void;
   onDownload: (filename: string) => Promise<void>;
-  generateFinalCanvas: (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>) => Promise<HTMLCanvasElement>;
+  generateFinalCanvas: (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageElement?: HTMLImageElement) => Promise<HTMLCanvasElement>;
   onShare: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
@@ -38,6 +38,7 @@ interface AppHeaderProps {
   processedSize: number | null;
   onUpdateProcessedSize: () => void;
   editorMode: 'single' | 'collage';
+  imageElement: HTMLImageElement | null;
 }
 
 export function AppHeader({ 
@@ -53,6 +54,7 @@ export function AppHeader({
   processedSize,
   onUpdateProcessedSize,
   editorMode,
+  imageElement
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -74,7 +76,7 @@ export function AppHeader({
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
 
   const handleQuickAction = async () => {
-    if (editorMode === 'collage' || !isImageLoaded) return;
+    if (editorMode === 'collage' || !isImageLoaded || !imageElement) return;
     
     let quickActionPreset: QuickActionPreset | null = null;
     try {
@@ -96,16 +98,34 @@ export function AppHeader({
     setIsProcessingQuickAction(true);
     
     try {
+      let currentImageElement = imageElement;
+      
+      if (quickActionPreset.autoCrop) {
+        toast({ title: 'Quick Action', description: 'Auto-cropping image...' });
+        const points = await autoDetectBorders(currentImageElement);
+        const transformedCanvas = await applyPerspectiveTransform(currentImageElement, points);
+        
+        const newImage = new Image();
+        await new Promise((resolve, reject) => {
+          newImage.onload = resolve;
+          newImage.onerror = reject;
+          newImage.src = transformedCanvas.toDataURL('image/png');
+        });
+        currentImageElement = newImage;
+      }
+      
       const format = quickActionPreset.format || 'image/jpeg';
       let finalQuality = 1.0;
 
       const overrideSettings: Partial<ImageSettings> = {
-        width: quickActionPreset.width || settings.width,
-        height: quickActionPreset.height || settings.height,
+        width: quickActionPreset.width || currentImageElement.width,
+        height: quickActionPreset.height || currentImageElement.height,
         format: format,
+        crop: {x: 0, y: 0, width: currentImageElement.width, height: currentImageElement.height},
       };
       
       if (quickActionPreset.targetSize && (format === 'image/jpeg' || format === 'image/webp')) {
+          toast({ title: 'Quick Action', description: 'Optimizing file size...' });
           const targetBytes = quickActionPreset.targetUnit === 'KB' 
               ? quickActionPreset.targetSize * 1024 
               : quickActionPreset.targetSize * 1024 * 1024;
@@ -113,7 +133,7 @@ export function AppHeader({
           let high = 1.0, low = 0.0, mid = 0.5;
           for(let i = 0; i < 10; i++) {
               mid = (low + high) / 2;
-              const tempCanvas = await generateFinalCanvas(undefined, { ...overrideSettings, quality: mid });
+              const tempCanvas = await generateFinalCanvas(undefined, { ...overrideSettings, quality: mid }, currentImageElement);
               const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, format, mid));
               if (!blob) throw new Error("Could not generate blob for quality check.");
               
@@ -125,7 +145,8 @@ export function AppHeader({
       
       overrideSettings.quality = finalQuality;
       
-      const finalCanvas = await generateFinalCanvas(undefined, overrideSettings);
+      toast({ title: 'Quick Action', description: 'Generating final image...' });
+      const finalCanvas = await generateFinalCanvas(undefined, overrideSettings, currentImageElement);
       const extension = format.split('/')[1].split('+')[0];
       const downloadName = `imgresizer-quick-action.${extension}`;
       
@@ -397,5 +418,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
