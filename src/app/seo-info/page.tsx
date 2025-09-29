@@ -17,7 +17,8 @@ const keywordList = [
     "PDF to Image", "Private Image Editing", "No Sign-Up Photo Editor", "Client-Side Image Processing",
     "ImgResizer Features", "Perspective Correction Tool", "Add Text to Photo", "Image Watermark", "Collage Maker Online",
     "Free Image Editor No Watermark", "Photo Resizer", "JPG Converter", "Image to PDF", "Online Picture Editor", "Photo Collage Maker",
-    "Image Compressor", "Change Image Size", "Edit Photos Online", "Best Free Photo Editor", "Secure Document Editing"
+    "Image Compressor", "Change Image Size", "Edit Photos Online", "Best Free Photo Editor", "Secure Document Editing",
+    "edit pictures", "image resizer online", "resize image online", "png to jpg", "webp to png", "image to pdf converter", "picture editor", "photo editor free"
 ];
 
 const faqList = [
