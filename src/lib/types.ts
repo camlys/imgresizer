@@ -78,6 +78,8 @@ export type ImageSettings = {
   signatures: SignatureOverlay[];
   drawing: {
     paths: DrawingPath[];
+    history: DrawingPath[][];
+    historyIndex: number;
     brushColor: string;
     brushSize: number;
     isErasing: boolean;

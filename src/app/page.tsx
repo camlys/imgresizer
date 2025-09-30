@@ -41,6 +41,8 @@ const initialSettings: ImageSettings = {
   signatures: [],
   drawing: {
     paths: [],
+    history: [[]],
+    historyIndex: 0,
     brushColor: '#ff0000',
     brushSize: 10,
     isErasing: false,
@@ -580,6 +582,12 @@ export default function Home() {
         if (!signatureExists) {
           setSelectedSignatureId(null);
         }
+      }
+      if (newSettings.drawing && newSettings.drawing.history) {
+        const newHistory = newSettings.drawing.history;
+        const newIndex = newSettings.drawing.historyIndex ?? (newHistory.length - 1);
+        updated.drawing.paths = newHistory[newIndex];
+        updated.drawing.historyIndex = newIndex;
       }
       return updated;
     });
