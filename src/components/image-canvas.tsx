@@ -104,6 +104,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   const [cursor, setCursor] = useState('auto');
   const lastClickTime = useRef(0);
   const lastClickTarget = useRef<string | null>(null);
+  const lastDrawPoint = useRef<{x: number, y: number} | null>(null);
 
 
   useImperativeHandle(ref, () => internalCanvasRef.current!, []);
@@ -611,11 +612,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         // Draw drawing paths
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        const allPaths = [...drawing.paths];
-        if (interactionState?.type === 'draw' && interactionState.currentPath) {
-          allPaths.push(interactionState.currentPath);
-        }
-        allPaths.forEach(path => {
+        drawing.paths.forEach(path => {
           if (path.points.length < 2) return;
           ctx.strokeStyle = path.color;
           ctx.lineWidth = path.size;
@@ -756,7 +753,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions, interactionState]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -947,6 +944,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             size: settings.drawing.brushSize,
             isEraser: settings.drawing.isErasing,
         };
+        lastDrawPoint.current = pos;
         setInteractionState({
             type: 'draw',
             startPos: pos,
@@ -1076,9 +1074,21 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         let activePage = collageSettings.pages[collageSettings.activePageIndex];
         if (editorMode === 'collage' && !activePage) return;
 
-        if (type === 'draw' && currentPath) {
-          const newPath = { ...currentPath, points: [...currentPath.points, pos] };
-          setInteractionState(prev => prev ? { ...prev, currentPath: newPath } : null);
+        if (type === 'draw' && currentPath && lastDrawPoint.current) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = currentPath.color;
+            ctx.lineWidth = currentPath.size;
+            ctx.globalCompositeOperation = currentPath.isEraser ? 'destination-out' : 'source-over';
+            
+            ctx.beginPath();
+            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            
+            lastDrawPoint.current = pos;
+            const newPath = { ...currentPath, points: [...currentPath.points, pos] };
+            setInteractionState(prev => prev ? { ...prev, currentPath: newPath } : null);
         } else if (type.startsWith('layer-') && startLayer && activePage) {
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
@@ -1255,6 +1265,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (interactionState) {
       const activePage = collageSettings.pages[collageSettings.activePageIndex];
       if (interactionState.type === 'draw' && interactionState.currentPath) {
+        lastDrawPoint.current = null;
         const finalPath = interactionState.currentPath;
         if (finalPath.points.length > 1) {
             updateSettings({ 
@@ -1325,3 +1336,4 @@ export { ImageCanvas };
     
 
     
+
