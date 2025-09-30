@@ -99,15 +99,16 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   const handleDragSort = () => {
     if (!dragItem.current || !dragOverItem.current || dragItem.current === dragOverItem.current) return;
 
-    const layersCopy = [...activePage.layers];
+    const layersCopy = [...activePage.layers].reverse();
     const dragItemIndex = layersCopy.findIndex(l => l.id === dragItem.current);
     const dragOverItemIndex = layersCopy.findIndex(l => l.id === dragOverItem.current);
 
     const [removed] = layersCopy.splice(dragItemIndex, 1);
     layersCopy.splice(dragOverItemIndex, 0, removed);
     
+    const finalLayers = layersCopy.reverse();
     const newPages = [...settings.pages];
-    newPages[settings.activePageIndex] = { ...activePage, layers: layersCopy };
+    newPages[settings.activePageIndex] = { ...activePage, layers: finalLayers };
     updateSettings({ pages: newPages });
 
     dragItem.current = null;
@@ -519,7 +520,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                 value={selectedLayerIds}
                                 onValueChange={setSelectedLayerIds}
                             >
-                                {activePage.layers.map((layer, index) => (
+                                {[...activePage.layers].reverse().map((layer, index) => (
                                     <div 
                                         key={layer.id}
                                         className="flex items-start gap-1"
@@ -638,5 +639,6 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 }
 
     
+
 
 
