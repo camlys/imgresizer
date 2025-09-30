@@ -99,16 +99,15 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
   const handleDragSort = () => {
     if (!dragItem.current || !dragOverItem.current || dragItem.current === dragOverItem.current) return;
 
-    const layersCopy = [...activePage.layers].reverse();
+    const layersCopy = [...activePage.layers];
     const dragItemIndex = layersCopy.findIndex(l => l.id === dragItem.current);
     const dragOverItemIndex = layersCopy.findIndex(l => l.id === dragOverItem.current);
 
     const [removed] = layersCopy.splice(dragItemIndex, 1);
     layersCopy.splice(dragOverItemIndex, 0, removed);
     
-    const finalLayers = layersCopy.reverse();
     const newPages = [...settings.pages];
-    newPages[settings.activePageIndex] = { ...activePage, layers: finalLayers };
+    newPages[settings.activePageIndex] = { ...activePage, layers: layersCopy };
     updateSettings({ pages: newPages });
 
     dragItem.current = null;
@@ -520,7 +519,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                 value={selectedLayerIds}
                                 onValueChange={setSelectedLayerIds}
                             >
-                                {[...activePage.layers].reverse().map((layer, index) => (
+                                {activePage.layers.map((layer, index) => (
                                     <div 
                                         key={layer.id}
                                         className="flex items-start gap-1"
@@ -534,8 +533,8 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                         <AccordionItem value={layer.id} className="flex-1 border-b-0">
                                             <AccordionTrigger className={`py-3 transition-colors ${selectedLayerIds.includes(layer.id) ? 'bg-primary/10 hover:bg-primary/20 rounded-md' : 'hover:bg-accent/50'}`}>
                                                 <div className="flex items-center gap-3">
-                                                    <img src={layer.src} alt={`Layer ${activePage.layers.length - index}`} className="w-10 h-10 object-contain bg-white p-1 rounded border"/>
-                                                    <span className="font-semibold">Layer {activePage.layers.length - index}</span>
+                                                    <img src={layer.src} alt={`Layer ${index + 1}`} className="w-10 h-10 object-contain bg-white p-1 rounded border"/>
+                                                    <span className="font-semibold">Layer {index + 1}</span>
                                                 </div>
                                             </AccordionTrigger>
                                             <AccordionContent className="space-y-4 pt-2">
@@ -639,6 +638,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 }
 
     
+
 
 
 
