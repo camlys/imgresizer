@@ -371,81 +371,70 @@ export default function Home() {
     toast({ title: "Processing...", description: `Adding ${pageNums.length} pages to the collage.` });
 
     try {
-        let updatedPages = [...collageSettings.pages];
-        let currentActivePageIndex = collageSettings.activePageIndex;
-        let lastSelectedLayerIds: string[] = [];
+        let lastSelectedLayerId: string | null = null;
+        
+        for (const pageNum of pageNums) {
+             const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
+             const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = () => reject(new Error("Image load error"));
+                image.src = dataUrl;
+            });
 
-        const MARGIN_PERCENT = 2;
-        const GRID_COLS = 2;
-        const MAX_IMAGES_PER_PAGE = 4;
+            await new Promise<void>(resolve => {
+                setCollageSettings(prev => {
+                    let updatedPages = [...prev.pages];
+                    let currentActivePageIndex = prev.activePageIndex;
+                    let activePage = updatedPages[currentActivePageIndex];
+                    let layersOnCurrentPage = activePage.layers.length;
 
-        const imagePromises = pageNums.map(pageNum =>
-            renderPdfPageToDataURL(pdfDoc, pageNum).then(dataUrl =>
-                new Promise<HTMLImageElement>((resolve, reject) => {
-                    const image = new Image();
-                    image.onload = () => resolve(image);
-                    image.onerror = () => reject(new Error("Image load error"));
-                    image.src = dataUrl;
-                })
-            )
-        );
+                    const MAX_IMAGES_PER_PAGE = 4;
 
-        const newImages = await Promise.all(imagePromises);
+                    if (layersOnCurrentPage >= MAX_IMAGES_PER_PAGE) {
+                        const newPage: CollagePage = {
+                            id: `${Date.now()}-page-${pageNum}`,
+                            layers: [], texts: [], signatures: [], sheet: initialSheetSettings,
+                        };
+                        updatedPages.push(newPage);
+                        currentActivePageIndex = updatedPages.length - 1;
+                        activePage = newPage;
+                        layersOnCurrentPage = 0;
+                    }
+                    
+                    const MARGIN_PERCENT = 2;
+                    const GRID_COLS = 2;
+                    const itemWidthPercent = (100 - (GRID_COLS + 1) * MARGIN_PERCENT) / GRID_COLS;
+                    const row = Math.floor(layersOnCurrentPage / GRID_COLS);
+                    const col = layersOnCurrentPage % GRID_COLS;
+                    
+                    const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
+                    const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT);
 
-        newImages.forEach((img, index) => {
-            const pageNum = pageNums[index];
-            let activePage = updatedPages[currentActivePageIndex];
-            let layersOnCurrentPage = activePage.layers.length;
-
-            if (layersOnCurrentPage >= MAX_IMAGES_PER_PAGE) {
-                const newPage: CollagePage = {
-                    id: `${Date.now()}-page-${pageNum}`,
-                    layers: [],
-                    texts: [],
-                    signatures: [],
-                    sheet: initialSheetSettings,
-                };
-                updatedPages.push(newPage);
-                currentActivePageIndex = updatedPages.length - 1;
-                activePage = newPage;
-                layersOnCurrentPage = 0;
-            }
-
-            const itemWidthPercent = (100 - (GRID_COLS + 1) * MARGIN_PERCENT) / GRID_COLS;
-            const row = Math.floor(layersOnCurrentPage / GRID_COLS);
-            const col = layersOnCurrentPage % GRID_COLS;
-            
-            const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
-            const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT); // Assuming square-ish grid items for Y
-
-            const newLayer: ImageLayer = {
-                id: `${Date.now()}-${pageNum}`,
-                src: img.src,
-                img: img,
-                x: xPercent + itemWidthPercent / 2, // Center X
-                y: yPercent + itemWidthPercent / 2, // Center Y
-                width: itemWidthPercent,
-                rotation: 0,
-                opacity: 1,
-                originalWidth: img.width,
-                originalHeight: img.height,
-            };
-
-            activePage.layers.push(newLayer);
-            lastSelectedLayerIds = [newLayer.id];
-        });
-
-        setCollageSettings(prev => ({
-            ...prev,
-            pages: updatedPages,
-            activePageIndex: currentActivePageIndex,
-        }));
-
-        if (lastSelectedLayerIds.length > 0) {
-            setSelectedLayerIds(lastSelectedLayerIds);
+                    const newLayer: ImageLayer = {
+                        id: `${Date.now()}-${pageNum}`,
+                        src: img.src, img: img,
+                        x: xPercent + itemWidthPercent / 2, y: yPercent + itemWidthPercent / 2,
+                        width: itemWidthPercent, rotation: 0, opacity: 1,
+                        originalWidth: img.width, originalHeight: img.height,
+                    };
+                    
+                    lastSelectedLayerId = newLayer.id;
+                    activePage.layers.push(newLayer);
+                    
+                    return { ...prev, pages: updatedPages, activePageIndex: currentActivePageIndex };
+                });
+                // Allow state to update and UI to re-render
+                setTimeout(() => resolve(), 50);
+            });
+        }
+        
+        if (lastSelectedLayerId) {
+            setSelectedLayerIds([lastSelectedLayerId]);
         }
         setActiveTab('collage');
         setEditorMode('collage');
+        toast({ title: "Complete", description: `${pageNums.length} pages added.`});
 
     } catch (error) {
         console.error("Error handling multiple PDF page selection:", error);
@@ -453,7 +442,7 @@ export default function Home() {
     } finally {
         setIsPageSelecting(false);
     }
-  }, [pdfDoc, renderPdfPageToDataURL, toast, collageSettings]);
+  }, [pdfDoc, renderPdfPageToDataURL, toast]);
 
 
   const handleImageUpload = async (file: File) => {
