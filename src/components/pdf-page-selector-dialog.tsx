@@ -203,7 +203,6 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
                         onChange={(e) => setTempName(e.target.value)}
                         onBlur={handleNameSubmit}
                         onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
-                        autoFocus
                         className="text-sm font-medium h-7 text-center"
                     />
                 ) : (
@@ -683,3 +682,5 @@ export function PdfPageSelectorDialog({
         </Dialog>
     );
 }
+
+    
