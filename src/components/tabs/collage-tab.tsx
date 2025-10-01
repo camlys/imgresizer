@@ -248,9 +248,14 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   <LayoutGrid size={18} />
                   <span className="text-xs">Layout</span>
                 </TabsTrigger>
-                <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1">
+                <TabsTrigger value="pages" className="h-auto py-2 flex-col gap-1 relative">
                   <Book size={18} />
                   <span className="text-xs">Pages</span>
+                  {settings.pages.length > 0 && (
+                    <div className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center">
+                      {settings.pages.length}
+                    </div>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="layers" className="h-auto py-2 flex-col gap-1">
                   <ImageUp size={18} />
@@ -642,3 +647,6 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 
 
 
+
+
+    
