@@ -137,14 +137,13 @@ export default function Home() {
 
 
   const handleTabChange = (tab: string) => {
-    // Set editor mode based on tab
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
     if (editorMode !== newEditorMode) {
       setEditorMode(newEditorMode);
     }
-    
-    // If switching to collage for the first time with an image, add it
-    if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage.layers.length === 0) {
+    setActiveTab(tab);
+
+    if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
       const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
       
       const tempCanvas = document.createElement('canvas');
@@ -152,7 +151,7 @@ export default function Home() {
       tempCanvas.height = crop.height;
       const tempCtx = tempCanvas.getContext('2d');
       if (tempCtx) {
-          tempCanvas.toDataURL(); // This seems to be needed to avoid a tainted canvas in some browsers
+          tempCanvas.toDataURL();
           tempCtx.drawImage(imageElement, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
           const croppedImageSrc = tempCanvas.toDataURL();
           const croppedImage = new Image();
@@ -167,8 +166,8 @@ export default function Home() {
                   id: Date.now().toString(),
                   src: croppedImageSrc,
                   img: croppedImage,
-                  x: xPercent + itemWidthPercent / 2, // Center X
-                  y: yPercent + itemWidthPercent / 2, // Center Y
+                  x: xPercent + itemWidthPercent / 2,
+                  y: yPercent + itemWidthPercent / 2,
                   width: itemWidthPercent,
                   rotation: 0,
                   opacity: 1,
@@ -184,7 +183,6 @@ export default function Home() {
       }
     }
     
-    // Handle crop tab logic
     if (tab === 'crop' && originalImage && !pendingCrop) {
       const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
        if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
@@ -203,7 +201,6 @@ export default function Home() {
       }
     }
 
-    // Unselect items if tab changes
     if (tab !== 'text' && tab !== 'collage') {
       setSelectedTextId(null);
       setEditingTextId(null);
@@ -212,9 +209,6 @@ export default function Home() {
     if (tab !== 'collage') {
       setSelectedLayerIds([]);
     }
-
-    // Finally, set the active tab
-    setActiveTab(tab);
   };
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
@@ -714,6 +708,44 @@ export default function Home() {
  const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageForCanvas?: HTMLImageElement): Promise<HTMLCanvasElement> => {
     return new Promise(async (resolve, reject) => {
         const currentQuality = overrideSettings?.quality ?? (editorMode === 'single' ? settings.quality : collageSettings.quality);
+        
+        const drawOverlays = (ctx: CanvasRenderingContext2D, overlays: { texts: TextOverlay[], signatures: SignatureOverlay[]}, canvasWidth: number, canvasHeight: number) => {
+            overlays.signatures.forEach(sig => {
+                if (sig.img) {
+                    const sigWidth = (sig.width / 100) * canvasWidth;
+                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+                    const sigX = (sig.x / 100) * canvasWidth;
+                    const sigY = (sig.y / 100) * canvasHeight;
+
+                    ctx.save();
+                    ctx.translate(sigX, sigY);
+                    ctx.rotate(sig.rotation * Math.PI / 180);
+                    ctx.globalAlpha = sig.opacity;
+                    ctx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+                    ctx.restore();
+                }
+            });
+
+            overlays.texts.forEach(text => {
+                const textX = (text.x / 100) * canvasWidth;
+                const textY = (text.y / 100) * canvasHeight;
+                ctx.font = `${text.size}px ${text.font}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const padding = text.padding || 0;
+                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                    const metrics = ctx.measureText(text.text);
+                    const rectWidth = metrics.width + padding * 2;
+                    const rectHeight = text.size + padding * 2;
+                    const rectX = textX - rectWidth / 2;
+                    const rectY = textY - rectHeight / 2;
+                    ctx.fillStyle = text.backgroundColor;
+                    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                }
+                ctx.fillStyle = text.color;
+                ctx.fillText(text.text, textX, textY);
+            });
+        };
 
         if (editorMode === 'collage' && !overrideSettings) {
           const finalCanvas = document.createElement('canvas');
@@ -753,7 +785,6 @@ export default function Home() {
               }
           }
 
-          // Draw layers in order
           for (const layer of layers) {
               const layerWidth = (layer.width / 100) * width;
               const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
@@ -768,41 +799,7 @@ export default function Home() {
               finalCtx.restore();
           }
           
-            signatures.forEach(sig => {
-                if (sig.img) {
-                    const sigWidth = (sig.width / 100) * width;
-                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
-                    const sigX = (sig.x / 100) * width;
-                    const sigY = (sig.y / 100) * height;
-
-                    finalCtx.save();
-                    finalCtx.translate(sigX, sigY);
-                    finalCtx.rotate(sig.rotation * Math.PI / 180);
-                    finalCtx.globalAlpha = sig.opacity;
-                    finalCtx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
-                    finalCtx.restore();
-                }
-            });
-
-            texts.forEach(text => {
-                const textX = (text.x / 100) * width;
-                const textY = (text.y / 100) * height;
-                finalCtx.font = `${text.size}px ${text.font}`;
-                finalCtx.textAlign = 'center';
-                finalCtx.textBaseline = 'middle';
-                const padding = text.padding || 0;
-                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
-                    const metrics = finalCtx.measureText(text.text);
-                    const rectWidth = metrics.width + padding * 2;
-                    const rectHeight = text.size + padding * 2;
-                    const rectX = textX - rectWidth / 2;
-                    const rectY = textY - rectHeight / 2;
-                    finalCtx.fillStyle = text.backgroundColor;
-                    finalCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
-                }
-                finalCtx.fillStyle = text.color;
-                finalCtx.fillText(text.text, textX, textY);
-            });
+          drawOverlays(finalCtx, { texts, signatures }, width, height);
 
           resolve(finalCanvas);
           return;
@@ -871,7 +868,6 @@ export default function Home() {
             finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             finalCtx.restore();
 
-            // Draw drawing paths
             finalCtx.lineCap = 'round';
             finalCtx.lineJoin = 'round';
             drawing.paths.forEach(path => {
@@ -887,43 +883,9 @@ export default function Home() {
                 }
                 finalCtx.stroke();
             });
-            finalCtx.globalCompositeOperation = 'source-over'; // Reset composite operation
-
-            signatures.forEach(sig => {
-                if (sig.img) {
-                    const sigWidth = (sig.width / 100) * width;
-                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
-                    const sigX = (sig.x / 100) * width;
-                    const sigY = (sig.y / 100) * height;
-
-                    finalCtx.save();
-                    finalCtx.translate(sigX, sigY);
-                    finalCtx.rotate(sig.rotation * Math.PI / 180);
-                    finalCtx.globalAlpha = sig.opacity;
-                    finalCtx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
-                    finalCtx.restore();
-                }
-            });
-
-            texts.forEach(text => {
-                const textX = (text.x / 100) * width;
-                const textY = (text.y / 100) * height;
-                finalCtx.font = `${text.size}px ${text.font}`;
-                finalCtx.textAlign = 'center';
-                finalCtx.textBaseline = 'middle';
-                const padding = text.padding || 0;
-                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
-                    const metrics = finalCtx.measureText(text.text);
-                    const rectWidth = metrics.width + padding * 2;
-                    const rectHeight = text.size + padding * 2;
-                    const rectX = textX - rectWidth / 2;
-                    const rectY = textY - rectHeight / 2;
-                    finalCtx.fillStyle = text.backgroundColor;
-                    finalCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
-                }
-                finalCtx.fillStyle = text.color;
-                finalCtx.fillText(text.text, textX, textY);
-            });
+            finalCtx.globalCompositeOperation = 'source-over';
+            
+            drawOverlays(finalCtx, { texts, signatures }, width, height);
             
             resolve(finalCanvas);
         } catch (error) {
@@ -934,7 +896,6 @@ export default function Home() {
 
   const updateProcessedSize = React.useCallback(async () => {
     try {
-        const pageToRender = editorMode === 'collage' ? activePage : undefined;
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
@@ -944,17 +905,35 @@ export default function Home() {
         }
 
         if (currentFormat === 'application/pdf') {
-            const pdf = new jsPDF();
-            const canvas = await generateFinalCanvas(pageToRender);
-            const imgData = canvas.toDataURL('image/jpeg', currentQuality);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
+            if (pagesToRender.length === 0) {
+              setProcessedSize(0);
+              return;
+            }
+            const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
+            const pdfWidth = (firstPageCanvas.width / 300) * 72;
+            const pdfHeight = (firstPageCanvas.height / 300) * 72;
+            
+            const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+            const pdf = new jsPDF({ orientation, unit: 'pt', format: [pdfWidth, pdfHeight] });
+            pdf.deletePage(1);
+
+            for (const page of pagesToRender) {
+                const canvas = await generateFinalCanvas(page);
+                const imgData = canvas.toDataURL('image/jpeg', currentQuality);
+                const pagePdfWidth = (canvas.width / 300) * 72;
+                const pagePdfHeight = (canvas.height / 300) * 72;
+
+                pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
+                pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
+            }
+
             const blob = pdf.output('blob');
             setProcessedSize(blob.size);
             return;
         }
 
+        const pageToRender = editorMode === 'collage' ? activePage : undefined;
         const canvas = await generateFinalCanvas(pageToRender);
         canvas.toBlob(
             (blob) => {
@@ -967,7 +946,7 @@ export default function Home() {
         console.error("Error updating processed size:", error);
         setProcessedSize(null);
     }
-  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings.format, collageSettings.quality, activePage]);
+  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings, activePage]);
 
   const handleDownload = React.useCallback(async (filename: string) => {
     try {
@@ -1352,3 +1331,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
