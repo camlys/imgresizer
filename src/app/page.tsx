@@ -137,50 +137,54 @@ export default function Home() {
 
 
   const handleTabChange = (tab: string) => {
-    if (tab === 'collage' && editorMode !== 'collage') {
-        setEditorMode('collage');
-        if (originalImage && imageElement && activePage.layers.length === 0) {
-            const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = crop.width;
-            tempCanvas.height = crop.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            if (tempCtx) {
-                tempCtx.drawImage(imageElement, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
-                const croppedImageSrc = tempCanvas.toDataURL();
-                const croppedImage = new Image();
-                croppedImage.onload = () => {
-                    const MARGIN_PERCENT = 2;
-                    const gridCols = 2;
-                    const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
-                    const xPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
-                    const yPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
-
-                    const newLayer: ImageLayer = {
-                        id: Date.now().toString(),
-                        src: croppedImageSrc,
-                        img: croppedImage,
-                        x: xPercent + itemWidthPercent / 2, // Center X
-                        y: yPercent + itemWidthPercent / 2, // Center Y
-                        width: itemWidthPercent,
-                        rotation: 0,
-                        opacity: 1,
-                        originalWidth: croppedImage.width,
-                        originalHeight: croppedImage.height,
-                    };
-                    const newPages = [...collageSettings.pages];
-                    newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
-                    setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
-                    setSelectedLayerIds([newLayer.id]);
-                };
-                croppedImage.src = croppedImageSrc;
-            }
-        }
-    } else if (tab !== 'collage' && editorMode !== 'single') {
-        setEditorMode('single');
+    // Set editor mode based on tab
+    const newEditorMode = tab === 'collage' ? 'collage' : 'single';
+    if (editorMode !== newEditorMode) {
+      setEditorMode(newEditorMode);
     }
+    
+    // If switching to collage for the first time with an image, add it
+    if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage.layers.length === 0) {
+      const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = crop.width;
+      tempCanvas.height = crop.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+          tempCanvas.toDataURL(); // This seems to be needed to avoid a tainted canvas in some browsers
+          tempCtx.drawImage(imageElement, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+          const croppedImageSrc = tempCanvas.toDataURL();
+          const croppedImage = new Image();
+          croppedImage.onload = () => {
+              const MARGIN_PERCENT = 2;
+              const gridCols = 2;
+              const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
+              const xPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
+              const yPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
 
+              const newLayer: ImageLayer = {
+                  id: Date.now().toString(),
+                  src: croppedImageSrc,
+                  img: croppedImage,
+                  x: xPercent + itemWidthPercent / 2, // Center X
+                  y: yPercent + itemWidthPercent / 2, // Center Y
+                  width: itemWidthPercent,
+                  rotation: 0,
+                  opacity: 1,
+                  originalWidth: croppedImage.width,
+                  originalHeight: croppedImage.height,
+              };
+              const newPages = [...collageSettings.pages];
+              newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
+              setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
+              setSelectedLayerIds([newLayer.id]);
+          };
+          croppedImage.src = croppedImageSrc;
+      }
+    }
+    
+    // Handle crop tab logic
     if (tab === 'crop' && originalImage && !pendingCrop) {
       const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
        if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
@@ -198,8 +202,9 @@ export default function Home() {
         setPendingCrop(currentCrop);
       }
     }
-    setActiveTab(tab);
-     if (tab !== 'text') {
+
+    // Unselect items if tab changes
+    if (tab !== 'text' && tab !== 'collage') {
       setSelectedTextId(null);
       setEditingTextId(null);
       setSelectedSignatureId(null);
@@ -207,6 +212,9 @@ export default function Home() {
     if (tab !== 'collage') {
       setSelectedLayerIds([]);
     }
+
+    // Finally, set the active tab
+    setActiveTab(tab);
   };
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
@@ -416,7 +424,7 @@ export default function Home() {
             const col = layersOnCurrentPage % GRID_COLS;
             
             const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
-            const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT); // Assume square-ish grid items for Y
+            const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT); // Assuming square-ish grid items for Y
 
             const newLayer: ImageLayer = {
                 id: `${Date.now()}-${pageNum}`,
