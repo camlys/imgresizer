@@ -40,7 +40,6 @@ interface AppHeaderProps {
   onUpdateProcessedSize: () => void;
   editorMode: 'single' | 'collage';
   imageElement: HTMLImageElement | null;
-  setProcessedSize: (size: number | null) => void;
 }
 
 export function AppHeader({ 
@@ -57,7 +56,6 @@ export function AppHeader({
   onUpdateProcessedSize,
   editorMode,
   imageElement,
-  setProcessedSize,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -70,7 +68,7 @@ export function AppHeader({
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
   
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
-  const currentUpdateSettings = editorMode === 'single' ? updateSettings as (s: Partial<ImageSettings>) => void : updateCollageSettings as (s: Partial<CollageSettings>) => void;
+  const currentUpdateSettings = editorMode === 'single' ? updateSettings : updateCollageSettings;
 
   useEffect(() => {
     if (isPopoverOpen && isImageLoaded) {
@@ -289,7 +287,7 @@ export function AppHeader({
         } else {
             (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ quality });
         }
-        setProcessedSize(finalBlob.size);
+        onUpdateProcessedSize();
     }
     
     setIsOptimizing(false);
@@ -364,7 +362,6 @@ export function AppHeader({
                       <Select
                         value={currentSettings.format}
                         onValueChange={(value) => {
-                          setProcessedSize(null);
                           const newSettings: Partial<ImageSettings | CollageSettings> = { format: value as any };
                           if (value === 'image/svg+xml') {
                             newSettings.quality = 1.0;
@@ -472,3 +469,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    
