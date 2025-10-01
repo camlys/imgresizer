@@ -7,8 +7,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Script from 'next/script';
 import { CookieConsentBanner } from '@/components/cookie-consent-banner';
 import { useEffect, useState, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -68,65 +66,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { toast } = useToast();
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = useCallback(() => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-        setInstallPrompt(null); 
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-    });
-  }, [installPrompt]);
-  
-  useEffect(() => {
-    const showInstallPromotion = () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isToastDismissed = sessionStorage.getItem('install_toast_dismissed') === 'true';
-
-      if (installPrompt && !isStandalone && !isToastDismissed) {
-        toast({
-          title: 'Install ImgResizer',
-          description: 'For a better experience, install the app on your device.',
-          duration: 15000, 
-          action: <ToastAction altText="Install" onClick={handleInstallClick}>Install</ToastAction>,
-          onOpenChange: (open) => {
-            if (!open) {
-              sessionStorage.setItem('install_toast_dismissed', 'true');
-            }
-          }
-        });
-      }
-    };
-    
-    const intervalId = setInterval(showInstallPromotion, 10 * 60 * 1000); // 10 minutes
-
-    // Show initial toast after a short delay
-    const initialTimeoutId = setTimeout(showInstallPromotion, 5000); 
-
-    return () => {
-      clearInterval(intervalId);
-      clearTimeout(initialTimeoutId);
-    };
-  }, [installPrompt, toast, handleInstallClick]);
 
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {

@@ -138,9 +138,7 @@ export default function Home() {
 
   const handleTabChange = (tab: string) => {
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
-    if (editorMode !== newEditorMode) {
-      setEditorMode(newEditorMode);
-    }
+    setEditorMode(newEditorMode);
     setActiveTab(tab);
 
     if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
@@ -1331,5 +1329,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
