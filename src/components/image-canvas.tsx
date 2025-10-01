@@ -1087,13 +1087,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.stroke();
             
             lastDrawPoint.current = pos;
-            const newPath = { ...currentPath, points: [...currentPath.points, pos] };
-            setInteractionState(prev => prev ? { ...prev, currentPath: newPath } : null);
+            currentPath.points.push(pos);
         } else if (type.startsWith('layer-') && startLayer && activePage) {
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
                 const newPages = [...collageSettings.pages];
-                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
+                newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
                 updateCollageSettings({ pages: newPages });
             };
 
