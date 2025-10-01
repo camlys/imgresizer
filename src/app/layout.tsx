@@ -12,12 +12,23 @@ const Analytics = () => {
   const [consent, setConsent] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const consentValue = localStorage.getItem('cookie_consent');
-    if (consentValue) {
+    const checkConsent = () => {
+      const consentValue = localStorage.getItem('cookie_consent');
       setConsent(consentValue === 'true');
-    } else {
-      setConsent(null);
-    }
+    };
+
+    checkConsent();
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'cookie_consent') {
+        checkConsent();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   if (consent !== true) {
