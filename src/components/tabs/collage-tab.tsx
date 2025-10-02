@@ -252,7 +252,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   <Book size={18} />
                   <span className="text-xs">Pages</span>
                   {settings.pages.length > 0 && (
-                    <div className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full h-5 min-w-[1.25rem] flex items-center justify-center px-1">
                       {settings.pages.length}
                     </div>
                   )}
