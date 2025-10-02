@@ -903,20 +903,14 @@ export default function Home() {
             
             const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
             const pdf = new jsPDF({ orientation, unit: 'pt', format: [pdfWidth, pdfHeight] });
-            pdf.deletePage(1);
 
-            for (const page of pagesToRender) {
-                const canvas = await generateFinalCanvas(page);
-                const imgData = canvas.toDataURL('image/jpeg', currentQuality);
-                const pagePdfWidth = (canvas.width / 300) * 72;
-                const pagePdfHeight = (canvas.height / 300) * 72;
-
-                pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
-                pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
-            }
-
+            const imgData = firstPageCanvas.toDataURL('image/jpeg', currentQuality);
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            
+            // For a multi-page PDF, estimate size by multiplying the first page's size
             const blob = pdf.output('blob');
-            setProcessedSize(blob.size);
+            const estimatedSize = blob.size * pagesToRender.length;
+            setProcessedSize(estimatedSize);
             return;
         }
 
@@ -948,35 +942,42 @@ export default function Home() {
               return;
             }
             
-            const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
-            // A4 dimensions in points: 595.28 x 841.89
-            // Use the canvas dimensions for custom sizes, but map to standard points for jsPDF
-            const pdfWidth = (firstPageCanvas.width / 300) * 72;
-            const pdfHeight = (firstPageCanvas.height / 300) * 72;
-            
-            const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
-            const pdf = new jsPDF({
-              orientation: orientation,
-              unit: 'pt',
-              format: [pdfWidth, pdfHeight]
-            });
-            pdf.deletePage(1);
-
-            for (const page of pagesToRender) {
-                const canvas = await generateFinalCanvas(page);
-                const imgData = canvas.toDataURL('image/jpeg', currentQuality);
-                const pagePdfWidth = (canvas.width / 300) * 72;
-                const pagePdfHeight = (canvas.height / 300) * 72;
-
-                pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
-                pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
-            }
-
-            pdf.save(`${downloadName}.pdf`);
             toast({
               title: "Download Started",
-              description: `Your ${pagesToRender.length}-page PDF file has started downloading.`,
+              description: `Preparing your ${pagesToRender.length}-page PDF...`,
             });
+            
+            // Use setTimeout to allow the toast to render before blocking the main thread
+            setTimeout(async () => {
+              try {
+                const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
+                const pdfWidth = (firstPageCanvas.width / 300) * 72;
+                const pdfHeight = (firstPageCanvas.height / 300) * 72;
+                
+                const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+                const pdf = new jsPDF({
+                  orientation: orientation,
+                  unit: 'pt',
+                  format: [pdfWidth, pdfHeight]
+                });
+                pdf.deletePage(1); // Remove the default blank page
+
+                for (const page of pagesToRender) {
+                    const canvas = await generateFinalCanvas(page);
+                    const imgData = canvas.toDataURL('image/jpeg', currentQuality);
+                    const pagePdfWidth = (canvas.width / 300) * 72;
+                    const pagePdfHeight = (canvas.height / 300) * 72;
+
+                    pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
+                }
+
+                pdf.save(`${downloadName}.pdf`);
+              } catch(e) {
+                console.error("Error generating PDF:", e);
+                toast({ title: "PDF Generation Error", description: "Could not create the PDF file.", variant: "destructive"});
+              }
+            }, 50);
             return;
         }
 

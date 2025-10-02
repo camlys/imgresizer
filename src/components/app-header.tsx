@@ -215,30 +215,31 @@ export function AppHeader({
     const format = currentSettings.format;
 
     if (format === 'application/pdf') {
-      const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
-      
-      const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
-      const pdfWidth = (firstPageCanvas.width / 300) * 72;
-      const pdfHeight = (firstPageCanvas.height / 300) * 72;
-      
-      const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
-      const pdf = new jsPDF({
-        orientation,
-        unit: 'pt',
-        format: [pdfWidth, pdfHeight]
-      });
-      pdf.deletePage(1);
+        const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
+        
+        if (pagesToRender.length === 0) return new Blob();
 
-      for (const page of pagesToRender) {
-          const canvas = await generateFinalCanvas(page, { quality: quality });
-          const imgData = canvas.toDataURL('image/jpeg', quality);
-          const pagePdfWidth = (canvas.width / 300) * 72;
-          const pagePdfHeight = (canvas.height / 300) * 72;
+        // For size estimation, only render the first page to avoid blocking
+        const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
+        const pdfWidth = (firstPageCanvas.width / 300) * 72;
+        const pdfHeight = (firstPageCanvas.height / 300) * 72;
+        
+        const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+        const pdf = new jsPDF({
+            orientation,
+            unit: 'pt',
+            format: [pdfWidth, pdfHeight]
+        });
 
-          pdf.addPage([pagePdfWidth, pagePdfHeight], pagePdfWidth > pagePdfHeight ? 'l' : 'p');
-          pdf.addImage(imgData, 'JPEG', 0, 0, pagePdfWidth, pagePdfHeight);
-      }
-      return pdf.output('blob');
+        const imgData = firstPageCanvas.toDataURL('image/jpeg', quality);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+        // Multiply the size of the first page by the total number of pages for a rough estimate
+        const singlePageBlob = pdf.output('blob');
+        const estimatedSize = singlePageBlob.size * pagesToRender.length;
+        
+        // Return a blob with the estimated size. The content doesn't matter here.
+        return new Blob([new ArrayBuffer(estimatedSize)], { type: 'application/pdf' });
     }
 
     const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
@@ -247,7 +248,7 @@ export function AppHeader({
     return new Promise((resolve) => {
         canvas.toBlob(resolve, format === 'application/pdf' ? 'image/jpeg' : format, quality);
     });
-  }, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
+}, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
 
 
   const handleTargetSize = async () => {
@@ -469,5 +470,3 @@ export function AppHeader({
     </header>
   );
 }
-
-    
