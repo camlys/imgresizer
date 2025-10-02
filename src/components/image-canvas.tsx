@@ -87,7 +87,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onComplete();
-        }, 60000);
+        }, 3000);
         return () => clearTimeout(timer);
     }, [onComplete]);
 
@@ -129,7 +129,12 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-                className="relative flex flex-col items-center justify-center text-center text-foreground p-8 bg-background/80 backdrop-blur-md rounded-2xl pointer-events-auto"
+                className="relative flex flex-col items-center justify-center text-center text-foreground p-8 rounded-2xl pointer-events-auto"
+                style={{
+                  background: 'radial-gradient(circle, hsl(var(--primary)/0.1), hsl(var(--accent)/0.1))',
+                  border: '1px solid hsl(var(--primary)/0.2)',
+                  boxShadow: '0 8px 32px 0 hsl(var(--primary)/0.2)'
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-foreground/70" onClick={(e) => { e.stopPropagation(); onComplete(); }}>
