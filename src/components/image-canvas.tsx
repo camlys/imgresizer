@@ -662,16 +662,34 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         drawing.paths.forEach(path => {
-          if (path.points.length < 2) return;
-          ctx.strokeStyle = path.color;
-          ctx.lineWidth = path.size;
-          ctx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
-          ctx.beginPath();
-          ctx.moveTo(path.points[0].x, path.points[0].y);
-          for (let i = 1; i < path.points.length; i++) {
-            ctx.lineTo(path.points[i].x, path.points[i].y);
-          }
-          ctx.stroke();
+            if (path.points.length < 2) return;
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.size;
+            ctx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
+            
+            ctx.beginPath();
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            
+            for (let i = 1; i < path.points.length - 2; i++) {
+                const p1 = path.points[i];
+                const p2 = path.points[i + 1];
+                const xc = (p1.x + p2.x) / 2;
+                const yc = (p1.y + p2.y) / 2;
+                ctx.quadraticCurveTo(p1.x, p1.y, xc, yc);
+            }
+            // For the last 2 points
+            if (path.points.length > 2) {
+                ctx.quadraticCurveTo(
+                    path.points[path.points.length - 2].x,
+                    path.points[path.points.length - 2].y,
+                    path.points[path.points.length - 1].x,
+                    path.points[path.points.length - 1].y
+                );
+            } else {
+                 ctx.lineTo(path.points[1].x, path.points[1].y);
+            }
+            
+            ctx.stroke();
         });
         ctx.globalCompositeOperation = 'source-over';
         ctx.restore();
@@ -1134,6 +1152,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if (editorMode === 'collage' && !activePage) return;
 
         if (type === 'draw' && currentPath && lastDrawPoint.current) {
+            const currentPoint = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
+            const midPoint = { 
+                x: (lastDrawPoint.current.x + currentPoint.x) / 2, 
+                y: (lastDrawPoint.current.y + currentPoint.y) / 2 
+            };
+
             ctx.save();
             ctx.translate(settings.drawing.x, settings.drawing.y);
             ctx.lineCap = 'round';
@@ -1143,13 +1167,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.globalCompositeOperation = currentPath.isEraser ? 'destination-out' : 'source-over';
             
             ctx.beginPath();
-            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
-            ctx.lineTo(pos.x - settings.drawing.x, pos.y - settings.drawing.y);
+            ctx.moveTo(midPoint.x, midPoint.y);
+            ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPoint.x, midPoint.y);
             ctx.stroke();
             ctx.restore();
             
-            lastDrawPoint.current = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
-            currentPath.points.push({ x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y });
+            lastDrawPoint.current = currentPoint;
+            currentPath.points.push(currentPoint);
+
         } else if (type === 'draw-move' && startDrawingPos) {
             const dx = pos.x - startPos.x;
             const dy = pos.y - startPos.y;
