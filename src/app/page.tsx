@@ -121,6 +121,7 @@ export default function Home() {
 
   // Collage State
   const [selectedLayerIds, setSelectedLayerIds] = React.useState<string[]>([]);
+  const [showCompletionAnimation, setShowCompletionAnimation] = React.useState(false);
   const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
   React.useEffect(() => {
@@ -447,6 +448,7 @@ export default function Home() {
         setActiveTab('collage');
         setEditorMode('collage');
         update({ id: toastId, title: "Complete", description: `${pageNums.length} pages added.`});
+        setShowCompletionAnimation(true);
 
     } catch (error) {
         console.error("Error handling multiple PDF page selection:", error);
@@ -1278,6 +1280,8 @@ export default function Home() {
               updateCollageSettings={updateCollageSettings}
               selectedLayerIds={selectedLayerIds}
               setSelectedLayerIds={setSelectedLayerIds}
+              showCompletionAnimation={showCompletionAnimation}
+              setShowCompletionAnimation={setShowCompletionAnimation}
             />
             {editingTextObj && canvasRef.current && (
               <TextEditor

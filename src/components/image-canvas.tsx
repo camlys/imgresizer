@@ -3,6 +3,8 @@
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
 import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, CornerPoints, SignatureOverlay, CollageSettings, ImageLayer, DrawingPath } from '@/lib/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CheckCircle } from 'lucide-react';
 
 interface ImageCanvasProps {
   originalImage: OriginalImage | null;
@@ -22,6 +24,8 @@ interface ImageCanvasProps {
   updateCollageSettings: (newSettings: Partial<CollageSettings>) => void;
   selectedLayerIds: string[];
   setSelectedLayerIds: (ids: string[]) => void;
+  showCompletionAnimation: boolean;
+  setShowCompletionAnimation: (show: boolean) => void;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -78,6 +82,61 @@ type InteractionState = {
   currentPath?: DrawingPath;
 };
 
+const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onComplete();
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [onComplete]);
+
+    const confettiColors = ['#fde68a', '#fca5a5', '#86efac', '#93c5fd', '#c4b5fd'];
+    const confettiPieces = Array.from({ length: 50 }).map((_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: -10 - Math.random() * 50,
+        rotate: Math.random() * 360,
+        color: confettiColors[i % confettiColors.length],
+        scale: 0.5 + Math.random(),
+        duration: 1 + Math.random()
+    }));
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none"
+        >
+            {confettiPieces.map(p => (
+                <motion.div
+                    key={p.id}
+                    initial={{ y: `${p.y}vh`, x: `${p.x}vw`, rotate: p.rotate, scale: 0 }}
+                    animate={{ y: '110vh', rotate: p.rotate + (Math.random() - 0.5) * 720, scale: p.scale }}
+                    transition={{ duration: p.duration, ease: "easeOut" }}
+                    style={{
+                        position: 'absolute',
+                        width: '10px',
+                        height: '20px',
+                        backgroundColor: p.color,
+                        borderRadius: '4px',
+                    }}
+                />
+            ))}
+            <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
+                className="flex flex-col items-center justify-center text-center text-white p-8 bg-black/30 rounded-2xl"
+            >
+                <CheckCircle className="w-16 h-16 text-green-400 mb-4" />
+                <h2 className="text-3xl font-bold font-headline">Congratulations!</h2>
+                <p className="text-lg mt-2">All pages are ready in your collage.</p>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({ 
   originalImage, 
   imageElement,
@@ -96,6 +155,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   updateCollageSettings,
   selectedLayerIds,
   setSelectedLayerIds,
+  showCompletionAnimation,
+  setShowCompletionAnimation
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1314,7 +1375,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, [interactionState, handleInteractionEnd]);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center touch-none">
+    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center touch-none">
         <canvas 
           ref={internalCanvasRef} 
           className="max-w-full max-h-full object-contain rounded-lg shadow-md"
@@ -1329,6 +1390,11 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           onTouchCancel={handleInteractionEnd}
           onContextMenu={(e) => e.preventDefault()}
         />
+        <AnimatePresence>
+            {showCompletionAnimation && (
+                <CompletionAnimation onComplete={() => setShowCompletionAnimation(false)} />
+            )}
+        </AnimatePresence>
     </div>
   );
 });
@@ -1336,14 +1402,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-
-    
-
-    
-
-
-
-
-    
-
