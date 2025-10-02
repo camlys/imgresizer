@@ -1092,7 +1092,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
                 const newPages = [...collageSettings.pages];
-                newPages[settings.activePageIndex] = { ...activePage, layers: newLayers };
+                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
                 updateCollageSettings({ pages: newPages });
             };
 
@@ -1346,3 +1346,4 @@ export { ImageCanvas };
 
 
     
+
