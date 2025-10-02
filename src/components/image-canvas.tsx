@@ -86,7 +86,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onComplete();
-        }, 3000);
+        }, 60000);
         return () => clearTimeout(timer);
     }, [onComplete]);
 
@@ -106,7 +106,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
         >
             {confettiPieces.map(p => (
                 <motion.div
@@ -127,7 +127,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-                className="flex flex-col items-center justify-center text-center text-white p-8 bg-black/30 rounded-2xl"
+                className="flex flex-col items-center justify-center text-center text-white p-8 bg-black/50 rounded-2xl"
             >
                 <CheckCircle className="w-16 h-16 text-green-400 mb-4" />
                 <h2 className="text-3xl font-bold font-headline">Congratulations!</h2>
@@ -1160,10 +1160,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             if (type === 'layer-move') {
                 const dx_percent = ((pos.x - startPos.x) / canvas.width) * 100;
                 const dy_percent = ((pos.y - startPos.y) / canvas.height) * 100;
-                updateLayer({
-                    x: Math.max(0, Math.min(100, startLayer.x + dx_percent)),
-                    y: Math.max(0, Math.min(100, startLayer.y + dy_percent)),
-                });
+                const newPages = [...collageSettings.pages];
+                const activePage = newPages[collageSettings.activePageIndex];
+                const newLayers = activePage.layers.map(l =>
+                  l.id === startLayer.id
+                    ? {
+                        ...l,
+                        x: Math.max(0, Math.min(100, startLayer.x + dx_percent)),
+                        y: Math.max(0, Math.min(100, startLayer.y + dy_percent)),
+                      }
+                    : l
+                );
+                newPages[collageSettings.activePageIndex] = { ...activePage, layers: newLayers };
+                updateCollageSettings({ pages: newPages });
+
             } else if (type === 'layer-rotate' && interactionState.layerCenter) {
                 const startAngle = Math.atan2(startPos.y - interactionState.layerCenter.y, startPos.x - interactionState.layerCenter.x);
                 const currentAngle = Math.atan2(pos.y - interactionState.layerCenter.y, pos.x - interactionState.layerCenter.x);
