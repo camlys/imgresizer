@@ -55,7 +55,7 @@ type InteractionType =
   | 'signature-move' | 'signature-rotate' | 'signature-resize-tl' | 'signature-resize-tr' | 'signature-resize-bl' | 'signature-resize-br'
   | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br'
   | 'layer-move' | 'layer-rotate' | 'layer-resize-tl' | 'layer-resize-tr' | 'layer-resize-bl' | 'layer-resize-br'
-  | 'draw';
+  | 'draw' | 'draw-move';
 
 type InteractionState = {
   type: InteractionType;
@@ -81,6 +81,7 @@ type InteractionState = {
 
   // Drawing state
   currentPath?: DrawingPath;
+  startDrawingPos?: { x: number, y: number };
 };
 
 const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
@@ -91,17 +92,6 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
         return () => clearTimeout(timer);
     }, [onComplete]);
 
-    const confettiColors = ['#fde68a', '#fca5a5', '#86efac', '#93c5fd', '#c4b5fd'];
-    const confettiPieces = Array.from({ length: 50 }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: -10 - Math.random() * 50,
-        rotate: Math.random() * 360,
-        color: confettiColors[i % confettiColors.length],
-        scale: 0.5 + Math.random(),
-        duration: 1 + Math.random()
-    }));
-
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -110,21 +100,6 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
             className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-auto"
             onClick={onComplete}
         >
-            {confettiPieces.map(p => (
-                <motion.div
-                    key={p.id}
-                    initial={{ y: `${p.y}vh`, x: `${p.x}vw`, rotate: p.rotate, scale: 0 }}
-                    animate={{ y: '110vh', rotate: p.rotate + (Math.random() - 0.5) * 720, scale: p.scale }}
-                    transition={{ duration: p.duration, ease: "easeOut" }}
-                    style={{
-                        position: 'absolute',
-                        width: '10px',
-                        height: '20px',
-                        backgroundColor: p.color,
-                        borderRadius: '4px',
-                    }}
-                />
-            ))}
             <motion.div
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -682,6 +657,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         }
 
         // Draw drawing paths
+        ctx.save();
+        ctx.translate(drawing.x, drawing.y);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         drawing.paths.forEach(path => {
@@ -697,6 +674,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.stroke();
         });
         ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
 
         signatures.forEach(sig => {
           if (sig.img) {
@@ -898,6 +876,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       if (!img && editorMode === 'single') return null;
 
       if (activeTab === 'draw' && editorMode === 'single') {
+        if (settings.drawing.isMoving) {
+          return { type: 'draw-move', cursor: 'move' };
+        }
         return { type: 'draw', cursor: 'crosshair' };
       }
 
@@ -1022,6 +1003,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             startPos: pos,
             currentPath: newPath,
         });
+    } else if (interaction?.type === 'draw-move') {
+      setInteractionState({
+        type: 'draw-move',
+        startPos: pos,
+        startDrawingPos: { x: settings.drawing.x, y: settings.drawing.y },
+      });
     } else if (interaction?.type.startsWith('layer-') && activePage) {
         const layerId = interaction.layerId!;
         const clickedLayer = activePage.layers.find(l => l.id === layerId);
@@ -1141,12 +1128,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         const { canvas, ctx } = getCanvasAndContext();
         if (!canvas || !ctx) return;
 
-        const { type, startPos, startText, startSignature, startLayer, currentPath } = interactionState;
+        const { type, startPos, startText, startSignature, startLayer, currentPath, startDrawingPos } = interactionState;
         
         let activePage = collageSettings.pages[collageSettings.activePageIndex];
         if (editorMode === 'collage' && !activePage) return;
 
         if (type === 'draw' && currentPath && lastDrawPoint.current) {
+            ctx.save();
+            ctx.translate(settings.drawing.x, settings.drawing.y);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = currentPath.color;
@@ -1155,11 +1144,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             
             ctx.beginPath();
             ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
-            ctx.lineTo(pos.x, pos.y);
+            ctx.lineTo(pos.x - settings.drawing.x, pos.y - settings.drawing.y);
             ctx.stroke();
+            ctx.restore();
             
-            lastDrawPoint.current = pos;
-            currentPath.points.push(pos);
+            lastDrawPoint.current = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
+            currentPath.points.push({ x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y });
+        } else if (type === 'draw-move' && startDrawingPos) {
+            const dx = pos.x - startPos.x;
+            const dy = pos.y - startPos.y;
+            updateSettings({
+                drawing: {
+                    ...settings.drawing,
+                    x: startDrawingPos.x + dx,
+                    y: startDrawingPos.y + dy,
+                }
+            });
         } else if (type.startsWith('layer-') && startLayer && activePage) {
             const updateLayer = (newProps: Partial<ImageLayer>) => {
                 const newLayers = activePage.layers.map(l => l.id === startLayer.id ? { ...l, ...newProps } : l);
@@ -1176,15 +1176,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 const pageToUpdate = newPages[collageSettings.activePageIndex];
                 if (!pageToUpdate) return;
                 
-                const newLayers = pageToUpdate.layers.map(l =>
-                  l.id === startLayer.id
-                    ? {
-                        ...l,
-                        x: Math.max(0, Math.min(100, startLayer.x + dx_percent)),
-                        y: Math.max(0, Math.min(100, startLayer.y + dy_percent)),
-                      }
-                    : l
-                );
+                const newLayers = pageToUpdate.layers.map(l => {
+                  if (selectedLayerIds.includes(l.id)) {
+                      const originalLayer = l.id === startLayer.id ? startLayer : pageToUpdate.layers.find(orig => orig.id === l.id)!;
+                      return {
+                          ...l,
+                          x: Math.max(0, Math.min(100, originalLayer.x + dx_percent)),
+                          y: Math.max(0, Math.min(100, originalLayer.y + dy_percent)),
+                      };
+                  }
+                  return l;
+                });
                 newPages[collageSettings.activePageIndex] = { ...pageToUpdate, layers: newLayers };
                 updateCollageSettings({ pages: newPages });
 
@@ -1338,12 +1340,12 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         if (activeTab === 'crop' && settings.cropMode === 'rect') {
           setCursor(interaction ? interaction.cursor : 'crosshair');
         } else if (activeTab === 'draw') {
-          setCursor('crosshair');
+          setCursor(interaction ? interaction.cursor : 'default');
         } else {
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings, editorMode]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings, editorMode, selectedLayerIds]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {
@@ -1426,7 +1428,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
-
-    

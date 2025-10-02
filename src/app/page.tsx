@@ -46,6 +46,9 @@ const initialSettings: ImageSettings = {
     brushColor: '#ff0000',
     brushSize: 10,
     isErasing: false,
+    isMoving: false,
+    x: 0,
+    y: 0,
   },
   adjustments: {
     brightness: 100,
@@ -207,6 +210,9 @@ export default function Home() {
     }
     if (tab !== 'collage') {
       setSelectedLayerIds([]);
+    }
+    if (tab !== 'draw') {
+        updateSettings({ drawing: { ...settings.drawing, isMoving: false }});
     }
   };
   
@@ -869,6 +875,8 @@ export default function Home() {
             finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             finalCtx.restore();
 
+            finalCtx.save();
+            finalCtx.translate(drawing.x, drawing.y);
             finalCtx.lineCap = 'round';
             finalCtx.lineJoin = 'round';
             drawing.paths.forEach(path => {
@@ -885,6 +893,7 @@ export default function Home() {
                 finalCtx.stroke();
             });
             finalCtx.globalCompositeOperation = 'source-over';
+            finalCtx.restore();
             
             drawOverlays(finalCtx, { texts, signatures }, width, height);
             

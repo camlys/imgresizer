@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Paintbrush, Eraser, Trash2, Undo2, Redo2 } from 'lucide-react';
+import { Paintbrush, Eraser, Trash2, Undo2, Redo2, Move } from 'lucide-react';
 import type { ImageSettings, DrawingPath } from '@/lib/types';
 import React from 'react';
 import { Input } from '../ui/input';
@@ -81,18 +81,24 @@ export function DrawTab({ settings, updateSettings }: DrawTabProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button 
-              variant={drawing.isErasing ? 'outline' : 'secondary'}
-              onClick={() => handleDrawingChange({ isErasing: false })}
+              variant={!drawing.isErasing && !drawing.isMoving ? 'secondary' : 'outline'}
+              onClick={() => handleDrawingChange({ isErasing: false, isMoving: false })}
             >
               <Paintbrush size={16} className="mr-2"/> Brush
             </Button>
             <Button
               variant={drawing.isErasing ? 'secondary' : 'outline'}
-              onClick={() => handleDrawingChange({ isErasing: true })}
+              onClick={() => handleDrawingChange({ isErasing: true, isMoving: false })}
             >
               <Eraser size={16} className="mr-2"/> Eraser
+            </Button>
+            <Button
+              variant={drawing.isMoving ? 'secondary' : 'outline'}
+              onClick={() => handleDrawingChange({ isMoving: !drawing.isMoving })}
+            >
+              <Move size={16} className="mr-2"/> Move
             </Button>
           </div>
           
@@ -103,7 +109,7 @@ export function DrawTab({ settings, updateSettings }: DrawTabProps) {
                   id="brush-color"
                   value={drawing.brushColor}
                   onChange={(e) => handleDrawingChange({ brushColor: e.target.value })}
-                  disabled={drawing.isErasing}
+                  disabled={drawing.isErasing || drawing.isMoving}
                   className="pr-10"
                 />
                 <Input
@@ -111,7 +117,7 @@ export function DrawTab({ settings, updateSettings }: DrawTabProps) {
                   className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
                   value={drawing.brushColor}
                   onChange={(e) => handleDrawingChange({ brushColor: e.target.value })}
-                  disabled={drawing.isErasing}
+                  disabled={drawing.isErasing || drawing.isMoving}
                 />
             </div>
           </div>
@@ -128,6 +134,7 @@ export function DrawTab({ settings, updateSettings }: DrawTabProps) {
               min={1}
               max={100}
               step={1}
+              disabled={drawing.isMoving}
             />
           </div>
         </CardContent>
@@ -135,5 +142,3 @@ export function DrawTab({ settings, updateSettings }: DrawTabProps) {
     </div>
   );
 }
-
-    

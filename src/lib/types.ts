@@ -83,6 +83,9 @@ export type ImageSettings = {
     brushColor: string;
     brushSize: number;
     isErasing: boolean;
+    isMoving: boolean;
+    x: number;
+    y: number;
   };
   adjustments: {
     brightness: number;
