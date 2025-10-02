@@ -140,49 +140,40 @@ export default function Home() {
   }, [originalImage]);
 
 
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = async (tab: string) => {
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
     setEditorMode(newEditorMode);
     setActiveTab(tab);
 
     if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
-      const crop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-      
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = crop.width;
-      tempCanvas.height = crop.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (tempCtx) {
-          tempCanvas.toDataURL();
-          tempCtx.drawImage(imageElement, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
-          const croppedImageSrc = tempCanvas.toDataURL();
-          const croppedImage = new Image();
-          croppedImage.onload = () => {
-              const MARGIN_PERCENT = 2;
-              const gridCols = 2;
-              const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
-              const xPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
-              const yPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
+      const editedCanvas = await generateFinalCanvas();
+      const editedImageSrc = editedCanvas.toDataURL();
+      const editedImage = new Image();
+      editedImage.onload = () => {
+          const MARGIN_PERCENT = 2;
+          const gridCols = 2;
+          const itemWidthPercent = (100 - (gridCols + 1) * MARGIN_PERCENT) / gridCols;
+          const xPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
+          const yPercent = MARGIN_PERCENT + 0 * (itemWidthPercent + MARGIN_PERCENT);
 
-              const newLayer: ImageLayer = {
-                  id: Date.now().toString(),
-                  src: croppedImageSrc,
-                  img: croppedImage,
-                  x: xPercent + itemWidthPercent / 2,
-                  y: yPercent + itemWidthPercent / 2,
-                  width: itemWidthPercent,
-                  rotation: 0,
-                  opacity: 1,
-                  originalWidth: croppedImage.width,
-                  originalHeight: croppedImage.height,
-              };
-              const newPages = [...collageSettings.pages];
-              newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
-              setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
-              setSelectedLayerIds([newLayer.id]);
+          const newLayer: ImageLayer = {
+              id: Date.now().toString(),
+              src: editedImageSrc,
+              img: editedImage,
+              x: xPercent + itemWidthPercent / 2,
+              y: yPercent + itemWidthPercent / 2,
+              width: itemWidthPercent,
+              rotation: 0,
+              opacity: 1,
+              originalWidth: editedImage.width,
+              originalHeight: editedImage.height,
           };
-          croppedImage.src = croppedImageSrc;
-      }
+          const newPages = [...collageSettings.pages];
+          newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
+          setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
+          setSelectedLayerIds([newLayer.id]);
+      };
+      editedImage.src = editedImageSrc;
     }
     
     if (tab === 'crop' && originalImage && !pendingCrop) {
