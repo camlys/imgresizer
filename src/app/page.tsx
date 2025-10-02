@@ -368,12 +368,24 @@ export default function Home() {
 
     setIsPageSelecting(true);
     setIsPdfSelectorOpen(false);
-    toast({ title: "Processing...", description: `Adding ${pageNums.length} pages to the collage.` });
+    
+    const { id: toastId, update } = toast({
+      title: "Processing...",
+      description: "Preparing to add pages to the collage.",
+    });
 
     try {
         let lastSelectedLayerId: string | null = null;
+        let count = 0;
         
         for (const pageNum of pageNums) {
+            count++;
+            update({
+                id: toastId,
+                title: "Processing...",
+                description: `Adding page ${count} of ${pageNums.length}...`
+            });
+            
              const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
              const img = await new Promise<HTMLImageElement>((resolve, reject) => {
                 const image = new Image();
@@ -434,11 +446,11 @@ export default function Home() {
         }
         setActiveTab('collage');
         setEditorMode('collage');
-        toast({ title: "Complete", description: `${pageNums.length} pages added.`});
+        update({ id: toastId, title: "Complete", description: `${pageNums.length} pages added.`});
 
     } catch (error) {
         console.error("Error handling multiple PDF page selection:", error);
-        toast({ title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
+        update({ id: toastId, title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
     } finally {
         setIsPageSelecting(false);
     }
