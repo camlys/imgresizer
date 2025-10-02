@@ -87,7 +87,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onComplete();
-        }, 3000);
+        }, 60000);
         return () => clearTimeout(timer);
     }, [onComplete]);
 
@@ -107,7 +107,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-auto"
             onClick={onComplete}
         >
             {confettiPieces.map(p => (
@@ -129,7 +129,7 @@ const CompletionAnimation = ({ onComplete }: { onComplete: () => void }) => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-                className="relative flex flex-col items-center justify-center text-center text-foreground p-8 rounded-2xl pointer-events-auto"
+                className="relative flex flex-col items-center justify-center text-center text-foreground p-8 rounded-2xl"
                 style={{
                   background: 'radial-gradient(circle, hsl(var(--primary)/0.1), hsl(var(--accent)/0.1))',
                   border: '1px solid hsl(var(--primary)/0.2)',
@@ -1267,7 +1267,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 updateSignatureInState({ ...startSignature, rotation: newRotation });
             } else if (type.startsWith('signature-resize-') && interactionState.signatureCenter) {
                 const center = interactionState.signatureCenter;
-                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
+                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
                 const currentDist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
 
                 if (startDist > 0) {
@@ -1426,5 +1426,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
 
     
