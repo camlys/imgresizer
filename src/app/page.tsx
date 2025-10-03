@@ -178,8 +178,6 @@ export default function Home() {
     }
     
     if (tab === 'crop' && originalImage && !pendingCrop) {
-      const currentCrop = settings.crop || { x: 0, y: 0, width: originalImage.width, height: originalImage.height };
-       if (currentCrop.width === originalImage.width && currentCrop.height === originalImage.height) {
         const insetX = Math.min(INSET_PX, originalImage.width / 4);
         const insetY = Math.min(INSET_PX, originalImage.height / 4);
 
@@ -190,9 +188,6 @@ export default function Home() {
           height: Math.round(originalImage.height - insetY * 2),
         };
         setPendingCrop(insetCrop);
-      } else {
-        setPendingCrop(currentCrop);
-      }
     }
 
     if (tab !== 'text' && tab !== 'collage') {
@@ -1087,6 +1082,49 @@ export default function Home() {
     }
   }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, activePage, toast]);
 
+    const handlePrint = React.useCallback(async () => {
+    try {
+      toast({
+        title: "Preparing for Print",
+        description: "Generating a high-quality version for printing...",
+      });
+
+      const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({ title: "Error", description: "Could not open print window. Please check your browser's pop-up settings.", variant: "destructive" });
+        return;
+      }
+
+      printWindow.document.write('<html><head><title>Print Preview</title><style>@media print { @page { size: auto; margin: 0; } body { margin: 0; } img { width: 100vw; height: 100vh; object-fit: contain; page-break-after: always; } img:last-child { page-break-after: auto; } }</style></head><body>');
+
+      for (const page of pagesToRender) {
+        const canvas = await generateFinalCanvas(page);
+        const dataUrl = canvas.toDataURL('image/png', 1.0);
+        printWindow.document.write(`<img src="${dataUrl}" />`);
+      }
+      
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        // The window may not close automatically depending on browser settings, but we try.
+        // printWindow.close(); 
+      }, 500);
+
+    } catch (error) {
+      console.error("Error preparing for print:", error);
+      toast({
+        title: "Print Error",
+        description: "There was a problem preparing the image for printing.",
+        variant: "destructive",
+      });
+    }
+  }, [generateFinalCanvas, editorMode, collageSettings.pages, activePage, toast]);
+
   const handleAutoLayout = React.useCallback((count: 2 | 3 | 4 | 5 | 6) => {
     const page = activePage;
     if (!page || page.layers.length === 0) return;
@@ -1173,6 +1211,7 @@ export default function Home() {
           onUpdateProcessedSize={updateProcessedSize}
           generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
+          onPrint={handlePrint}
           editorMode={editorMode}
           imageElement={imageElement}
         />
@@ -1227,6 +1266,7 @@ export default function Home() {
           onUpdateProcessedSize={updateProcessedSize}
           generateFinalCanvas={generateFinalCanvas}
           onShare={handleShare}
+          onPrint={handlePrint}
           editorMode={editorMode}
           imageElement={imageElement}
         />

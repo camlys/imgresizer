@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid, Zap } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid, Zap, Printer } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,6 +31,7 @@ interface AppHeaderProps {
   onDownload: (filename: string) => Promise<void>;
   generateFinalCanvas: (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageElement?: HTMLImageElement) => Promise<HTMLCanvasElement>;
   onShare: () => void;
+  onPrint: () => void;
   isImageLoaded: boolean;
   settings: ImageSettings;
   updateSettings: (newSettings: Partial<ImageSettings>) => void;
@@ -47,6 +48,7 @@ export function AppHeader({
   onDownload,
   generateFinalCanvas,
   onShare,
+  onPrint,
   isImageLoaded,
   settings,
   updateSettings,
@@ -445,6 +447,9 @@ export function AppHeader({
                       <Button onClick={handleDownloadClick} className="w-full">
                           <Download className="mr-2"/>
                           Download
+                      </Button>
+                       <Button variant="outline" size="icon" onClick={onPrint} className="shrink-0">
+                          <Printer />
                       </Button>
                       <Button variant="outline" size="icon" onClick={onShare} className="shrink-0">
                           <Share2 />
