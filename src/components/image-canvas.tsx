@@ -995,7 +995,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e) e.preventDefault();
-    if (e.button === 2) return;
+    if ('button' in e && e.button === 2) return;
 
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
@@ -1174,7 +1174,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const midPointX = (lastDrawPoint.current.x + currentPoint.x) / 2;
             const midPointY = (lastDrawPoint.current.y + currentPoint.y) / 2;
             ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPointX, midPointY);
-            ctx.lineTo(currentPoint.x, currentPoint.y);
             
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
@@ -1469,5 +1468,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
 
     
