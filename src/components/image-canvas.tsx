@@ -1017,6 +1017,18 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             isEraser: settings.drawing.isErasing,
         };
         lastDrawPoint.current = currentPoint;
+        
+        ctx.save();
+        ctx.translate(settings.drawing.x, settings.drawing.y);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = newPath.color;
+        ctx.lineWidth = newPath.size;
+        ctx.globalCompositeOperation = newPath.isEraser ? 'destination-out' : 'source-over';
+        ctx.beginPath();
+        ctx.moveTo(currentPoint.x, currentPoint.y);
+        ctx.restore();
+        
         setInteractionState({
             type: 'draw',
             startPos: pos,
@@ -1154,22 +1166,21 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
         if (type === 'draw' && currentPath && lastDrawPoint.current) {
             const currentPoint = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
-            const midPoint = {
-                x: (lastDrawPoint.current.x + currentPoint.x) / 2,
-                y: (lastDrawPoint.current.y + currentPoint.y) / 2,
-            };
-
+            
             ctx.save();
             ctx.translate(settings.drawing.x, settings.drawing.y);
+            ctx.beginPath();
+            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
+            const midPointX = (lastDrawPoint.current.x + currentPoint.x) / 2;
+            const midPointY = (lastDrawPoint.current.y + currentPoint.y) / 2;
+            ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPointX, midPointY);
+            ctx.lineTo(currentPoint.x, currentPoint.y);
+            
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = currentPath.color;
             ctx.lineWidth = currentPath.size;
             ctx.globalCompositeOperation = currentPath.isEraser ? 'destination-out' : 'source-over';
-            
-            ctx.beginPath();
-            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
-            ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPoint.x, midPoint.y);
             ctx.stroke();
             ctx.restore();
             
@@ -1380,18 +1391,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         lastDrawPoint.current = null;
         const finalPath = interactionState.currentPath;
         if (finalPath.points.length > 1) {
-            const newPaths = [...settings.drawing.paths, finalPath];
-            const newHistory = settings.drawing.history.slice(0, settings.drawing.historyIndex + 1);
-            newHistory.push(newPaths);
-
-            updateSettings({ 
-                drawing: { 
-                    ...settings.drawing, 
-                    paths: newPaths,
-                    history: newHistory,
-                    historyIndex: newHistory.length - 1
-                } 
-            });
+            const { canvas, ctx } = getCanvasAndContext();
+            if (canvas && ctx) {
+                // Since the live drawing is temporary, clear it and re-render the final state
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const newPaths = [...settings.drawing.paths, finalPath];
+                const newHistory = settings.drawing.history.slice(0, settings.drawing.historyIndex + 1);
+                newHistory.push(newPaths);
+                updateSettings({ 
+                    drawing: { 
+                        ...settings.drawing, 
+                        paths: newPaths,
+                        history: newHistory,
+                        historyIndex: newHistory.length - 1
+                    } 
+                });
+            }
         }
       } else if (interactionState.type.startsWith('text-resize-') && interactionState.startText) {
           const newSize = Math.round(interactionState.startText.size);
@@ -1417,7 +1432,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
       setInteractionState(null);
     }
-  }, [interactionState, settings.drawing, settings.texts, updateSettings, collageSettings, updateCollageSettings, editorMode]);
+  }, [interactionState, settings.drawing, settings.texts, updateSettings, collageSettings, updateCollageSettings, editorMode, getCanvasAndContext]);
   
   const handleMouseLeave = useCallback(() => {
     if (interactionState) {
@@ -1454,3 +1469,5 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
