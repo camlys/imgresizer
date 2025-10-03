@@ -304,7 +304,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {[1, 2, 3, 4, 5, 6].map(num => (
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                           <SelectItem key={num} value={String(num)}>{num}</SelectItem>
                         ))}
                       </SelectContent>
