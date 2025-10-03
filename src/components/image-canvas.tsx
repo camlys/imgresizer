@@ -1008,14 +1008,15 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (editorMode === 'collage' && !activePage) return;
 
     if (interaction?.type === 'draw') {
+        const currentPoint = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
         const newPath: DrawingPath = {
             id: Date.now().toString(),
-            points: [pos],
+            points: [currentPoint],
             color: settings.drawing.brushColor,
             size: settings.drawing.brushSize,
             isEraser: settings.drawing.isErasing,
         };
-        lastDrawPoint.current = pos;
+        lastDrawPoint.current = currentPoint;
         setInteractionState({
             type: 'draw',
             startPos: pos,
@@ -1153,9 +1154,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
         if (type === 'draw' && currentPath && lastDrawPoint.current) {
             const currentPoint = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
-            const midPoint = { 
-                x: (lastDrawPoint.current.x + currentPoint.x) / 2, 
-                y: (lastDrawPoint.current.y + currentPoint.y) / 2 
+            const midPoint = {
+                x: (lastDrawPoint.current.x + currentPoint.x) / 2,
+                y: (lastDrawPoint.current.y + currentPoint.y) / 2,
             };
 
             ctx.save();
@@ -1167,7 +1168,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.globalCompositeOperation = currentPath.isEraser ? 'destination-out' : 'source-over';
             
             ctx.beginPath();
-            ctx.moveTo(midPoint.x, midPoint.y);
+            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
             ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPoint.x, midPoint.y);
             ctx.stroke();
             ctx.restore();
@@ -1294,7 +1295,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 updateSignatureInState({ ...startSignature, rotation: newRotation });
             } else if (type.startsWith('signature-resize-') && interactionState.signatureCenter) {
                 const center = interactionState.signatureCenter;
-                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
+                const startDist = Math.sqrt(Math.pow(startPos.x - center.x, 2) + Math.pow(startPos.y - center.y, 2));
                 const currentDist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
 
                 if (startDist > 0) {
