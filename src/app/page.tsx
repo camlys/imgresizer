@@ -89,6 +89,7 @@ const initialCollageSettings: CollageSettings = {
   quality: 1.0,
   layout: null,
   syncSheetSettings: false,
+  maxLayersPerPage: 4,
 };
 
 
@@ -399,7 +400,7 @@ export default function Home() {
                     let activePage = updatedPages[currentActivePageIndex];
                     let layersOnCurrentPage = activePage.layers.length;
 
-                    const MAX_IMAGES_PER_PAGE = 4;
+                    const MAX_IMAGES_PER_PAGE = prev.maxLayersPerPage || 4;
 
                     if (layersOnCurrentPage >= MAX_IMAGES_PER_PAGE) {
                         const newPage: CollagePage = {
@@ -413,7 +414,7 @@ export default function Home() {
                     }
                     
                     const MARGIN_PERCENT = 2;
-                    const GRID_COLS = 2;
+                    const GRID_COLS = Math.ceil(Math.sqrt(MAX_IMAGES_PER_PAGE));
                     const itemWidthPercent = (100 - (GRID_COLS + 1) * MARGIN_PERCENT) / GRID_COLS;
                     const row = Math.floor(layersOnCurrentPage / GRID_COLS);
                     const col = layersOnCurrentPage % GRID_COLS;

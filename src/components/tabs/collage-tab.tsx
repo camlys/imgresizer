@@ -297,6 +297,20 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                   </Select>
               </div>
               <div className="grid gap-1.5">
+                  <Label>Max Images per Page</Label>
+                   <Select 
+                      value={String(settings.maxLayersPerPage)} 
+                      onValueChange={v => updateSettings({ maxLayersPerPage: parseInt(v) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6].map(num => (
+                          <SelectItem key={num} value={String(num)}>{num}</SelectItem>
+                        ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="grid gap-1.5">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="canvas-bg">Background Color</Label>
                     <TooltipProvider>
