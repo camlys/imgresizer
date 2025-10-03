@@ -170,7 +170,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     const newPage: CollagePage = {
       ...pageToDuplicate,
       id: Date.now().toString(),
-      layers: pageToDuplicate.layers.map(l => ({ ...l, id: `${l.id}-${Math.random()}` })),
+      layers: pageToDuplicate.layers.map((l, index) => ({ ...l, id: `${Date.now()}-${index}-${Math.random()}` })),
     };
     const newPages = [...settings.pages, newPage];
     updateSettings({ pages: newPages, activePageIndex: newPages.length - 1 });
@@ -662,6 +662,8 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
 
 
 
+
+    
 
     
 
