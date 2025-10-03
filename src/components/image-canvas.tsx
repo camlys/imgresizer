@@ -1164,27 +1164,41 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         let activePage = collageSettings.pages[collageSettings.activePageIndex];
         if (editorMode === 'collage' && !activePage) return;
 
-        if (type === 'draw' && currentPath && lastDrawPoint.current) {
+        if (type === 'draw' && currentPath && currentPath.points.length > 0) {
             const currentPoint = { x: pos.x - settings.drawing.x, y: pos.y - settings.drawing.y };
+            currentPath.points.push(currentPoint);
             
             ctx.save();
             ctx.translate(settings.drawing.x, settings.drawing.y);
             ctx.beginPath();
-            ctx.moveTo(lastDrawPoint.current.x, lastDrawPoint.current.y);
-            const midPointX = (lastDrawPoint.current.x + currentPoint.x) / 2;
-            const midPointY = (lastDrawPoint.current.y + currentPoint.y) / 2;
-            ctx.quadraticCurveTo(lastDrawPoint.current.x, lastDrawPoint.current.y, midPointX, midPointY);
-            
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = currentPath.color;
             ctx.lineWidth = currentPath.size;
             ctx.globalCompositeOperation = currentPath.isEraser ? 'destination-out' : 'source-over';
+            
+            if (currentPath.points.length >= 3) {
+                const lastTwo = currentPath.points.slice(-2);
+                const controlPoint = lastTwo[0];
+                const endPoint = {
+                    x: (controlPoint.x + currentPoint.x) / 2,
+                    y: (controlPoint.y + currentPoint.y) / 2,
+                };
+                const prevPoint = currentPath.points[currentPath.points.length - 3];
+                const startPoint = {
+                    x: (prevPoint.x + controlPoint.x) / 2,
+                    y: (prevPoint.y + controlPoint.y) / 2,
+                }
+                ctx.moveTo(startPoint.x, startPoint.y);
+                ctx.quadraticCurveTo(controlPoint.x, controlPoint.y, endPoint.x, endPoint.y);
+            } else {
+                const lastPoint = currentPath.points[currentPath.points.length - 2];
+                ctx.moveTo(lastPoint.x, lastPoint.y);
+                ctx.lineTo(currentPoint.x, currentPoint.y);
+            }
+            
             ctx.stroke();
             ctx.restore();
-            
-            lastDrawPoint.current = currentPoint;
-            currentPath.points.push(currentPoint);
 
         } else if (type === 'draw-move' && startDrawingPos) {
             const dx = pos.x - startPos.x;
@@ -1298,7 +1312,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     y: Math.max(0, Math.min(100, startSignature.y + dy_percent)),
                 });
             } else if (type === 'signature-rotate' && interactionState.signatureCenter) {
-                const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.x);
+                const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.y);
                 const currentAngle = Math.atan2(pos.y - interactionState.signatureCenter.y, pos.x - interactionState.signatureCenter.x);
                 const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
                 const newRotation = startSignature.rotation + angleDiff;
@@ -1468,6 +1482,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    
 
     
 
