@@ -655,16 +655,3 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
-
-    
-
-
-
-
-
-
-    
-
-    
-
-    

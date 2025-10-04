@@ -89,7 +89,7 @@ const initialCollageSettings: CollageSettings = {
   quality: 1.0,
   layout: null,
   syncSheetSettings: false,
-  maxLayersPerPage: 4,
+  maxLayersPerPage: 9,
 };
 
 
@@ -233,7 +233,7 @@ export default function Home() {
              const col = numLayers % gridCols;
              const row = Math.floor(numLayers / gridCols);
              
-             if (numLayers < 4) {
+             if (numLayers < collageSettings.maxLayersPerPage) {
                  const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
                  const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT); // Assuming square-ish grid items for Y
                  
@@ -257,7 +257,7 @@ export default function Home() {
                 });
                 setSelectedLayerIds([newLayer.id]);
              } else {
-                 // Fallback for more than 4 images
+                 // Fallback for more than max layers
                  const newLayer: ImageLayer = {
                     id: Date.now().toString(),
                     src: img.src,
@@ -285,7 +285,7 @@ export default function Home() {
             toast({ title: "Error", description: "Could not load image to add to collage.", variant: "destructive" });
         }
         img.src = src;
-    }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages]);
+    }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages, collageSettings.maxLayersPerPage]);
 
 
     const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
@@ -1110,12 +1110,10 @@ export default function Home() {
         printWindow.document.body.appendChild(img);
       }
       
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        // The window may not close automatically depending on browser settings, but we try.
-        // printWindow.close(); 
-      }, 500);
+      printWindow.focus();
+      printWindow.print();
+      // The window may not close automatically depending on browser settings, but we try.
+      // printWindow.close(); 
 
     } catch (error) {
       console.error("Error preparing for print:", error);
