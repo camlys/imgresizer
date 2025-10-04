@@ -89,7 +89,7 @@ const initialCollageSettings: CollageSettings = {
   quality: 1.0,
   layout: null,
   syncSheetSettings: false,
-  maxLayersPerPage: 9,
+  maxLayersPerPage: 4,
 };
 
 
