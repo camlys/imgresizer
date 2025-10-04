@@ -1096,17 +1096,19 @@ export default function Home() {
         toast({ title: "Error", description: "Could not open print window. Please check your browser's pop-up settings.", variant: "destructive" });
         return;
       }
+      
+      printWindow.document.write('<html><head><title>Print Preview</title><style>@media print { @page { size: auto; margin: 0; } body { margin: 0; } img { width: 100vw; height: 100vh; object-fit: contain; page-break-after: always; } img:last-child { page-break-after: auto; } }</style></head><body></body></html>');
+      printWindow.document.close();
+      printWindow.document.body.innerHTML = '';
 
-      printWindow.document.write('<html><head><title>Print Preview</title><style>@media print { @page { size: auto; margin: 0; } body { margin: 0; } img { width: 100vw; height: 100vh; object-fit: contain; page-break-after: always; } img:last-child { page-break-after: auto; } }</style></head><body>');
 
       for (const page of pagesToRender) {
         const canvas = await generateFinalCanvas(page);
         const dataUrl = canvas.toDataURL('image/png', 1.0);
-        printWindow.document.write(`<img src="${dataUrl}" />`);
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        printWindow.document.body.appendChild(img);
       }
-      
-      printWindow.document.write('</body></html>');
-      printWindow.document.close();
       
       setTimeout(() => {
         printWindow.focus();
