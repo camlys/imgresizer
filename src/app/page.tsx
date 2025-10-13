@@ -20,6 +20,7 @@ import { TextEditor } from '@/components/text-editor';
 import { FeatureGrid } from '@/components/feature-grid';
 import { InstallPwaBanner } from '@/components/install-pwa-banner';
 import { AppGrid } from '@/components/app-grid';
+import { SeoContent } from '@/components/seo-content';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -1375,6 +1376,7 @@ export default function Home() {
         )}
       </div>
       <AppGrid />
+      <SeoContent />
       <SiteFooter />
     </div>
   );
