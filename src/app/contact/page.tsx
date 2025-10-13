@@ -48,7 +48,7 @@ export default function ContactPage() {
                     For urgent inquiries, you can call us during business hours.
                   </p>
                   <a href="tel:+918434828368" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
-                    +91 8434828368
+                    +91 84348 28368
                   </a>
                 </div>
               </div>
