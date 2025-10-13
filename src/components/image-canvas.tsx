@@ -45,8 +45,8 @@ const SIGNATURE_RESIZE_HANDLE_SIZE = 14;
 const SIGNATURE_HANDLE_HIT_AREA = 28;
 
 const LAYER_ROTATION_HANDLE_OFFSET = 30;
-const LAYER_RESIZE_HANDLE_SIZE = 14;
-const LAYER_HANDLE_HIT_AREA = 28;
+const LAYER_RESIZE_HANDLE_SIZE = 18;
+const LAYER_HANDLE_HIT_AREA = 36;
 
 
 type InteractionType = 
@@ -1472,9 +1472,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
-
-    
-
-    
