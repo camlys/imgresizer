@@ -47,8 +47,8 @@ export default function ContactPage() {
                   <p className="text-muted-foreground mt-1">
                     For urgent inquiries, you can call us during business hours.
                   </p>
-                  <a href="tel:+1234567890" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
-                    +1 (234) 567-890
+                  <a href="tel:+918434828368" className="text-primary font-semibold text-lg hover:underline mt-2 inline-block">
+                    +91 8434828368
                   </a>
                 </div>
               </div>
