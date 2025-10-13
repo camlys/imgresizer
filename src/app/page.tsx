@@ -19,6 +19,7 @@ import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
 import { FeatureGrid } from '@/components/feature-grid';
 import { InstallPwaBanner } from '@/components/install-pwa-banner';
+import { AppGrid } from '@/components/app-grid';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -1220,6 +1221,7 @@ export default function Home() {
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
+          <AppGrid />
           <section className="container mx-auto pb-12 px-4 text-center">
             <h2 className="text-2xl font-bold font-headline mb-4">A Full Suite of Editing Tools</h2>
             <p className="max-w-3xl mx-auto text-muted-foreground">
