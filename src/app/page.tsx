@@ -1356,24 +1356,25 @@ export default function Home() {
             )}
           </div>
         </main>
-         {pdfDoc && (
-            <PdfPageSelectorDialog
-              isOpen={isPdfSelectorOpen}
-              onOpenChange={(isOpen) => {
-                 if (!isOpen) {
-                  if (isPageSelecting) setIsPageSelecting(false);
-                  else setIsLoading(false);
-                }
-                setIsPdfSelectorOpen(isOpen);
-              }}
-              pdfDoc={pdfDoc}
-              onPageSelect={handlePdfPageSelect}
-              onMultiplePagesSelect={handleMultiplePdfPageSelect}
-              isPageSelecting={isPageSelecting}
-              source={pdfSelectionSource}
-            />
-          )}
+        {pdfDoc && (
+          <PdfPageSelectorDialog
+            isOpen={isPdfSelectorOpen}
+            onOpenChange={(isOpen) => {
+               if (!isOpen) {
+                if (isPageSelecting) setIsPageSelecting(false);
+                else setIsLoading(false);
+              }
+              setIsPdfSelectorOpen(isOpen);
+            }}
+            pdfDoc={pdfDoc}
+            onPageSelect={handlePdfPageSelect}
+            onMultiplePagesSelect={handleMultiplePdfPageSelect}
+            isPageSelecting={isPageSelecting}
+            source={pdfSelectionSource}
+          />
+        )}
       </div>
+      <AppGrid />
       <SiteFooter />
     </div>
   );
