@@ -4,13 +4,10 @@
 import { Card } from "@/components/ui/card";
 import { Calculator, Sparkles, QrCode, FileEdit } from "lucide-react";
 import Link from "next/link";
+import { apps as hubApps } from "./app-hub-card";
 
-const featuredApps = [
-    { name: 'Calput', url: 'https://calput.vercel.app/', icon: <Calculator size={28} className="text-primary" />, description: 'Calculator with history' },
-    { name: 'Favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={28} className="text-primary" />, description: 'Generate favicons' },
-    { name: 'Qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={28} className="text-primary" />, description: 'QR & Barcode generator' },
-    { name: 'PDFpro', url: 'https://pdfpro-app.vercel.app/', icon: <FileEdit size={28} className="text-primary" />, description: 'PDF Editor' },
-];
+const featuredAppIds = ['calput', 'favic', 'qrick', 'pdfpro'];
+const featuredApps = hubApps.filter(app => featuredAppIds.includes(app.id));
 
 export function AppGrid() {
     return (
@@ -18,7 +15,7 @@ export function AppGrid() {
             <h2 className="text-2xl font-bold font-headline mb-8 text-center">Explore Our Other Tools</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredApps.map((app) => (
-                    <Link href={app.url} key={app.name} target="_blank" rel="noopener noreferrer" className="group">
+                    <Link href={`/hub?app=${app.id}`} key={app.name} className="group">
                         <Card className="h-full p-6 text-center hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center">
                             <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform">
                                 {app.icon}
