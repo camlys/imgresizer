@@ -503,24 +503,17 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     if (!img) return;
 
     if (activeTab === 'crop') {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const scale = Math.min(container.clientWidth / img.width, container.clientHeight / img.height);
-        const canvasWidth = img.width * scale;
-        const canvasHeight = img.height * scale;
-        
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        canvas.width = img.width;
+        canvas.height = img.height;
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         if (settings.cropMode === 'rect') {
           const crop = pendingCrop || settings.crop || { x: 0, y: 0, width: img.width, height: img.height };
-          const sx = crop.x * scale;
-          const sy = crop.y * scale;
-          const sWidth = crop.width * scale;
-          const sHeight = crop.height * scale;
+          const sx = crop.x;
+          const sy = crop.y;
+          const sWidth = crop.width;
+          const sHeight = crop.height;
           
           ctx.save();
           ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -531,18 +524,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.restore();
 
           ctx.save();
-          ctx.lineWidth = 1;
+          const scale = canvas.getBoundingClientRect().width / canvas.width;
+          const lineWidth = 1 / scale;
+          ctx.lineWidth = lineWidth;
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-          ctx.strokeRect(sx + 0.5, sy + 0.5, sWidth, sHeight);
+          ctx.strokeRect(sx, sy, sWidth, sHeight);
           
           if (sWidth > 30 && sHeight > 30) {
               ctx.beginPath();
-              ctx.lineWidth = 0.5;
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-              ctx.moveTo(sx + sWidth / 3 + 0.5, sy); ctx.lineTo(sx + sWidth / 3 + 0.5, sy + sHeight);
-              ctx.moveTo(sx + 2 * sWidth / 3 + 0.5, sy); ctx.lineTo(sx + 2 * sWidth / 3 + 0.5, sy + sHeight);
-              ctx.moveTo(sx, sy + sHeight / 3 + 0.5); ctx.lineTo(sx + sWidth, sy + sHeight / 3 + 0.5);
-              ctx.moveTo(sx, sy + 2 * sHeight / 3 + 0.5); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3 + 0.5);
+              ctx.lineWidth = 0.5 / scale;
+              ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
+              ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
+              ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
+              ctx.moveTo(sx, sy + 2 * sHeight / 3); ctx.lineTo(sx + sWidth, sy + 2 * sHeight / 3);
               ctx.stroke();
           }
           ctx.restore();
@@ -550,7 +544,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.save();
           ctx.fillStyle = 'white';
           ctx.strokeStyle = 'black';
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1 / scale;
           const handles = getCropHandleRects(sx, sy, sWidth, sHeight);
           Object.values(handles).forEach(rect => {
               ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -559,12 +553,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           ctx.restore();
         } else if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
             const { tl, tr, bl, br } = settings.perspectivePoints;
-            const points = {
-              tl: { x: tl.x * scale, y: tl.y * scale },
-              tr: { x: tr.x * scale, y: tr.y * scale },
-              bl: { x: bl.x * scale, y: bl.y * scale },
-              br: { x: br.x * scale, y: br.y * scale },
-            };
+            const points = { tl, tr, bl, br };
             
             ctx.save();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -579,8 +568,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.restore();
   
             ctx.save();
+            const scale = canvas.getBoundingClientRect().width / canvas.width;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1 / scale;
             ctx.beginPath();
             ctx.moveTo(points.tl.x, points.tl.y);
             ctx.lineTo(points.tr.x, points.tr.y);
@@ -590,7 +580,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.stroke();
 
             // Add perspective grid
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 0.5 / scale;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
 
             const lerp = (p1: {x:number, y:number}, p2: {x:number, y:number}, t: number) => ({ x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t });
@@ -618,10 +608,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.save();
             ctx.fillStyle = 'white';
             ctx.strokeStyle = 'black';
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 1.5 / scale;
             Object.values(points).forEach(p => {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, PERSPECTIVE_HANDLE_RADIUS, 0, 2 * Math.PI);
+              ctx.arc(p.x, p.y, PERSPECTIVE_HANDLE_RADIUS / scale, 0, 2 * Math.PI);
               ctx.fill();
               ctx.stroke();
             });
@@ -835,7 +825,10 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, [getCanvasAndContext]);
 
   const getCropHandleRects = (x: number, y: number, w: number, h: number, hitArea: boolean = false) => {
-    const size = hitArea ? CROP_HANDLE_HIT_AREA : CROP_HANDLE_SIZE;
+    const { canvas } = getCanvasAndContext();
+    if (!canvas) return {};
+    const scale = canvas.getBoundingClientRect().width / canvas.width;
+    const size = (hitArea ? CROP_HANDLE_HIT_AREA : CROP_HANDLE_SIZE) / scale;
     const offset = (size / 2);
     return {
       tl: { x: x - offset, y: y - offset, w: size, h: size, cursor: 'nwse-resize' },
@@ -902,20 +895,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
       if (activeTab === 'crop' && editorMode === 'single') {
          if (settings.cropMode === 'perspective' && settings.perspectivePoints) {
-            const scale = canvas.width / img!.width;
+            const scale = canvas.getBoundingClientRect().width / canvas.width;
+            const hitRadius = PERSPECTIVE_HANDLE_HIT_RADIUS / scale;
             const corners = Object.entries(settings.perspectivePoints);
             for (const [key, point] of corners) {
-                const dist = Math.sqrt(Math.pow(pos.x - point.x * scale, 2) + Math.pow(pos.y - point.y * scale, 2));
-                if (dist <= PERSPECTIVE_HANDLE_HIT_RADIUS) {
+                const dist = Math.sqrt(Math.pow(pos.x - point.x, 2) + Math.pow(pos.y - point.y, 2));
+                if (dist <= hitRadius) {
                     return { type: `perspective-${key}` as InteractionType, cursor: 'pointer' };
                 }
             }
           } else if (settings.cropMode === 'rect' && pendingCrop) {
-            const scale = canvas.width / img!.width;
-            const sx = pendingCrop.x * scale;
-            const sy = pendingCrop.y * scale;
-            const sWidth = pendingCrop.width * scale;
-            const sHeight = pendingCrop.height * scale;
+            const sx = pendingCrop.x;
+            const sy = pendingCrop.y;
+            const sWidth = pendingCrop.width;
+            const sHeight = pendingCrop.height;
             const handles = getCropHandleRects(sx, sy, sWidth, sHeight, true);
             
             for (const [key, rect] of Object.entries(handles)) {
@@ -1138,8 +1131,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedTextId(null);
         setSelectedSignatureId(null);
         setSelectedLayerIds([]);
-        const scale = canvas.width / imageElement.width;
-        const newCrop = { x: pos.x / scale, y: pos.y / scale, width: 0, height: 0 };
+        const newCrop = { x: pos.x, y: pos.y, width: 0, height: 0 };
         setPendingCrop(newCrop);
         setInteractionState({ type: 'crop-br', startPos: pos, startCrop: newCrop });
     } else {
@@ -1334,21 +1326,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         } else if (type.startsWith('crop-') && imageElement) {
             const { startCrop } = interactionState;
             if (!startCrop) return;
-            const scale = canvas.width / imageElement.width;
             
             if (type === 'crop-move') {
-                 const dx = (pos.x - startPos.x) / scale;
-                 const dy = (pos.y - startPos.y) / scale;
+                 const dx = pos.x - startPos.x;
+                 const dy = pos.y - startPos.y;
                  let newCrop = { ...startCrop, x: startCrop.x + dx, y: startCrop.y + dy };
                  newCrop.x = Math.max(0, Math.min(newCrop.x, imageElement.width - newCrop.width));
                  newCrop.y = Math.max(0, Math.min(newCrop.y, imageElement.height - newCrop.height));
                  setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
             } else {
                  let newCrop = { ...startCrop };
-                 const mouseX = pos.x / scale;
-                 const mouseY = pos.y / scale;
-                 const minW = MIN_CROP_SIZE_PX / scale;
-                 const minH = MIN_CROP_SIZE_PX / scale;
+                 const mouseX = pos.x;
+                 const mouseY = pos.y;
+                 const minW = MIN_CROP_SIZE_PX;
+                 const minH = MIN_CROP_SIZE_PX;
                  
                  const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
                  const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
@@ -1374,9 +1365,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                  setPendingCrop({x: Math.round(newCrop.x), y: Math.round(newCrop.y), width: Math.round(newCrop.width), height: Math.round(newCrop.height)} );
             }
         } else if (type.startsWith('perspective-') && imageElement) {
-            const scale = canvas.width / imageElement.width;
-            let newX = pos.x / scale;
-            let newY = pos.y / scale;
+            let newX = pos.x;
+            let newY = pos.y;
 
             newX = Math.max(0, Math.min(newX, imageElement.width));
             newY = Math.max(0, Math.min(newY, imageElement.height));
