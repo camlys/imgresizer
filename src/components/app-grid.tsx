@@ -16,12 +16,13 @@ export function AppGrid() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredApps.map((app) => (
                     <Link href={`/hub?app=${app.id}`} key={app.name} className="group">
-                        <Card className="h-full p-6 text-center hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center">
-                            <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                        <Card className="h-full p-6 text-center hover:border-primary transition-all flex flex-col items-center justify-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform relative">
                                 {app.icon}
                             </div>
-                            <h3 className="font-semibold text-lg mb-1">{app.name}</h3>
-                            <p className="text-sm text-muted-foreground">{app.description}</p>
+                            <h3 className="font-semibold text-lg mb-1 relative">{app.name}</h3>
+                            <p className="text-sm text-muted-foreground relative">{app.description}</p>
                         </Card>
                     </Link>
                 ))}
