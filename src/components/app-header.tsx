@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { ImageSettings, CollageSettings, CollagePage, QuickActionPreset } from '@/lib/types';
+import type { ImageSettings, CollageSettings, CollagePage, QuickActionPreset, OriginalImage } from '@/lib/types';
 import { formatBytes, autoDetectBorders, applyPerspectiveTransform } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
@@ -43,6 +43,7 @@ interface AppHeaderProps {
   imageElement: HTMLImageElement | null;
   maxQualitySize: number | null;
   setProcessedSize: (size: number | null) => void;
+  originalImage: OriginalImage | null;
 }
 
 export function AppHeader({ 
@@ -62,6 +63,7 @@ export function AppHeader({
   imageElement,
   maxQualitySize,
   setProcessedSize,
+  originalImage,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -442,13 +444,15 @@ export function AppHeader({
                         </div>
                       </>
                     )}
-                    <div className="text-sm text-muted-foreground">
-                        Original: <span className="font-medium text-foreground">{maxQualitySize !== null ? formatBytes(maxQualitySize) : '...'}</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                        Est. size: <span className="font-medium text-foreground">
-                          {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
-                        </span>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <div>
+                            Original: <span className="font-medium text-foreground">{originalImage && formatBytes(originalImage.size)}</span>
+                        </div>
+                         <div>
+                            Est. size: <span className="font-medium text-foreground">
+                            {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                            </span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button onClick={handleDownloadClick} className="w-full">

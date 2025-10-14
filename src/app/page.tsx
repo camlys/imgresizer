@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { Metadata } from 'next';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
@@ -1224,6 +1224,7 @@ const updateProcessedSize = React.useCallback(async () => {
           imageElement={imageElement}
           maxQualitySize={maxQualitySize}
           setProcessedSize={setProcessedSize}
+          originalImage={originalImage}
         />
         <main className="flex-1 w-full overflow-y-auto">
           <HeroSection onUpload={handleImageUpload} />
@@ -1282,6 +1283,7 @@ const updateProcessedSize = React.useCallback(async () => {
           imageElement={imageElement}
           maxQualitySize={maxQualitySize}
           setProcessedSize={setProcessedSize}
+          originalImage={originalImage}
         />
         <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto md:overflow-hidden">
           <div className="w-full md:w-[380px] md:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
