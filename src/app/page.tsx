@@ -176,6 +176,8 @@ export default function Home() {
           newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
           setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
           setSelectedLayerIds([newLayer.id]);
+          // Reset drawing from single image editor after transferring it
+          updateSettings({ drawing: initialSettings.drawing });
       };
       editedImage.src = editedImageSrc;
     }
@@ -1425,6 +1427,8 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
+
+    
 
     
 
