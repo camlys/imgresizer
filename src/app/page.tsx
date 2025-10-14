@@ -893,53 +893,56 @@ export default function Home() {
     });
 }, [originalImage, imageElement, settings, editorMode, collageSettings]);
 
-  const updateProcessedSize = React.useCallback(async () => {
+const updateProcessedSize = React.useCallback(async () => {
     try {
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
-        const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
+        let maxQualitySize: number | null = null;
+        
+        const getBlobSize = async (quality: number): Promise<number | null> => {
+            if (currentFormat === 'image/svg+xml') return null;
 
-        if (currentFormat === 'image/svg+xml') {
-            setProcessedSize(null);
-            return;
-        }
+            if (currentFormat === 'application/pdf') {
+                const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
+                if (pagesToRender.length === 0) return 0;
+                
+                const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
+                const pdfWidth = (firstPageCanvas.width / 300) * 72;
+                const pdfHeight = (firstPageCanvas.height / 300) * 72;
+                
+                const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+                const pdf = new jsPDF({ orientation, unit: 'pt', format: [pdfWidth, pdfHeight] });
 
-        if (currentFormat === 'application/pdf') {
-            const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
-            if (pagesToRender.length === 0) {
-              setProcessedSize(0);
-              return;
+                const imgData = firstPageCanvas.toDataURL('image/jpeg', quality);
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                
+                const blob = pdf.output('blob');
+                return blob.size * pagesToRender.length;
             }
-            const firstPageCanvas = await generateFinalCanvas(pagesToRender[0]);
-            const pdfWidth = (firstPageCanvas.width / 300) * 72;
-            const pdfHeight = (firstPageCanvas.height / 300) * 72;
-            
-            const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
-            const pdf = new jsPDF({ orientation, unit: 'pt', format: [pdfWidth, pdfHeight] });
 
-            const imgData = firstPageCanvas.toDataURL('image/jpeg', currentQuality);
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            const pageToRender = editorMode === 'collage' ? activePage : undefined;
+            const canvas = await generateFinalCanvas(pageToRender, { quality });
             
-            // For a multi-page PDF, estimate size by multiplying the first page's size
-            const blob = pdf.output('blob');
-            const estimatedSize = blob.size * pagesToRender.length;
+            return new Promise((resolve) => {
+                canvas.toBlob(blob => resolve(blob?.size ?? null), currentFormat, quality);
+            });
+        };
+        
+        maxQualitySize = await getBlobSize(1.0);
+        
+        if (maxQualitySize !== null) {
+            const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
+            const estimatedSize = maxQualitySize * currentQuality;
             setProcessedSize(estimatedSize);
-            return;
+        } else {
+            setProcessedSize(null);
         }
 
-        const pageToRender = editorMode === 'collage' ? activePage : undefined;
-        const canvas = await generateFinalCanvas(pageToRender);
-        canvas.toBlob(
-            (blob) => {
-                if (blob) setProcessedSize(blob.size);
-            },
-            currentFormat,
-            currentQuality
-        );
     } catch (error) {
         console.error("Error updating processed size:", error);
         setProcessedSize(null);
     }
-  }, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings, activePage]);
+}, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings, activePage]);
+
 
   const handleDownload = React.useCallback(async (filename: string) => {
     try {
@@ -1190,7 +1193,7 @@ export default function Home() {
 
     const finalLayers = [...newLayers, ...page.layers.slice(newLayers.length)];
     const newPages = [...collageSettings.pages];
-    newPages[collageSettings.activePageIndex] = { ...page, layers: finalLayers };
+    newPages[settings.activePageIndex] = { ...page, layers: finalLayers };
     updateCollageSettings({ pages: newPages, layout: count });
   }, [activePage, collageSettings.pages, updateCollageSettings]);
 
@@ -1381,3 +1384,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
