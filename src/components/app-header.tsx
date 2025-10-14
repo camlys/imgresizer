@@ -41,6 +41,8 @@ interface AppHeaderProps {
   onUpdateProcessedSize: () => void;
   editorMode: 'single' | 'collage';
   imageElement: HTMLImageElement | null;
+  maxQualitySize: number | null;
+  setProcessedSize: (size: number | null) => void;
 }
 
 export function AppHeader({ 
@@ -58,6 +60,8 @@ export function AppHeader({
   onUpdateProcessedSize,
   editorMode,
   imageElement,
+  maxQualitySize,
+  setProcessedSize,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const [targetSize, setTargetSize] = useState('');
@@ -266,7 +270,7 @@ export function AppHeader({
     let bestQuality = 0.5;
     let finalBlob: Blob | null = null;
     
-    for(let i = 0; i < 10; i++) { 
+    for(let i = 0; i < 15; i++) { 
       mid = (low + high) / 2;
       const blob = await getBlobFromCanvas(mid);
       if (!blob) {
@@ -290,7 +294,7 @@ export function AppHeader({
         } else {
             (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ quality });
         }
-        onUpdateProcessedSize();
+        setProcessedSize(finalBlob.size);
     }
     
     setIsOptimizing(false);
@@ -438,6 +442,9 @@ export function AppHeader({
                         </div>
                       </>
                     )}
+                    <div className="text-sm text-muted-foreground">
+                        Original: <span className="font-medium text-foreground">{maxQualitySize !== null ? formatBytes(maxQualitySize) : '...'}</span>
+                    </div>
                     <div className="text-sm text-muted-foreground">
                         Est. size: <span className="font-medium text-foreground">
                           {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}

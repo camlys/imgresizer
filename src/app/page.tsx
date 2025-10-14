@@ -102,6 +102,7 @@ export default function Home() {
   const [editorMode, setEditorMode] = React.useState<'single' | 'collage'>('single');
   const [activeTab, setActiveTab] = React.useState('resize');
   const [processedSize, setProcessedSize] = React.useState<number | null>(null);
+  const [maxQualitySize, setMaxQualitySize] = React.useState<number | null>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
@@ -319,6 +320,7 @@ export default function Home() {
         setPendingCrop(null);
         setActiveTab('resize');
         setProcessedSize(null);
+        setMaxQualitySize(null);
         setIsLoading(false);
         setIsFromMultiPagePdf(isMultiPage);
       };
@@ -495,6 +497,7 @@ export default function Home() {
                 setPendingCrop(null);
                 setActiveTab('resize');
                 setProcessedSize(null);
+                setMaxQualitySize(null);
                 setIsLoading(false);
             };
             img.onerror = () => {
@@ -597,6 +600,7 @@ export default function Home() {
       setPendingCrop(newSettings.crop);
     }
     setProcessedSize(null);
+    setMaxQualitySize(null);
   }, [selectedTextId, selectedSignatureId]);
 
   const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
@@ -634,6 +638,7 @@ export default function Home() {
       return updated;
     });
     setProcessedSize(null);
+    setMaxQualitySize(null);
   }, [selectedLayerIds, selectedTextId, selectedSignatureId]);
 
   const handleAutoDetectBorder = React.useCallback(async () => {
@@ -896,7 +901,6 @@ export default function Home() {
 const updateProcessedSize = React.useCallback(async () => {
     try {
         const currentFormat = editorMode === 'single' ? settings.format : collageSettings.format;
-        let maxQualitySize: number | null = null;
         
         const getBlobSize = async (quality: number): Promise<number | null> => {
             if (currentFormat === 'image/svg+xml') return null;
@@ -927,21 +931,20 @@ const updateProcessedSize = React.useCallback(async () => {
             });
         };
         
-        maxQualitySize = await getBlobSize(1.0);
-        
-        if (maxQualitySize !== null) {
-            const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
-            const estimatedSize = maxQualitySize * currentQuality;
-            setProcessedSize(estimatedSize);
-        } else {
-            setProcessedSize(null);
+        if (maxQualitySize === null) {
+            const sizeAtMax = await getBlobSize(1.0);
+            setMaxQualitySize(sizeAtMax);
         }
+        
+        const sizeAtCurrentQuality = await getBlobSize(editorMode === 'single' ? settings.quality : collageSettings.quality);
+        setProcessedSize(sizeAtCurrentQuality);
 
     } catch (error) {
         console.error("Error updating processed size:", error);
         setProcessedSize(null);
+        setMaxQualitySize(null);
     }
-}, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings, activePage]);
+}, [generateFinalCanvas, editorMode, settings.format, settings.quality, collageSettings, activePage, maxQualitySize]);
 
 
   const handleDownload = React.useCallback(async (filename: string) => {
@@ -1219,6 +1222,8 @@ const updateProcessedSize = React.useCallback(async () => {
           onPrint={handlePrint}
           editorMode={editorMode}
           imageElement={imageElement}
+          maxQualitySize={maxQualitySize}
+          setProcessedSize={setProcessedSize}
         />
         <main className="flex-1 w-full overflow-y-auto">
           <HeroSection onUpload={handleImageUpload} />
@@ -1275,6 +1280,8 @@ const updateProcessedSize = React.useCallback(async () => {
           onPrint={handlePrint}
           editorMode={editorMode}
           imageElement={imageElement}
+          maxQualitySize={maxQualitySize}
+          setProcessedSize={setProcessedSize}
         />
         <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto md:overflow-hidden">
           <div className="w-full md:w-[380px] md:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
@@ -1384,5 +1391,3 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
-
-    
