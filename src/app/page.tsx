@@ -1091,47 +1091,79 @@ const updateProcessedSize = React.useCallback(async () => {
   }, [generateFinalCanvas, settings.format, settings.quality, editorMode, collageSettings.format, collageSettings.quality, activePage, toast]);
 
     const handlePrint = React.useCallback(async () => {
-    try {
-      toast({
-        title: "Preparing for Print",
-        description: "Generating a high-quality version for printing...",
-      });
+        try {
+            toast({
+                title: "Preparing for Print",
+                description: "Generating a high-quality version for printing...",
+            });
 
-      const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
-      
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast({ title: "Error", description: "Could not open print window. Please check your browser's pop-up settings.", variant: "destructive" });
-        return;
-      }
-      
-      printWindow.document.write('<html><head><title>Print Preview</title><style>@media print { @page { size: auto; margin: 0; } body { margin: 0; } img { width: 100vw; height: 100vh; object-fit: contain; page-break-after: always; } img:last-child { page-break-after: auto; } }</style></head><body></body></html>');
-      printWindow.document.close();
-      printWindow.document.body.innerHTML = '';
+            const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
 
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                toast({ title: "Error", description: "Could not open print window. Please check your browser's pop-up settings.", variant: "destructive" });
+                return;
+            }
 
-      for (const page of pagesToRender) {
-        const canvas = await generateFinalCanvas(page);
-        const dataUrl = canvas.toDataURL('image/png', 1.0);
-        const img = document.createElement('img');
-        img.src = dataUrl;
-        printWindow.document.body.appendChild(img);
-      }
-      
-      printWindow.focus();
-      printWindow.print();
-      // The window may not close automatically depending on browser settings, but we try.
-      // printWindow.close(); 
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Preview</title>
+                        <style>
+                            @page { size: auto; margin: 0; }
+                            body { margin: 0; background-color: #eee; display: flex; align-items: center; justify-content: center; height: 100%; }
+                            .print-container { display: flex; flex-direction: column; align-items: center; }
+                            img { max-width: 100vw; max-height: 100vh; object-fit: contain; box-shadow: 0 0 10px rgba(0,0,0,0.2); background-color: white; page-break-after: always; }
+                            img:last-child { page-break-after: auto; }
+                            .loading-indicator { font-family: sans-serif; font-size: 20px; color: #555; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-container">
+                            <div class="loading-indicator">Loading for print...</div>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
 
-    } catch (error) {
-      console.error("Error preparing for print:", error);
-      toast({
-        title: "Print Error",
-        description: "There was a problem preparing the image for printing.",
-        variant: "destructive",
-      });
-    }
-  }, [generateFinalCanvas, editorMode, collageSettings.pages, activePage, toast]);
+            const imagePromises = pagesToRender.map(async (page) => {
+                const canvas = await generateFinalCanvas(page);
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                const img = new Image();
+                return new Promise<HTMLImageElement>((resolve, reject) => {
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = dataUrl;
+                });
+            });
+
+            const loadedImages = await Promise.all(imagePromises);
+
+            const printContainer = printWindow.document.querySelector('.print-container');
+            if (printContainer) {
+              const loadingIndicator = printContainer.querySelector('.loading-indicator');
+              if (loadingIndicator) loadingIndicator.remove();
+              loadedImages.forEach(img => printContainer.appendChild(img));
+            }
+            
+            printWindow.focus();
+
+            // Use a short delay to ensure images are rendered before printing
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+
+        } catch (error) {
+            console.error("Error preparing for print:", error);
+            toast({
+                title: "Print Error",
+                description: "There was a problem preparing the image for printing.",
+                variant: "destructive",
+            });
+        }
+    }, [generateFinalCanvas, editorMode, collageSettings.pages, activePage, toast]);
 
   const handleAutoLayout = React.useCallback((count: 2 | 3 | 4 | 5 | 6) => {
     const page = activePage;
@@ -1393,5 +1425,7 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
+
+    
 
     
