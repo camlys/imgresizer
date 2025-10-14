@@ -446,11 +446,13 @@ export function AppHeader({
                     )}
                     <div className="flex justify-between text-sm text-muted-foreground">
                         <div>
-                            Original: <span className="font-medium text-foreground">{originalImage && formatBytes(originalImage.size)}</span>
-                        </div>
-                         <div>
                             Est. size: <span className="font-medium text-foreground">
                             {currentSettings.format === 'image/svg+xml' ? 'N/A' : processedSize !== null ? formatBytes(processedSize) : 'Calculating...'}
+                            </span>
+                        </div>
+                        <div>
+                            Original: <span className="font-medium text-foreground">
+                                {maxQualitySize !== null ? formatBytes(maxQualitySize) : (originalImage && formatBytes(originalImage.size))}
                             </span>
                         </div>
                     </div>
@@ -486,3 +488,5 @@ export function AppHeader({
     </header>
   );
 }
+
+    
