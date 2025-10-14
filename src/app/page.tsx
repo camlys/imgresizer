@@ -109,7 +109,7 @@ export default function Home() {
 
   const [pendingCrop, setPendingCrop] = React.useState<CropSettings | null>(null);
   const [imageElement, setImageElement] = React.useState<HTMLImageElement | null>(null);
-  const INSET_PX = 38; // Approx 10mm
+  const INSET_PX = 12; // Approx 3mm
 
   // PDF Page Selection
   const [isPdfSelectorOpen, setIsPdfSelectorOpen] = React.useState(false);
