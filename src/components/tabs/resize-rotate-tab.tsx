@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, ScanSearch } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, ScanSearch, GraduationCap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { Separator } from '../ui/separator';
@@ -32,6 +32,23 @@ const convertFromPx = (value: number, unit: Unit, dpi: number): number => {
   if (unit === 'mm') return ((value / dpi) / CM_TO_INCH) * 10;
   return value;
 };
+
+const standardPresets = [
+    { name: "UPSC Photo", width: 240, height: 320, sizeKB: 20 },
+    { name: "UPSC Sign", width: 320, height: 120, sizeKB: 20 },
+    { name: "SSC Photo", width: 276, height: 354, sizeKB: 50 },
+    { name: "SSC Sign", width: 472, height: 236, sizeKB: 20 },
+    { name: "GATE Photo", width: 480, height: 640, sizeKB: 60 },
+    { name: "GATE Sign", width: 560, height: 190, sizeKB: 30 },
+    { name: "NEET Photo", width: 240, height: 320, sizeKB: 200 },
+    { name: "NEET Sign", width: 320, height: 120, sizeKB: 30 },
+    { name: "JEE Main Photo", width: 360, height: 480, sizeKB: 100 },
+    { name: "JEE Main Sign", width: 360, height: 120, sizeKB: 30 },
+    { name: "Railway Photo", width: 240, height: 320, sizeKB: 70 },
+    { name: "Passport (India)", width: 413, height: 531, dpi: 300 }, // 3.5x4.5cm
+    { name: "Stamp Size", width: 236, height: 295, dpi: 300 }, // 2x2.5cm
+];
+
 
 interface ResizeRotateTabProps {
     settings: ImageSettings;
@@ -103,7 +120,14 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const handleDpiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newDpi = parseInt(e.target.value, 10);
         if (!isNaN(newDpi) && newDpi > 0) {
-            updateSettings({ dpi: newDpi });
+            const currentWidthInUnit = parseFloat(width);
+            if (!isNaN(currentWidthInUnit)) {
+                const newPxWidth = convertToPx(currentWidthInUnit, unit, newDpi);
+                const newPxHeight = newPxWidth / aspectRatio;
+                updateSettings({ dpi: newDpi, width: newPxWidth, height: newPxHeight });
+            } else {
+                updateSettings({ dpi: newDpi });
+            }
         }
     };
 
@@ -152,6 +176,16 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     if (!originalImage) {
         return null;
     }
+    
+    const applyPreset = (preset: typeof standardPresets[0]) => {
+      const { width, height, dpi } = preset;
+      updateSettings({ width, height, dpi: dpi || 96 });
+      toast({
+        title: `${preset.name} Preset Applied`,
+        description: `Dimensions set to ${width}x${height}px. Don't forget to check the file size requirements.`,
+      })
+    };
+
 
     return (
         <div className="space-y-4 p-1">
@@ -176,12 +210,26 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                       )}
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="manual">
+                  <Tabs defaultValue="manual" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="manual">Manual</TabsTrigger>
                         <TabsTrigger value="preset"><Zap size={16} className="mr-2"/>Quick Action</TabsTrigger>
                       </TabsList>
                       <TabsContent value="manual" className="mt-4 space-y-4">
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-2"><GraduationCap size={16}/> Standard Presets</Label>
+                            <div className="overflow-x-auto pb-2">
+                                <div className="flex gap-2 whitespace-nowrap">
+                                {standardPresets.map(p => (
+                                    <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p)} className="h-auto py-2 flex-col">
+                                        <span>{p.name}</span>
+                                        <span className="text-xs text-muted-foreground">{p.width}x{p.height}</span>
+                                    </Button>
+                                ))}
+                                </div>
+                            </div>
+                        </div>
+                        <Separator />
                         <div className="flex items-end gap-2">
                             <div className="grid gap-1.5 flex-1">
                                 <Label htmlFor="width">Width</Label>
@@ -233,14 +281,14 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                         <Button variant="outline" size="sm" onClick={resetDimensions}>Reset Dimensions</Button>
                       </TabsContent>
                        <TabsContent value="preset" className="mt-4 space-y-4">
-                          <div className="space-y-1">
-                            <h4 className="font-medium text-sm">Quick Action Preset</h4>
-                            <p className="text-sm text-muted-foreground">
-                            Configure a one-click process. Use the <Zap size={14} className="inline-block"/> button in the header to run.
-                            </p>
-                          </div>
-                          <Separator />
-                          <div className="grid gap-4">
+                          <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-medium">Quick Action Preset</CardTitle>
+                                <p className="text-sm text-muted-foreground pt-1">
+                                Configure a one-click process. Use the <Zap size={14} className="inline-block"/> button in the header to run.
+                                </p>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label>Format</Label>
@@ -265,7 +313,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                                     <Button 
                                                         variant="outline"
                                                         size="icon"
-                                                        className={quickActionPreset.autoCrop ? 'bg-[#00FF00]' : ''}
+                                                        className={quickActionPreset.autoCrop ? 'bg-primary/20' : ''}
                                                         onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
                                                     >
                                                         <ScanSearch size={16}/>
@@ -317,7 +365,8 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                     </div>
                                 </div>
                                 <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
-                          </div>
+                            </CardContent>
+                          </Card>
                       </TabsContent>
                   </Tabs>
                 </CardContent>
@@ -330,3 +379,5 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
+
+    
