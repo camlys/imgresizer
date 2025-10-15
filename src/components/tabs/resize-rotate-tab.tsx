@@ -8,10 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, ScanSearch, GraduationCap } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
-import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -179,7 +178,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     
     const applyPreset = (preset: typeof standardPresets[0]) => {
       const { width, height, dpi } = preset;
-      updateSettings({ width, height, dpi: dpi || 96 });
+      updateSettings({ width, height, dpi: dpi || 96, keepAspectRatio: false });
       toast({
         title: `${preset.name} Preset Applied`,
         description: `Dimensions set to ${width}x${height}px. Don't forget to check the file size requirements.`,
@@ -189,188 +188,200 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
 
     return (
         <div className="space-y-4 p-1">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-base font-medium flex items-center gap-2">
-                        <Scan size={18}/> Resize
-                    </CardTitle>
-                    {isFromMultiPagePdf && (
-                          <TooltipProvider>
-                              <Tooltip>
-                                  <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
-                                          <BookOpen size={16}/>
-                                      </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                      <p>View PDF Pages</p>
-                                  </TooltipContent>
-                              </Tooltip>
-                          </TooltipProvider>
-                      )}
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="manual" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="manual">Manual</TabsTrigger>
-                        <TabsTrigger value="preset"><Zap size={16} className="mr-2"/>Quick Action</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="manual" className="mt-4 space-y-4">
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-2"><GraduationCap size={16}/> Standard Presets</Label>
-                            <div className="overflow-x-auto pb-2">
-                                <div className="flex gap-2 whitespace-nowrap">
-                                {standardPresets.map(p => (
-                                    <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p)} className="h-auto py-2 flex-col">
-                                        <span>{p.name}</span>
-                                        <span className="text-xs text-muted-foreground">{p.width}x{p.height}</span>
-                                    </Button>
-                                ))}
-                                </div>
+            <Tabs defaultValue="manual" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="manual">Manual</TabsTrigger>
+                    <TabsTrigger value="preset"><Zap size={16} className="mr-2"/>Quick Action</TabsTrigger>
+                </TabsList>
+                <TabsContent value="manual" className="mt-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-base font-medium flex items-center gap-2">
+                                <Scan size={18}/> Resize
+                            </CardTitle>
+                            <div className="flex items-center">
+                               {isFromMultiPagePdf && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button variant="ghost" size="icon" onClick={onViewPages} className="h-8 w-8 text-primary">
+                                                    <BookOpen size={16}/>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>View PDF Pages</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" onClick={resetDimensions} className="h-8 w-8">
+                                                <RefreshCw size={16}/>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Reset to original dimensions</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
-                        </div>
-                        <Separator />
-                        <div className="flex items-end gap-2">
-                            <div className="grid gap-1.5 flex-1">
-                                <Label htmlFor="width">Width</Label>
-                                <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
-                            </div>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="shrink-0"
-                                      onClick={() => updateSettings({ keepAspectRatio: !settings.keepAspectRatio })}
-                                      aria-label="Toggle aspect ratio lock"
-                                  >
-                                      {settings.keepAspectRatio ? <Lock size={16}/> : <Unlock size={16}/>}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Keep aspect ratio</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <div className="grid gap-1.5 flex-1">
-                                <Label htmlFor="height">Height</Label>
-                                <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap items-end gap-4">
-                            <div className="grid gap-1.5 flex-1 min-w-[80px]">
-                                <Label>Unit</Label>
-                                <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="px">px</SelectItem>
-                                        <SelectItem value="cm">cm</SelectItem>
-                                        <SelectItem value="mm">mm</SelectItem>
-                                        <SelectItem value="inch">inch</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                             <div className="grid gap-1.5 flex-1 min-w-[80px]">
-                                <Label htmlFor="dpi">DPI</Label>
-                                <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
-                            </div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={resetDimensions}>Reset Dimensions</Button>
-                      </TabsContent>
-                       <TabsContent value="preset" className="mt-4 space-y-4">
-                          <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base font-medium">Quick Action Preset</CardTitle>
-                                <p className="text-sm text-muted-foreground pt-1">
-                                Configure a one-click process. Use the <Zap size={14} className="inline-block"/> button in the header to run.
-                                </p>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label>Format</Label>
-                                        <Select
-                                            value={quickActionPreset?.format}
-                                            onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
-                                        >
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="image/png">PNG</SelectItem>
-                                                <SelectItem value="image/jpeg">JPEG</SelectItem>
-                                                <SelectItem value="image/webp">WEBP</SelectItem>
-                                                <SelectItem value="application/pdf">PDF</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Auto Crop</Label>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button 
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className={quickActionPreset.autoCrop ? 'bg-primary/20' : ''}
-                                                        onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
-                                                    >
-                                                        <ScanSearch size={16}/>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Toggle automatic border detection and cropping.</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs text-muted-foreground">Standard Presets</Label>
+                                <div className="overflow-x-auto pb-2">
+                                    <div className="flex gap-2 whitespace-nowrap">
+                                        {standardPresets.map(p => (
+                                            <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p)} className="h-auto py-2 flex-col">
+                                                <span>{p.name}</span>
+                                                <span className="text-xs text-muted-foreground">{p.width}x{p.height}</span>
+                                            </Button>
+                                        ))}
                                     </div>
                                 </div>
-                              <div className="grid gap-2">
-                                  <Label>Target Dimensions (Optional)</Label>
-                                  <div className="flex items-center gap-2">
-                                      <Input 
-                                          type="number" 
-                                          placeholder="Width" 
-                                          value={quickActionPreset?.width || ''} 
-                                          onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
-                                      />
-                                      <Input 
-                                          type="number" 
-                                          placeholder="Height"
-                                          value={quickActionPreset?.height || ''} 
-                                          onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
-                                      />
-                                  </div>
-                              </div>
-                              <div className="grid gap-2">
-                                    <Label>Target File Size (Optional)</Label>
-                                    <div className="flex items-center gap-2">
-                                    <Input 
-                                        type="number"
-                                        placeholder="e.g. 500"
-                                        value={quickActionPreset?.targetSize || ''}
-                                        onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
-                                    />
-                                    <Select 
-                                        value={quickActionPreset?.targetUnit} 
-                                        onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <div className="grid gap-1.5 flex-1">
+                                    <Label htmlFor="width">Width</Label>
+                                    <Input id="width" type="text" value={width} onChange={e => handleDimensionChange(e.target.value, 'width')} />
+                                </div>
+                                
+                                <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="shrink-0"
+                                        onClick={() => updateSettings({ keepAspectRatio: !settings.keepAspectRatio })}
+                                        aria-label="Toggle aspect ratio lock"
                                     >
-                                        <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                                        {settings.keepAspectRatio ? <Lock size={16}/> : <Unlock size={16}/>}
+                                    </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                    <p>Keep aspect ratio</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                </TooltipProvider>
+
+                                <div className="grid gap-1.5 flex-1">
+                                    <Label htmlFor="height">Height</Label>
+                                    <Input id="height" type="text" value={height} onChange={e => handleDimensionChange(e.target.value, 'height')} />
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-end gap-4">
+                                <div className="grid gap-1.5 flex-1 min-w-[80px]">
+                                    <Label>Unit</Label>
+                                    <Select value={unit} onValueChange={(val: Unit) => handleUnitChange(val)}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="KB">KB</SelectItem>
-                                            <SelectItem value="MB">MB</SelectItem>
+                                            <SelectItem value="px">px</SelectItem>
+                                            <SelectItem value="cm">cm</SelectItem>
+                                            <SelectItem value="mm">mm</SelectItem>
+                                            <SelectItem value="inch">inch</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    </div>
                                 </div>
-                                <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
-                            </CardContent>
-                          </Card>
-                      </TabsContent>
-                  </Tabs>
-                </CardContent>
-            </Card>
+                                <div className="grid gap-1.5 flex-1 min-w-[80px]">
+                                    <Label htmlFor="dpi">DPI</Label>
+                                    <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="preset" className="mt-4 space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-medium">Quick Action Preset</CardTitle>
+                            <p className="text-sm text-muted-foreground pt-1">
+                            Configure a one-click process. Use the <Zap size={14} className="inline-block"/> button in the header to run.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Format</Label>
+                                    <Select
+                                        value={quickActionPreset?.format}
+                                        onValueChange={(value) => setQuickActionPreset(p => ({...p!, format: value as any}))}
+                                    >
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="image/png">PNG</SelectItem>
+                                            <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                            <SelectItem value="image/webp">WEBP</SelectItem>
+                                            <SelectItem value="application/pdf">PDF</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Auto Crop</Label>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button 
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className={quickActionPreset.autoCrop ? 'bg-primary/20' : ''}
+                                                    onClick={() => setQuickActionPreset(p => ({...p, autoCrop: !p.autoCrop}))}
+                                                >
+                                                    <Scan size={16}/>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Toggle automatic border detection and cropping.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Target Dimensions (Optional)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                        type="number" 
+                                        placeholder="Width" 
+                                        value={quickActionPreset?.width || ''} 
+                                        onChange={(e) => setQuickActionPreset(p => ({...p!, width: parseInt(e.target.value) || undefined}))}
+                                    />
+                                    <Input 
+                                        type="number" 
+                                        placeholder="Height"
+                                        value={quickActionPreset?.height || ''} 
+                                        onChange={(e) => setQuickActionPreset(p => ({...p!, height: parseInt(e.target.value) || undefined}))}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Target File Size (Optional)</Label>
+                                <div className="flex items-center gap-2">
+                                <Input 
+                                    type="number"
+                                    placeholder="e.g. 500"
+                                    value={quickActionPreset?.targetSize || ''}
+                                    onChange={(e) => setQuickActionPreset(p => ({...p!, targetSize: parseInt(e.target.value) || undefined}))}
+                                />
+                                <Select 
+                                    value={quickActionPreset?.targetUnit} 
+                                    onValueChange={(val: 'KB' | 'MB') => setQuickActionPreset(p => ({...p!, targetUnit: val}))}
+                                >
+                                    <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="KB">KB</SelectItem>
+                                        <SelectItem value="MB">MB</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                </div>
+                            </div>
+                            <Button onClick={handleSaveQuickActionPreset} variant="secondary" className="w-full">Save Preset</Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
             <ImageInfoPanel 
                 originalImage={originalImage}
                 settings={settings}
