@@ -272,7 +272,7 @@ export function AppHeader({
     let bestQuality = 0.5;
     let finalBlob: Blob | null = null;
     
-    for(let i = 0; i < 15; i++) { 
+    for(let i = 0; i < 25; i++) { 
       mid = (low + high) / 2;
       const blob = await getBlobFromCanvas(mid);
       if (!blob) {
@@ -494,4 +494,6 @@ export function AppHeader({
 }
 
     
+    
+
     
