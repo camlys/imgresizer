@@ -52,7 +52,7 @@ export function PasswordDialog({ isOpen, onOpenChange, onSubmit, fileName }: Pas
           <DialogHeader>
             <DialogTitle>Password Required</DialogTitle>
             <DialogDescription>
-              The file <span className="font-semibold text-primary">{fileName || 'your file'}</span> is encrypted. Please enter the password to unlock it.
+              The file <span className="font-semibold text-primary inline-block max-w-[200px] truncate align-bottom">{fileName || 'your file'}</span> is encrypted. Please enter the password to unlock it.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
