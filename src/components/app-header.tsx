@@ -344,7 +344,11 @@ export function AppHeader({
                 Download
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
+            <PopoverContent 
+              className="w-[calc(100vw-2rem)] sm:w-80" 
+              align="end"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none flex items-center gap-2"><Settings size={18}/> Export Settings</h4>
@@ -489,4 +493,5 @@ export function AppHeader({
   );
 }
 
+    
     
