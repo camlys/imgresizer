@@ -14,7 +14,7 @@ const faqList = [
     },
     {
         question: "Can I convert a multi-page PDF to a JPG online?",
-        answer: "Absolutely. ImgResizer functions as a powerful PDF to image converter. When you upload a multi-page PDF, our tool lets you select the exact page you want to edit or convert, which you can then export as a JPG, PNG, or other formats."
+        answer: "Absolutely. ImgResizer functions as a powerful PDF to image converter. When you upload a multi-page PDF, our tool lets you select the exact page you want to edit, convert, or add to a collage."
     }
 ];
 
@@ -41,7 +41,7 @@ export function SeoContent() {
                  <section>
                     <h2 className="text-2xl font-bold text-foreground mb-3">Core Focus: Privacy-First Image Editing</h2>
                     <p className="text-muted-foreground">
-                        At its core, <strong className="text-primary">ImgResizer</strong> is a <strong className="text-primary">free online image editor</strong> that redefines user privacy. All operations—from a simple <strong className="text-primary">image resize</strong> to a complex <strong className="text-primary">perspective crop</strong>—happen directly in your browser. This client-side processing means your files are never uploaded to a server, making ImgResizer a truly <strong className="text-primary">private photo editor</strong> and a tool for <strong className="text-primary">secure document editing</strong>. No sign-ups, no tracking, and no watermarks, just powerful tools at your fingertips.
+                        At its core, <strong className="text-primary">ImgResizer</strong> is a <strong className="text-primary">free online image editor</strong> that redefines user privacy. All operations—from a simple <strong className="text-primary">image resize</strong> to a complex <strong className="text-primary">PDF collage</strong>—happen directly in your browser. This client-side processing means your files are never uploaded to a server, making ImgResizer a truly <strong className="text-primary">private photo editor</strong> and a tool for <strong className="text-primary">secure document editing</strong>. No sign-ups, no tracking, and no watermarks, just powerful tools at your fingertips.
                     </p>
                 </section>
 

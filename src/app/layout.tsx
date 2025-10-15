@@ -125,19 +125,21 @@ export default function RootLayout({
     url: 'https://www.imgresizer.xyz',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
-    description: 'A free, privacy-focused online tool to resize, crop, and edit images and photos directly in your browser.',
+    description: 'A free, privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs.',
     featureList: [
       'Image Resizing',
       'Image Cropping',
       'Perspective Correction',
-      'Image Format Conversion (PNG, JPEG, WEBP, etc.)',
+      'Image Format Conversion (PNG, JPEG, WEBP, PDF)',
       'Color Adjustments (Brightness, Contrast, Saturation)',
       'Photo Filters (Grayscale, Sepia, etc.)',
       'Add Text to Images',
       'Add Signature/Watermark to Images',
       'PDF to Image Conversion',
-      'Image Collage Maker',
+      'Online Photo Collage Maker',
       'Client-side processing for privacy',
+      'Secure PDF password handling',
+      'Drawing and annotation tools',
     ],
     offers: {
       '@type': 'Offer',
@@ -157,7 +159,8 @@ export default function RootLayout({
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5066894312897940"
      crossOrigin="anonymous"></script>
         <link rel="canonical" href="https://www.imgresizer.xyz" />
-        <meta name="description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
+        <meta name="description" content="The simple, powerful, and privacy-focused online tool to resize, crop, edit your images, and create photo collages from images and PDFs. No watermarks." />
+        <meta name="keywords" content="image resizer, photo editor, online image editor, free photo editor, crop image, resize image, convert image format, private image editor, ImgResizer, SEO, metadata, keywords, free image editor no watermark, online photo collage maker, pdf to jpg converter online, perspective correction, photo resizer, JPG converter, image to PDF, online picture editor, photo collage maker, image compressor, change image size, edit photos online, best free photo editor, picture editor, photo editor free, edit pictures, image resizer online, resize image online, png to jpg, webp to png, image to pdf converter, secure document editing" />
         <meta name="google-site-verification" content="vAXaQAf1AwfzrK402zrQbne-DlogUKuiHaQAWg7P09A" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -173,12 +176,12 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
-        <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
+        <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor, Collage Maker" />
+        <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs. No watermarks." />
         <meta name="twitter:creator" content="@ImgResizer" />
         <meta name="twitter:image" content="https://www.imgresizer.xyz/imgresizer.jpg" />
-        <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor" />
-        <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, and edit your images and photos directly in your browser. No watermarks." />
+        <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor, Collage Maker" />
+        <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs. No watermarks." />
         <meta property="og:url" content="https://www.imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
         <meta property="og:image" content="https://www.imgresizer.xyz/imgresizer.jpg" />
