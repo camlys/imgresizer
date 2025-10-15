@@ -4,7 +4,7 @@
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows } from 'lucide-react';
+import { CheckCircle, Zap, ShieldCheck, LockKeyhole, Crop, SlidersHorizontal, Type, FileImage, GitCompareArrows, FileLock, ClipboardCheck } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
   Accordion,
@@ -27,6 +27,11 @@ const faqs = [
     answer: "Your privacy is our top priority. ImgResizer is a client-side application, which means all your images are processed directly on your computer within your web browser. Your files are never uploaded to our servers, ensuring your data remains 100% private and secure."
   },
   {
+      id: "faq-6",
+      question: "Can I edit a password-protected PDF?",
+      answer: "Yes. ImgResizer can handle password-protected PDFs. When you upload an encrypted file, you'll be prompted for the password. The unlocking process happens securely within your browser, and your password is never sent to our servers, maintaining complete privacy."
+  },
+  {
     id: "faq-3",
     question: "What file formats can I upload and download?",
     answer: "You can upload most common image formats, including JPEG, PNG, WEBP, and BMP, as well as PDF files. You can then download your edited work as a JPEG, PNG, WEBP, GIF, BMP, SVG, or even a PDF document."
@@ -38,7 +43,7 @@ const faqs = [
   },
   {
     id: "faq-5",
-    question: "How do I resize an image to a specific file size?",
+    question: "How do I resize an image for a specific file size?",
     answer: "In the \"Download\" popover, you'll find an option to set a target file size (e.g., 500 KB). Our tool will automatically adjust the image quality (for JPEG or WEBP formats) to get as close as possible to your desired size, making it easy to meet file size requirements for emails or online forms."
   },
 ];
@@ -219,6 +224,34 @@ export default function FeaturesPage() {
                     </div>
                 </div>
             </section>
+
+             <section className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground mb-4">Effortless Presets for Exams & Documents</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Stop guessing dimensions. Our resize tool comes packed with presets for popular exams like UPSC, SSC, and GATE, as well as standard document sizes like passport photos. Get the exact size and DPI you need in a single click, saving you time and ensuring your submissions are perfect every time.
+                  </p>
+                </div>
+                <div>
+                    <div className="rounded-lg shadow-lg bg-accent/10 aspect-[3/2] flex items-center justify-center p-8">
+                        <ClipboardCheck className="w-24 h-24 text-accent" />
+                    </div>
+                </div>
+            </section>
+
+            <section className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+                <div className="md:order-last">
+                    <h3 className="text-2xl font-bold text-foreground mb-4">Secure PDF Editing and Unlocking</h3>
+                    <p className="text-muted-foreground mb-4">
+                    Work with PDFs confidently. ImgResizer handles multi-page PDFs and can even open password-protected files. The unlocking process happens securely within your browser, so your password is never sent to our servers. Edit, convert, or create collages from your PDFs with complete peace of mind.
+                    </p>
+                </div>
+                <div className="order-first md:order-first">
+                    <div className="rounded-lg shadow-lg bg-primary/10 aspect-video flex items-center justify-center p-8">
+                        <FileLock className="w-24 h-24 text-primary" />
+                    </div>
+                </div>
+            </section>
             
             <FaqSection />
         </div>
@@ -227,5 +260,7 @@ export default function FeaturesPage() {
     </div>
   );
 }
+
+    
 
     
