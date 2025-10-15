@@ -21,6 +21,7 @@ import { FeatureGrid } from '@/components/feature-grid';
 import { InstallPwaBanner } from '@/components/install-pwa-banner';
 import { AppGrid } from '@/components/app-grid';
 import { SeoContent } from '@/components/seo-content';
+import { PasswordDialog } from '@/components/password-dialog';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -118,6 +119,12 @@ export default function Home() {
   const [pdfSelectionSource, setPdfSelectionSource] = React.useState<'single' | 'collage'>('single');
   const [isFromMultiPagePdf, setIsFromMultiPagePdf] = React.useState(false);
   const [isPageSelecting, setIsPageSelecting] = React.useState(false);
+
+  // PDF Password
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
+  const [passwordPdfFile, setPasswordPdfFile] = React.useState<File | null>(null);
+  const passwordRetryFunction = React.useRef<((password: string) => void) | null>(null);
+
 
   // Text Editing
   const [selectedTextId, setSelectedTextId] = React.useState<string | null>(null);
@@ -510,29 +517,45 @@ export default function Home() {
         };
         reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const doc = await pdfjsLib.getDocument(arrayBuffer).promise;
-            
-            setPdfDoc(doc);
-            setPdfFile(file);
-            
-            if (doc.numPages > 1) {
-                setPdfSelectionSource('single');
-                setIsLoading(false);
-                setIsPdfSelectorOpen(true);
-            } else {
-                loadPageAsImage(doc, 1, file.size, false);
+        const processPdf = async (password?: string) => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
+                
+                const doc = await loadingTask.promise;
+                
+                // If we get here, password was correct (or not needed)
+                setIsPasswordDialogOpen(false);
+                setPasswordPdfFile(null);
+
+                setPdfDoc(doc);
+                setPdfFile(file);
+                
+                if (doc.numPages > 1) {
+                    setPdfSelectionSource('single');
+                    setIsLoading(false);
+                    setIsPdfSelectorOpen(true);
+                } else {
+                    loadPageAsImage(doc, 1, file.size, false);
+                }
+            } catch (error: any) {
+                if (error.name === 'PasswordException') {
+                    setIsLoading(false);
+                    setPasswordPdfFile(file);
+                    passwordRetryFunction.current = processPdf;
+                    setIsPasswordDialogOpen(true);
+                } else {
+                    console.error("Error processing PDF:", error);
+                    toast({
+                        title: "PDF Error",
+                        description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
+                        variant: "destructive",
+                    });
+                    setIsLoading(false);
+                }
             }
-        } catch (error) {
-            console.error("Error processing PDF:", error);
-            toast({
-                title: "PDF Error",
-                description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
-                variant: "destructive",
-            });
-            setIsLoading(false);
-        }
+        };
+        await processPdf();
     } else {
         toast({
             title: "Invalid File",
@@ -551,17 +574,31 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const doc = await pdfjsLib.getDocument(arrayBuffer).promise;
-        setPdfDoc(doc);
-        setPdfFile(file);
-        setPdfSelectionSource('collage');
-        setIsPdfSelectorOpen(true);
-      } catch (error) {
-        console.error("Error processing PDF for collage:", error);
-        toast({ title: "PDF Error", description: "Could not process PDF.", variant: "destructive" });
-      }
+       const processPdf = async (password?: string) => {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
+            const doc = await loadingTask.promise;
+
+            setIsPasswordDialogOpen(false);
+            setPasswordPdfFile(null);
+
+            setPdfDoc(doc);
+            setPdfFile(file);
+            setPdfSelectionSource('collage');
+            setIsPdfSelectorOpen(true);
+        } catch (error: any) {
+            if (error.name === 'PasswordException') {
+                setPasswordPdfFile(file);
+                passwordRetryFunction.current = processPdf;
+                setIsPasswordDialogOpen(true);
+            } else {
+                console.error("Error processing PDF for collage:", error);
+                toast({ title: "PDF Error", description: "Could not process PDF.", variant: "destructive" });
+            }
+        }
+      };
+      await processPdf();
     } else {
       toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
@@ -1293,6 +1330,22 @@ const updateProcessedSize = React.useCallback(async () => {
             source={pdfSelectionSource}
           />
         )}
+        <PasswordDialog
+          isOpen={isPasswordDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setPasswordPdfFile(null);
+              passwordRetryFunction.current = null;
+            }
+            setIsPasswordDialogOpen(isOpen);
+          }}
+          onSubmit={(password) => {
+            if (passwordRetryFunction.current) {
+              passwordRetryFunction.current(password);
+            }
+          }}
+          fileName={passwordPdfFile?.name}
+        />
       </div>
     );
   }
@@ -1420,6 +1473,22 @@ const updateProcessedSize = React.useCallback(async () => {
             source={pdfSelectionSource}
           />
         )}
+         <PasswordDialog
+          isOpen={isPasswordDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setPasswordPdfFile(null);
+              passwordRetryFunction.current = null;
+            }
+            setIsPasswordDialogOpen(isOpen);
+          }}
+          onSubmit={(password) => {
+            if (passwordRetryFunction.current) {
+              passwordRetryFunction.current(password);
+            }
+          }}
+          fileName={passwordPdfFile?.name}
+        />
       </div>
       <AppGrid />
       <SeoContent />
