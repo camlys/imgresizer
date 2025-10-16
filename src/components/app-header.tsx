@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid, Zap, Printer } from 'lucide-react';
+import { Upload, Download, Settings, Loader2, Share2, KeyRound, LayoutGrid, Zap, Printer, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,6 +25,8 @@ import { AppHubCard } from './app-hub-card';
 import { InstallPwaButton } from './install-pwa-button';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -74,6 +76,7 @@ export function AppHeader({
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
   const { toast } = useToast();
   const [isProcessingQuickAction, setIsProcessingQuickAction] = useState(false);
+  const router = useRouter();
   
   const currentSettings = editorMode === 'single' ? settings : collageSettings;
   const currentUpdateSettings = editorMode === 'single' ? updateSettings : updateCollageSettings;
@@ -83,6 +86,46 @@ export function AppHeader({
       onUpdateProcessedSize();
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
+
+    const handleCompress = async (quality: 'less' | 'medium' | 'extreme') => {
+    if (!isImageLoaded || !imageElement) {
+      toast({ title: 'No Image', description: 'Please upload an image first.', variant: 'destructive' });
+      return;
+    }
+    
+    setIsProcessingQuickAction(true);
+    toast({ title: 'Compressing...', description: 'Preparing your compressed image.' });
+
+    try {
+      const qualityMap = { less: 0.8, medium: 0.6, extreme: 0.4 };
+      const compressionQuality = qualityMap[quality];
+      const format = 'image/jpeg';
+
+      const canvas = await generateFinalCanvas(undefined, { quality: compressionQuality, format });
+      const dataUrl = canvas.toDataURL(format, compressionQuality);
+      
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, format, compressionQuality));
+      if (!blob) throw new Error("Could not create blob.");
+
+      const compressionResult = {
+        dataUrl,
+        originalSize: originalImage?.size || 0,
+        compressedSize: blob.size,
+        quality: quality,
+      };
+
+      sessionStorage.setItem('compressionResult', JSON.stringify(compressionResult));
+      
+      router.push('/compress');
+
+    } catch (e) {
+      console.error("Compression failed:", e);
+      toast({ title: 'Error', description: 'Failed to compress image.', variant: 'destructive' });
+    } finally {
+      setIsProcessingQuickAction(false);
+    }
+  };
+
 
   const handleQuickAction = async () => {
     if (editorMode === 'collage' || !isImageLoaded || !imageElement) return;
@@ -332,9 +375,22 @@ export function AppHeader({
         />
         <div className="flex items-center gap-2" style={{minWidth: 'auto'}}>
         {isImageLoaded && editorMode === 'single' && (
-            <Button variant="outline" size="icon" onClick={handleQuickAction} disabled={isProcessingQuickAction}>
-              {isProcessingQuickAction ? <Loader2 className="animate-spin" /> : <Zap />}
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" disabled={isProcessingQuickAction}>
+                        {isProcessingQuickAction ? <Loader2 className="animate-spin" /> : <Zap />}
+                        <span className="hidden sm:inline ml-2">Quick Actions</span>
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleQuickAction}>Run Saved Preset</DropdownMenuItem>
+                    <Separator />
+                    <DropdownMenuItem onClick={() => handleCompress('less')}>Compress: Less</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleCompress('medium')}>Compress: Medium</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleCompress('extreme')}>Compress: Extreme</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         )}
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -492,8 +548,5 @@ export function AppHeader({
     </header>
   );
 }
-
-    
-    
 
     
