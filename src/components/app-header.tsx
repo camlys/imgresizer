@@ -101,10 +101,18 @@ export function AppHeader({
       const compressionQuality = qualityMap[quality];
       const format = 'image/jpeg';
 
-      const canvas = await generateFinalCanvas(undefined, { quality: compressionQuality, format });
-      const dataUrl = canvas.toDataURL(format, compressionQuality);
+      // Use a simple canvas operation for compression to avoid issues with generateFinalCanvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Could not create canvas context.");
+
+      canvas.width = imageElement.naturalWidth;
+      canvas.height = imageElement.naturalHeight;
+      ctx.drawImage(imageElement, 0, 0);
       
+      const dataUrl = canvas.toDataURL(format, compressionQuality);
       const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, format, compressionQuality));
+      
       if (!blob) throw new Error("Could not create blob.");
 
       const compressionResult = {
@@ -249,7 +257,7 @@ export function AppHeader({
 
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
-      uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+      uploadInputRef.current.accept = type === 'image' ? 'image/*,image/webp' : 'application/pdf';
       uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
