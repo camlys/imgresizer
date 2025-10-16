@@ -87,21 +87,21 @@ export function AppHeader({
     }
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
 
-    const handleCompress = async (quality: 'less' | 'medium' | 'extreme') => {
+  const handleCompress = async (quality: 'less' | 'medium' | 'extreme') => {
     if (!isImageLoaded || !imageElement || !originalImage) {
       toast({ title: 'No Image', description: 'Please upload an image first.', variant: 'destructive' });
       return;
     }
-    
+  
     setIsProcessingQuickAction(true);
-    toast({ title: 'Compressing...', description: 'Finding the best quality for your target size.' });
-
+    toast({ title: 'Compressing...', description: 'Generating compressed JPEG and PDF...' });
+  
     try {
       const qualityMap = { less: 0.7, medium: 0.5, extreme: 0.25 };
       const targetRatio = qualityMap[quality];
       const targetBytes = originalImage.size * targetRatio;
-      const format = 'image/jpeg';
-      
+  
+      // --- JPEG Compression ---
       const getBlobForQuality = (quality: number): Promise<Blob | null> => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -109,45 +109,64 @@ export function AppHeader({
         canvas.width = imageElement.naturalWidth;
         canvas.height = imageElement.naturalHeight;
         ctx.drawImage(imageElement, 0, 0);
-        return new Promise(res => canvas.toBlob(res, format, quality));
+        return new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
       };
-
+  
       let high = 1.0, low = 0.0, mid = 0.5;
-      let bestQuality = 0.5;
-      
-      for(let i = 0; i < 15; i++) { // 15 iterations for good balance of speed/accuracy
-          mid = (low + high) / 2;
-          const blob = await getBlobForQuality(mid);
-          if (!blob) throw new Error("Could not create blob for quality check.");
-          
-          if(blob.size > targetBytes) high = mid;
-          else low = mid;
+      for (let i = 0; i < 15; i++) {
+        mid = (low + high) / 2;
+        const blob = await getBlobForQuality(mid);
+        if (!blob) throw new Error("Could not create blob for quality check.");
+        if (blob.size > targetBytes) high = mid;
+        else low = mid;
       }
-      bestQuality = (low + high) / 2;
-
+      const bestQuality = (low + high) / 2;
+  
       const finalCanvas = document.createElement('canvas');
       const finalCtx = finalCanvas.getContext('2d');
       if (!finalCtx) throw new Error("Could not create final canvas.");
-
+  
       finalCanvas.width = imageElement.naturalWidth;
       finalCanvas.height = imageElement.naturalHeight;
       finalCtx.drawImage(imageElement, 0, 0);
+  
+      const jpegDataUrl = finalCanvas.toDataURL('image/jpeg', bestQuality);
+      const jpegFinalBlob = await new Promise<Blob | null>(res => finalCanvas.toBlob(res, 'image/jpeg', bestQuality));
+      if (!jpegFinalBlob) throw new Error("Could not create final JPEG blob.");
+  
+      // --- PDF Compression ---
+      const pdf = new jsPDF();
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = imageElement.naturalWidth;
+      const imgHeight = imageElement.naturalHeight;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const newImgWidth = imgWidth * ratio;
+      const newImgHeight = imgHeight * ratio;
+      const imgX = (pdfWidth - newImgWidth) / 2;
+      const imgY = (pdfHeight - newImgHeight) / 2;
 
-      const dataUrl = finalCanvas.toDataURL(format, bestQuality);
-      const finalBlob = await new Promise<Blob | null>(res => finalCanvas.toBlob(res, format, bestQuality));
-      if (!finalBlob) throw new Error("Could not create final blob.");
+      pdf.addImage(jpegDataUrl, 'JPEG', imgX, imgY, newImgWidth, newImgHeight);
+      const pdfBlob = pdf.output('blob');
+      const pdfDataUrl = URL.createObjectURL(pdfBlob);
 
       const compressionResult = {
-        dataUrl,
+        jpeg: {
+            dataUrl: jpegDataUrl,
+            size: jpegFinalBlob.size,
+        },
+        pdf: {
+            dataUrl: pdfDataUrl,
+            size: pdfBlob.size,
+        },
         originalSize: originalImage.size,
-        compressedSize: finalBlob.size,
         quality: quality,
       };
 
       sessionStorage.setItem('compressionResult', JSON.stringify(compressionResult));
-      
+  
       router.push('/compress');
-
+  
     } catch (e) {
       console.error("Compression failed:", e);
       toast({ title: 'Error', description: 'Failed to compress image.', variant: 'destructive' });

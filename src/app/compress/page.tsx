@@ -6,14 +6,19 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Download, Loader2, ArrowLeft, Zap } from 'lucide-react';
+import { Download, Loader2, ArrowLeft, Zap, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 
-interface CompressionResult {
+interface CompressionFormatResult {
     dataUrl: string;
+    size: number;
+}
+
+interface CompressionResult {
+    jpeg: CompressionFormatResult;
+    pdf: CompressionFormatResult;
     originalSize: number;
-    compressedSize: number;
     quality: 'less' | 'medium' | 'extreme';
 }
 
@@ -25,7 +30,10 @@ export default function CompressPage() {
         try {
             const storedResult = sessionStorage.getItem('compressionResult');
             if (storedResult) {
-                setResult(JSON.parse(storedResult));
+                const parsedResult = JSON.parse(storedResult);
+                // The PDF data URL needs to be handled carefully as it's a blob URL
+                // We assume it's still valid from the previous page.
+                setResult(parsedResult);
             }
         } catch (error) {
             console.error("Failed to parse compression result from sessionStorage", error);
@@ -34,15 +42,16 @@ export default function CompressPage() {
         }
     }, []);
 
-    const handleDownload = () => {
+    const handleDownload = (format: 'jpeg' | 'pdf') => {
         if (!result) return;
+        const formatResult = result[format];
         const link = document.createElement('a');
-        link.href = result.dataUrl;
-        link.download = `imgresizer-compressed-${result.quality}.jpg`;
+        link.href = formatResult.dataUrl;
+        link.download = `imgresizer-compressed-${result.quality}.${format === 'jpeg' ? 'jpg' : 'pdf'}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
+        // We don't revoke object URLs for PDFs as they might be used for preview
     };
 
     const qualityTextMap = {
@@ -51,20 +60,21 @@ export default function CompressPage() {
         extreme: 'Extreme Compression',
     };
 
-    const reductionPercentage = result ? Math.round(((result.originalSize - result.compressedSize) / result.originalSize) * 100) : 0;
+    const jpegReductionPercentage = result ? Math.round(((result.originalSize - result.jpeg.size) / result.originalSize) * 100) : 0;
+    const pdfReductionPercentage = result ? Math.round(((result.originalSize - result.pdf.size) / result.originalSize) * 100) : 0;
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <SiteHeader />
             <main className="flex-1 container mx-auto py-12 px-6">
-                <Card className="max-w-4xl mx-auto">
+                <Card className="max-w-5xl mx-auto">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-3xl font-bold font-headline">
                             <Zap className="text-primary" />
                             Compression Result
                         </CardTitle>
                         <CardDescription>
-                            Your image has been compressed. Review the result and download your file.
+                            Your image has been compressed into JPEG and PDF formats. Review the results and download your preferred file.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -74,41 +84,78 @@ export default function CompressPage() {
                                 <p>Loading result...</p>
                             </div>
                         ) : result ? (
-                            <div className="grid md:grid-cols-2 gap-8 items-center">
-                                <div className="relative">
-                                    <img src={result.dataUrl} alt="Compressed image" className="rounded-lg shadow-lg w-full" />
-                                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
-                                        {qualityTextMap[result.quality]}
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4 text-center">
-                                        <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">Original Size</p>
-                                            <p className="text-2xl font-bold">{formatBytes(result.originalSize)}</p>
+                            <div className="grid md:grid-cols-2 gap-8 items-start">
+                                {/* JPEG Result */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <ImageIcon className="text-primary" />
+                                            JPEG Result
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="relative">
+                                            <img src={result.jpeg.dataUrl} alt="Compressed JPEG image" className="rounded-lg shadow-lg w-full" />
+                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                                                {qualityTextMap[result.quality]}
+                                            </div>
                                         </div>
-                                        <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">Compressed Size</p>
-                                            <p className="text-2xl font-bold text-primary">{formatBytes(result.compressedSize)}</p>
+                                        <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
+                                            <p className="text-4xl font-bold">{jpegReductionPercentage}%</p>
+                                            <p className="font-semibold">Size Reduction</p>
                                         </div>
-                                    </div>
-                                    <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
-                                        <p className="text-4xl font-bold">{reductionPercentage}%</p>
-                                        <p className="font-semibold">Size Reduction</p>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <Button onClick={handleDownload} className="w-full">
+                                        <div className="grid grid-cols-2 gap-4 text-center">
+                                            <div className="p-4 bg-muted rounded-lg">
+                                                <p className="text-sm text-muted-foreground">Original Size</p>
+                                                <p className="text-xl font-bold">{formatBytes(result.originalSize)}</p>
+                                            </div>
+                                            <div className="p-4 bg-muted rounded-lg">
+                                                <p className="text-sm text-muted-foreground">Compressed Size</p>
+                                                <p className="text-xl font-bold text-primary">{formatBytes(result.jpeg.size)}</p>
+                                            </div>
+                                        </div>
+                                        <Button onClick={() => handleDownload('jpeg')} className="w-full">
                                             <Download className="mr-2" />
-                                            Download Image
+                                            Download JPEG
                                         </Button>
-                                        <Button variant="outline" className="w-full" asChild>
-                                            <Link href="/">
-                                                <ArrowLeft className="mr-2" />
-                                                Back to Editor
-                                            </Link>
+                                    </CardContent>
+                                </Card>
+
+                                {/* PDF Result */}
+                                <Card>
+                                     <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <FileText className="text-primary" />
+                                            PDF Result
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="relative">
+                                            <iframe src={result.pdf.dataUrl} className="rounded-lg shadow-lg w-full aspect-[8.5/11]" title="PDF Preview"></iframe>
+                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                                                {qualityTextMap[result.quality]}
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
+                                            <p className="text-4xl font-bold">{pdfReductionPercentage}%</p>
+                                            <p className="font-semibold">Size Reduction</p>
+                                        </div>
+                                         <div className="grid grid-cols-2 gap-4 text-center">
+                                            <div className="p-4 bg-muted rounded-lg">
+                                                <p className="text-sm text-muted-foreground">Original Size</p>
+                                                <p className="text-xl font-bold">{formatBytes(result.originalSize)}</p>
+                                            </div>
+                                            <div className="p-4 bg-muted rounded-lg">
+                                                <p className="text-sm text-muted-foreground">Compressed Size</p>
+                                                <p className="text-xl font-bold text-primary">{formatBytes(result.pdf.size)}</p>
+                                            </div>
+                                        </div>
+                                        <Button onClick={() => handleDownload('pdf')} className="w-full">
+                                            <Download className="mr-2" />
+                                            Download PDF
                                         </Button>
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
                             </div>
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
@@ -128,5 +175,3 @@ export default function CompressPage() {
         </div>
     );
 }
-
-    
