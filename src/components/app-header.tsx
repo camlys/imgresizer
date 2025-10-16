@@ -88,37 +88,59 @@ export function AppHeader({
   }, [isPopoverOpen, isImageLoaded, onUpdateProcessedSize, settings, collageSettings]);
 
     const handleCompress = async (quality: 'less' | 'medium' | 'extreme') => {
-    if (!isImageLoaded || !imageElement) {
+    if (!isImageLoaded || !imageElement || !originalImage) {
       toast({ title: 'No Image', description: 'Please upload an image first.', variant: 'destructive' });
       return;
     }
     
     setIsProcessingQuickAction(true);
-    toast({ title: 'Compressing...', description: 'Preparing your compressed image.' });
+    toast({ title: 'Compressing...', description: 'Finding the best quality for your target size.' });
 
     try {
-      const qualityMap = { less: 0.8, medium: 0.6, extreme: 0.4 };
-      const compressionQuality = qualityMap[quality];
+      const qualityMap = { less: 0.7, medium: 0.5, extreme: 0.25 };
+      const targetRatio = qualityMap[quality];
+      const targetBytes = originalImage.size * targetRatio;
       const format = 'image/jpeg';
-
-      // Use a simple canvas operation for compression to avoid issues with generateFinalCanvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Could not create canvas context.");
-
-      canvas.width = imageElement.naturalWidth;
-      canvas.height = imageElement.naturalHeight;
-      ctx.drawImage(imageElement, 0, 0);
       
-      const dataUrl = canvas.toDataURL(format, compressionQuality);
-      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, format, compressionQuality));
+      const getBlobForQuality = (quality: number): Promise<Blob | null> => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return Promise.resolve(null);
+        canvas.width = imageElement.naturalWidth;
+        canvas.height = imageElement.naturalHeight;
+        ctx.drawImage(imageElement, 0, 0);
+        return new Promise(res => canvas.toBlob(res, format, quality));
+      };
+
+      let high = 1.0, low = 0.0, mid = 0.5;
+      let bestQuality = 0.5;
       
-      if (!blob) throw new Error("Could not create blob.");
+      for(let i = 0; i < 15; i++) { // 15 iterations for good balance of speed/accuracy
+          mid = (low + high) / 2;
+          const blob = await getBlobForQuality(mid);
+          if (!blob) throw new Error("Could not create blob for quality check.");
+          
+          if(blob.size > targetBytes) high = mid;
+          else low = mid;
+      }
+      bestQuality = (low + high) / 2;
+
+      const finalCanvas = document.createElement('canvas');
+      const finalCtx = finalCanvas.getContext('2d');
+      if (!finalCtx) throw new Error("Could not create final canvas.");
+
+      finalCanvas.width = imageElement.naturalWidth;
+      finalCanvas.height = imageElement.naturalHeight;
+      finalCtx.drawImage(imageElement, 0, 0);
+
+      const dataUrl = finalCanvas.toDataURL(format, bestQuality);
+      const finalBlob = await new Promise<Blob | null>(res => finalCanvas.toBlob(res, format, bestQuality));
+      if (!finalBlob) throw new Error("Could not create final blob.");
 
       const compressionResult = {
         dataUrl,
-        originalSize: originalImage?.size || 0,
-        compressedSize: blob.size,
+        originalSize: originalImage.size,
+        compressedSize: finalBlob.size,
         quality: quality,
       };
 
