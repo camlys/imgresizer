@@ -183,7 +183,7 @@ export function AppHeader({
               : quickActionPreset.targetSize * 1024 * 1024;
           
           let high = 1.0, low = 0.0, mid = 0.5;
-          for(let i = 0; i < 10; i++) {
+          for(let i = 0; i < 25; i++) {
               mid = (low + high) / 2;
               const tempCanvas = await generateFinalCanvas(undefined, { ...overrideSettings, quality: mid }, currentImageElement);
               const blob = await new Promise<Blob|null>(res => tempCanvas.toBlob(res, format, mid));
@@ -436,9 +436,9 @@ export function AppHeader({
                             newSettings.quality = 1.0;
                           }
                            if (editorMode === 'single') {
-                                (currentUpdateSettings as (s: Partial<ImageSettings>) => void)(newSettings);
+                                (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ ...newSettings, format: value as any });
                             } else {
-                                (currentUpdateSettings as (s: Partial<CollageSettings>) => void)(newSettings);
+                                (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ ...newSettings, format: value as any });
                             }
                           setTimeout(onUpdateProcessedSize, 100);
                         }}
