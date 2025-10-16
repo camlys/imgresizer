@@ -391,13 +391,13 @@ export function AppHeader({
                           <SelectValue placeholder="Select format" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="image/png">PNG</SelectItem>
+                          <SelectItem value="application/pdf">PDF</SelectItem>
                           <SelectItem value="image/jpeg">JPEG</SelectItem>
+                          <SelectItem value="image/png">PNG</SelectItem>
                           <SelectItem value="image/webp">WEBP</SelectItem>
                           {editorMode === 'single' && <SelectItem value="image/gif">GIF</SelectItem>}
                           {editorMode === 'single' && <SelectItem value="image/bmp">BMP</SelectItem>}
                           <SelectItem value="image/svg+xml">SVG</SelectItem>
-                          <SelectItem value="application/pdf">PDF</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
