@@ -47,7 +47,7 @@ export function PasswordDialog({ isOpen, onOpenChange, onSubmit, fileName }: Pas
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[90vw] sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Password Required</DialogTitle>
