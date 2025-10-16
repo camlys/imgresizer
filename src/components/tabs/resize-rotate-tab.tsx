@@ -258,7 +258,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                         onClick={() => updateSettings({ keepAspectRatio: !settings.keepAspectRatio })}
                                         aria-label="Toggle aspect ratio lock"
                                     >
-                                        {settings.keepAspectRatio ? <Lock size={16}/> : <Unlock size={16}/>}
+                                        {settings.keepAspectRatio ? <Lock size={16} className="text-primary"/> : <Unlock size={16} className="text-muted-foreground"/>}
                                     </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -390,5 +390,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         </div>
     );
 }
+
+    
 
     
