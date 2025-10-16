@@ -566,7 +566,7 @@ export function AppHeader({
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="hidden sm:inline-flex">
               <LayoutGrid />
             </Button>
           </PopoverTrigger>
