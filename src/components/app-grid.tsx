@@ -20,19 +20,19 @@ export function AppGrid() {
                         <Link href={`/hub?app=${app.id}`} key={app.name} className="group">
                             <Card className={cn(
                                 "h-full p-6 text-center border-primary/10 transition-all flex flex-col items-center justify-center relative overflow-hidden",
-                                isBgBye && "border-purple-600/30"
+                                isBgBye && "border-purple-700/50"
                             )}>
                                 <div className={cn(
                                     "absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 transition-opacity duration-300",
-                                    isBgBye && "from-purple-500/20 to-pink-500/20"
+                                    isBgBye && "from-purple-600/40 to-pink-600/40"
                                 )}></div>
                                 <div className={cn(
                                     "absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                                     isBgBye && "from-purple-500/30 to-pink-500/30"
+                                     isBgBye && "from-purple-700/50 to-pink-700/50"
                                 )}></div>
                                 <div className={cn(
                                     "p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform relative",
-                                    isBgBye && "bg-purple-600/20 text-purple-700"
+                                    isBgBye && "bg-purple-700/40 text-purple-900"
                                 )}>
                                     {app.icon}
                                 </div>
