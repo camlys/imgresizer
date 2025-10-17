@@ -1298,7 +1298,7 @@ const updateProcessedSize = React.useCallback(async () => {
           originalImage={originalImage}
         />
         <main className="flex-1 w-full overflow-y-auto">
-          <HeroSection onUpload={handleImageUpload} />
+          <HeroSection onUpload={handleImageUpload} onLearnMoreClick={() => handleTabChange('collage')} />
           <div className="w-full max-w-2xl mx-auto py-12 px-4">
             <UploadPlaceholder onUpload={handleImageUpload} isLoading={isLoading} />
           </div>
@@ -1502,3 +1502,4 @@ const updateProcessedSize = React.useCallback(async () => {
     
 
     
+

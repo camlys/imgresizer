@@ -8,16 +8,17 @@ import { UploadTypeDialog } from './upload-type-dialog';
 
 interface HeroSectionProps {
   onUpload: (file: File) => void;
+  onLearnMoreClick: () => void;
 }
 
-export function HeroSection({ onUpload }: HeroSectionProps) {
+export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
       uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
-      uploadInputRef.current.click();
+      uploadInputtrRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
   };
@@ -70,7 +71,7 @@ export function HeroSection({ onUpload }: HeroSectionProps) {
                         <Upload className="mr-2" />
                         Start Editing for Free
                     </Button>
-                    <Button size="lg" variant="outline" className="text-lg py-7 px-8 bg-background/50">
+                    <Button onClick={onLearnMoreClick} size="lg" variant="outline" className="text-lg py-7 px-8 bg-background/50">
                         Learn More
                         <ArrowRight className="ml-2" />
                     </Button>
