@@ -2,13 +2,14 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Sparkles, QrCode, FileEdit } from "lucide-react";
+import { Calculator, Sparkles, QrCode, FileEdit, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { InstallPwaButton } from "./install-pwa-button";
 
 export const apps = [
     { name: 'Camly', id: 'camly', url: 'https://camly.site', icon: <img src="/camly.png" alt="Camly" className="w-8 h-8 rounded-sm" />, description: 'The current app' },
+    { name: 'BG Bye', id: 'bgbye', url: 'https://bgbye.fyrean.com/', icon: <Wand2 size={24} />, description: 'AI Background Remover' },
     { name: 'Calput', id: 'calput', url: 'https://calput.vercel.app/', icon: <Calculator size={24} />, description: 'Calculator with history' },
     { name: 'Favic', id: 'favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={24} />, description: 'Generate favicons' },
     { name: 'Qrick', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'QR & Barcode generator' },
