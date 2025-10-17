@@ -136,8 +136,7 @@ export default function Home() {
   // Collage State
   const [selectedLayerIds, setSelectedLayerIds] = React.useState<string[]>([]);
   const [showCompletionAnimation, setShowCompletionAnimation] = React.useState(false);
-  const activePage = collageSettings.pages[collageSettings.activePageIndex];
-
+  
   const controlPanelTabListRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -151,6 +150,198 @@ export default function Home() {
       setImageElement(img);
     };
   }, [originalImage]);
+
+ const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageForCanvas?: HTMLImageElement): Promise<HTMLCanvasElement> => {
+    return new Promise(async (resolve, reject) => {
+        const currentQuality = overrideSettings?.quality ?? (editorMode === 'single' ? settings.quality : collageSettings.quality);
+        
+        const drawOverlays = (ctx: CanvasRenderingContext2D, overlays: { texts: TextOverlay[], signatures: SignatureOverlay[]}, canvasWidth: number, canvasHeight: number) => {
+            overlays.signatures.forEach(sig => {
+                if (sig.img) {
+                    const sigWidth = (sig.width / 100) * canvasWidth;
+                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
+                    const sigX = (sig.x / 100) * canvasWidth;
+                    const sigY = (sig.y / 100) * canvasHeight;
+
+                    ctx.save();
+                    ctx.translate(sigX, sigY);
+                    ctx.rotate(sig.rotation * Math.PI / 180);
+                    ctx.globalAlpha = sig.opacity;
+                    ctx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
+                    ctx.restore();
+                }
+            });
+
+            overlays.texts.forEach(text => {
+                const textX = (text.x / 100) * canvasWidth;
+                const textY = (text.y / 100) * canvasHeight;
+                ctx.font = `${text.size}px ${text.font}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const padding = text.padding || 0;
+                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
+                    const metrics = ctx.measureText(text.text);
+                    const rectWidth = metrics.width + padding * 2;
+                    const rectHeight = text.size + padding * 2;
+                    const rectX = textX - rectWidth / 2;
+                    const rectY = textY - rectHeight / 2;
+                    ctx.fillStyle = text.backgroundColor;
+                    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                }
+                ctx.fillStyle = text.color;
+                ctx.fillText(text.text, textX, textY);
+            });
+        };
+
+        if (editorMode === 'collage' && !overrideSettings) {
+          const finalCanvas = document.createElement('canvas');
+          const finalCtx = finalCanvas.getContext('2d');
+          if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
+          
+          const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
+
+          const { width, height, backgroundColor, format } = collageSettings;
+          const { layers, sheet, texts, signatures } = page;
+          finalCanvas.width = width;
+          finalCanvas.height = height;
+          
+          if (backgroundColor !== 'transparent' || format !== 'image/png') {
+            finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
+            finalCtx.fillRect(0, 0, width, height);
+          }
+          
+          if (sheet.enabled) {
+              finalCtx.strokeStyle = sheet.lineColor;
+              finalCtx.lineWidth = 1;
+              if (sheet.horizontalLines) {
+                  for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(sheet.marginLeft, y);
+                      finalCtx.lineTo(width, y);
+                      finalCtx.stroke();
+                  }
+              }
+              if (sheet.verticalLines) {
+                  for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
+                      finalCtx.beginPath();
+                      finalCtx.moveTo(x, sheet.marginTop);
+                      finalCtx.lineTo(x, height);
+                      finalCtx.stroke();
+                  }
+              }
+          }
+
+          for (const layer of layers) {
+              const layerWidth = (layer.width / 100) * width;
+              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
+              const layerX = (layer.x / 100) * width;
+              const layerY = (layer.y / 100) * height;
+
+              finalCtx.save();
+              finalCtx.translate(layerX, layerY);
+              finalCtx.rotate(layer.rotation * Math.PI / 180);
+              finalCtx.globalAlpha = layer.opacity;
+              finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
+              finalCtx.restore();
+          }
+          
+          drawOverlays(finalCtx, { texts, signatures }, width, height);
+
+          resolve(finalCanvas);
+          return;
+        }
+
+        const currentImageElement = imageForCanvas || imageElement;
+        if (!originalImage || !currentImageElement) return reject(new Error("No original image loaded."));
+        
+        try {
+            const finalSettings = { ...settings, ...overrideSettings };
+            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, drawing, format } = finalSettings;
+
+            const adjustedCanvas = document.createElement('canvas');
+            const adjustedCtx = adjustedCanvas.getContext('2d');
+            if (!adjustedCtx) return reject(new Error("Could not create adjusted canvas context."));
+
+            const cropData = crop || { x: 0, y: 0, width: currentImageElement.width, height: currentImageElement.height };
+            adjustedCanvas.width = cropData.width;
+            adjustedCanvas.height = cropData.height;
+
+            adjustedCtx.drawImage(currentImageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+            
+            if (Object.values(adjustments).some((v, i) => v !== Object.values(initialSettings.adjustments)[i])) {
+                let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
+                const data = imageData.data;
+                const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
+                    if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
+                    if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
+                    const tempR = r, tempG = g, tempB = b;
+                    if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
+                    if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
+                    if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
+                    data[i] = Math.max(0, Math.min(255, r)); data[i+1] = Math.max(0, Math.min(255, g)); data[i+2] = Math.max(0, Math.min(255, b));
+                }
+                adjustedCtx.putImageData(imageData, 0, 0);
+            }
+            
+            const finalCanvas = document.createElement('canvas');
+            const finalCtx = finalCanvas.getContext('2d');
+            if (!finalCtx) return reject(new Error("Could not create final canvas context."));
+            
+            finalCanvas.width = width;
+            finalCanvas.height = height;
+
+            if (backgroundColor !== 'transparent' || format !== 'image/png') {
+                finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
+                finalCtx.fillRect(0, 0, width, height);
+            }
+            
+            finalCtx.save();
+            const rad = (rotation * Math.PI) / 180;
+            const sin = Math.abs(Math.sin(rad));
+            const cos = Math.abs(Math.cos(rad));
+            const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
+            const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
+            const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
+            const drawWidth = adjustedCanvas.width * scale;
+            const drawHeight = adjustedCanvas.height * scale;
+            finalCtx.translate(width / 2, height / 2);
+            if (flipHorizontal) finalCtx.scale(-1, 1);
+            if (flipVertical) finalCtx.scale(1, -1);
+            finalCtx.rotate(rad);
+            finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+            finalCtx.restore();
+
+            finalCtx.save();
+            finalCtx.translate(drawing.x, drawing.y);
+            finalCtx.lineCap = 'round';
+            finalCtx.lineJoin = 'round';
+            drawing.paths.forEach(path => {
+                if (path.points.length < 2) return;
+                finalCtx.strokeStyle = path.color;
+                finalCtx.lineWidth = path.size;
+                finalCtx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
+                
+                finalCtx.beginPath();
+                finalCtx.moveTo(path.points[0].x, path.points[0].y);
+                for (let i = 1; i < path.points.length; i++) {
+                    finalCtx.lineTo(path.points[i].x, path.points[i].y);
+                }
+                finalCtx.stroke();
+            });
+            finalCtx.globalCompositeOperation = 'source-over';
+            finalCtx.restore();
+            
+            drawOverlays(finalCtx, { texts, signatures }, width, height);
+            
+            resolve(finalCanvas);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}, [originalImage, imageElement, settings, editorMode, collageSettings]);
 
   const updateSettings = React.useCallback((newSettings: Partial<ImageSettings>) => {
     setSettings(prev => {
@@ -232,6 +423,8 @@ export default function Home() {
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
     setEditorMode(newEditorMode);
     setActiveTab(tab);
+    
+    const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
     if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
       const editedCanvas = await generateFinalCanvas();
@@ -260,8 +453,8 @@ export default function Home() {
           newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
           setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
           setSelectedLayerIds([newLayer.id]);
-          // Reset drawing from single image editor after transferring it
-          updateSettings({ drawing: initialSettings.drawing });
+          // Reset single editor state after transferring
+          setSettings(initialSettings);
       };
       editedImage.src = editedImageSrc;
     }
@@ -301,7 +494,7 @@ export default function Home() {
             }
         }
     }, 100);
-  }, [activePage, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings]);
+  }, [collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
@@ -319,6 +512,8 @@ export default function Home() {
         await page.render(renderContext).promise;
         return tempCanvas.toDataURL('image/png');
     }, []);
+    
+    const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
     const addImageToCollageFromSrc = React.useCallback((src: string) => {
         const img = new Image();
@@ -757,197 +952,6 @@ export default function Home() {
     }
   }, [imageElement, settings.perspectivePoints, toast, INSET_PX]);
 
- const generateFinalCanvas = React.useCallback(async (pageToRender?: CollagePage, overrideSettings?: Partial<ImageSettings>, imageForCanvas?: HTMLImageElement): Promise<HTMLCanvasElement> => {
-    return new Promise(async (resolve, reject) => {
-        const currentQuality = overrideSettings?.quality ?? (editorMode === 'single' ? settings.quality : collageSettings.quality);
-        
-        const drawOverlays = (ctx: CanvasRenderingContext2D, overlays: { texts: TextOverlay[], signatures: SignatureOverlay[]}, canvasWidth: number, canvasHeight: number) => {
-            overlays.signatures.forEach(sig => {
-                if (sig.img) {
-                    const sigWidth = (sig.width / 100) * canvasWidth;
-                    const sigHeight = sigWidth / (sig.img.width / sig.img.height);
-                    const sigX = (sig.x / 100) * canvasWidth;
-                    const sigY = (sig.y / 100) * canvasHeight;
-
-                    ctx.save();
-                    ctx.translate(sigX, sigY);
-                    ctx.rotate(sig.rotation * Math.PI / 180);
-                    ctx.globalAlpha = sig.opacity;
-                    ctx.drawImage(sig.img, -sigWidth / 2, -sigHeight / 2, sigWidth, sigHeight);
-                    ctx.restore();
-                }
-            });
-
-            overlays.texts.forEach(text => {
-                const textX = (text.x / 100) * canvasWidth;
-                const textY = (text.y / 100) * canvasHeight;
-                ctx.font = `${text.size}px ${text.font}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const padding = text.padding || 0;
-                if (text.backgroundColor && text.backgroundColor !== 'transparent' && padding >= 0) {
-                    const metrics = ctx.measureText(text.text);
-                    const rectWidth = metrics.width + padding * 2;
-                    const rectHeight = text.size + padding * 2;
-                    const rectX = textX - rectWidth / 2;
-                    const rectY = textY - rectHeight / 2;
-                    ctx.fillStyle = text.backgroundColor;
-                    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
-                }
-                ctx.fillStyle = text.color;
-                ctx.fillText(text.text, textX, textY);
-            });
-        };
-
-        if (editorMode === 'collage' && !overrideSettings) {
-          const finalCanvas = document.createElement('canvas');
-          const finalCtx = finalCanvas.getContext('2d');
-          if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
-          
-          const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
-
-          const { width, height, backgroundColor, format } = collageSettings;
-          const { layers, sheet, texts, signatures } = page;
-          finalCanvas.width = width;
-          finalCanvas.height = height;
-          
-          if (backgroundColor !== 'transparent' || format !== 'image/png') {
-            finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
-            finalCtx.fillRect(0, 0, width, height);
-          }
-          
-          if (sheet.enabled) {
-              finalCtx.strokeStyle = sheet.lineColor;
-              finalCtx.lineWidth = 1;
-              if (sheet.horizontalLines) {
-                  for (let y = sheet.marginTop; y < height; y += sheet.spacing) {
-                      finalCtx.beginPath();
-                      finalCtx.moveTo(sheet.marginLeft, y);
-                      finalCtx.lineTo(width, y);
-                      finalCtx.stroke();
-                  }
-              }
-              if (sheet.verticalLines) {
-                  for (let x = sheet.marginLeft; x < width; x += sheet.spacing) {
-                      finalCtx.beginPath();
-                      finalCtx.moveTo(x, sheet.marginTop);
-                      finalCtx.lineTo(x, height);
-                      finalCtx.stroke();
-                  }
-              }
-          }
-
-          for (const layer of layers) {
-              const layerWidth = (layer.width / 100) * width;
-              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
-              const layerX = (layer.x / 100) * width;
-              const layerY = (layer.y / 100) * height;
-
-              finalCtx.save();
-              finalCtx.translate(layerX, layerY);
-              finalCtx.rotate(layer.rotation * Math.PI / 180);
-              finalCtx.globalAlpha = layer.opacity;
-              finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
-              finalCtx.restore();
-          }
-          
-          drawOverlays(finalCtx, { texts, signatures }, width, height);
-
-          resolve(finalCanvas);
-          return;
-        }
-
-        const currentImageElement = imageForCanvas || imageElement;
-        if (!originalImage || !currentImageElement) return reject(new Error("No original image loaded."));
-        
-        try {
-            const finalSettings = { ...settings, ...overrideSettings };
-            const { width, height, rotation, flipHorizontal, flipVertical, crop, texts, signatures, adjustments, backgroundColor, drawing, format } = finalSettings;
-
-            const adjustedCanvas = document.createElement('canvas');
-            const adjustedCtx = adjustedCanvas.getContext('2d');
-            if (!adjustedCtx) return reject(new Error("Could not create adjusted canvas context."));
-
-            const cropData = crop || { x: 0, y: 0, width: currentImageElement.width, height: currentImageElement.height };
-            adjustedCanvas.width = cropData.width;
-            adjustedCanvas.height = cropData.height;
-
-            adjustedCtx.drawImage(currentImageElement, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
-            
-            if (Object.values(adjustments).some((v, i) => v !== Object.values(initialSettings.adjustments)[i])) {
-                let imageData = adjustedCtx.getImageData(0, 0, adjustedCanvas.width, adjustedCanvas.height);
-                const data = imageData.data;
-                const { brightness, contrast, saturate, grayscale, sepia, invert } = adjustments;
-                for (let i = 0; i < data.length; i += 4) {
-                    let r = data[i], g = data[i+1], b = data[i+2];
-                    if (brightness !== 100) { const bVal = (255 * (brightness - 100)) / 100; r += bVal; g += bVal; b += bVal; }
-                    if (contrast !== 100) { const cVal = contrast / 100; r = cVal * (r - 128) + 128; g = cVal * (g - 128) + 128; b = cVal * (b - 128) + 128; }
-                    if (saturate !== 100) { const sVal = saturate / 100; const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + (r - gray) * sVal; g = gray + (g - gray) * sVal; b = gray + (b - gray) * sVal; }
-                    const tempR = r, tempG = g, tempB = b;
-                    if (sepia > 0) { const sVal = sepia / 100; const sepiaR = tempR * 0.393 + tempG * 0.769 + tempB * 0.189; const sepiaG = tempR * 0.349 + tempG * 0.686 + tempB * 0.168; const sepiaB = tempR * 0.272 + tempG * 0.534 + tempB * 0.131; r = r * (1 - sVal) + sepiaR * sVal; g = g * (1 - sVal) + sepiaG * sVal; b = b * (1 - sVal) + sepiaB * sVal; }
-                    if (grayscale > 0) { const gVal = grayscale / 100; const gray = r * 0.299 + g * 0.587 + b * 0.114; r = r * (1 - gVal) + gray * gVal; g = g * (1 - gVal) + gray * gVal; b = b * (1 - gVal) + gray * gVal; }
-                    if (invert > 0) { const iVal = invert / 100; r = r * (1 - iVal) + (255 - r) * iVal; g = g * (1 - iVal) + (255 - g) * iVal; b = b * (1 - iVal) + (255 - b) * iVal; }
-                    data[i] = Math.max(0, Math.min(255, r)); data[i+1] = Math.max(0, Math.min(255, g)); data[i+2] = Math.max(0, Math.min(255, b));
-                }
-                adjustedCtx.putImageData(imageData, 0, 0);
-            }
-            
-            const finalCanvas = document.createElement('canvas');
-            const finalCtx = finalCanvas.getContext('2d');
-            if (!finalCtx) return reject(new Error("Could not create final canvas context."));
-            
-            finalCanvas.width = width;
-            finalCanvas.height = height;
-
-            if (backgroundColor !== 'transparent' || format !== 'image/png') {
-                finalCtx.fillStyle = backgroundColor === 'transparent' ? '#ffffff' : backgroundColor;
-                finalCtx.fillRect(0, 0, width, height);
-            }
-            
-            finalCtx.save();
-            const rad = (rotation * Math.PI) / 180;
-            const sin = Math.abs(Math.sin(rad));
-            const cos = Math.abs(Math.cos(rad));
-            const boundingBoxWidth = adjustedCanvas.width * cos + adjustedCanvas.height * sin;
-            const boundingBoxHeight = adjustedCanvas.width * sin + adjustedCanvas.height * cos;
-            const scale = Math.min(width / boundingBoxWidth, height / boundingBoxHeight);
-            const drawWidth = adjustedCanvas.width * scale;
-            const drawHeight = adjustedCanvas.height * scale;
-            finalCtx.translate(width / 2, height / 2);
-            if (flipHorizontal) finalCtx.scale(-1, 1);
-            if (flipVertical) finalCtx.scale(1, -1);
-            finalCtx.rotate(rad);
-            finalCtx.drawImage(adjustedCanvas, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-            finalCtx.restore();
-
-            finalCtx.save();
-            finalCtx.translate(drawing.x, drawing.y);
-            finalCtx.lineCap = 'round';
-            finalCtx.lineJoin = 'round';
-            drawing.paths.forEach(path => {
-                if (path.points.length < 2) return;
-                finalCtx.strokeStyle = path.color;
-                finalCtx.lineWidth = path.size;
-                finalCtx.globalCompositeOperation = path.isEraser ? 'destination-out' : 'source-over';
-                
-                finalCtx.beginPath();
-                finalCtx.moveTo(path.points[0].x, path.points[0].y);
-                for (let i = 1; i < path.points.length; i++) {
-                    finalCtx.lineTo(path.points[i].x, path.points[i].y);
-                }
-                finalCtx.stroke();
-            });
-            finalCtx.globalCompositeOperation = 'source-over';
-            finalCtx.restore();
-            
-            drawOverlays(finalCtx, { texts, signatures }, width, height);
-            
-            resolve(finalCanvas);
-        } catch (error) {
-            reject(error);
-        }
-    });
-}, [originalImage, imageElement, settings, editorMode, collageSettings]);
 
 const updateProcessedSize = React.useCallback(async () => {
     try {
