@@ -37,6 +37,7 @@ interface ControlPanelProps {
   setSelectedLayerIds: (ids: string[]) => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
   onAutoDetectBorder: () => void;
+  tabListRef: React.RefObject<HTMLDivElement>;
 }
 
 export function ControlPanel({ 
@@ -63,6 +64,7 @@ export function ControlPanel({
   setSelectedLayerIds,
   onAutoLayout,
   onAutoDetectBorder,
+  tabListRef,
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -92,10 +94,10 @@ export function ControlPanel({
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full flex flex-col h-full overflow-hidden">
-      <div className="w-full overflow-x-auto whitespace-nowrap p-2 border-b">
+      <div className="w-full overflow-x-auto whitespace-nowrap p-2 border-b" ref={tabListRef}>
         <TabsList className="h-auto p-1 inline-flex">
           {allTabs.map(tab => (
-            <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2">
+            <TabsTrigger key={tab.value} value={tab.value} className="h-auto gap-2 py-2" data-radix-value={tab.value}>
               <tab.icon size={16}/>
               <span className="text-sm">{tab.label}</span>
             </TabsTrigger>
@@ -170,7 +172,3 @@ export function ControlPanel({
     </Tabs>
   );
 }
-
-    
-
-    

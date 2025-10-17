@@ -18,7 +18,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
       uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
-      uploadInputtrRef.current.click();
+      uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
   };
@@ -72,7 +72,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
                         Start Editing for Free
                     </Button>
                     <Button onClick={onLearnMoreClick} size="lg" variant="outline" className="text-lg py-7 px-8 bg-background/50">
-                        Learn More
+                        Collage
                         <ArrowRight className="ml-2" />
                     </Button>
                 </div>

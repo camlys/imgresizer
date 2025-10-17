@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import type { Metadata } from 'next';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
@@ -138,6 +138,8 @@ export default function Home() {
   const [showCompletionAnimation, setShowCompletionAnimation] = React.useState(false);
   const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
+  const controlPanelTabListRef = useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (!originalImage) return;
     const img = new Image();
@@ -150,8 +152,83 @@ export default function Home() {
     };
   }, [originalImage]);
 
+  const updateSettings = React.useCallback((newSettings: Partial<ImageSettings>) => {
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      if (newSettings.texts) {
+        // If texts are being updated, ensure the selected ID still exists
+        const currentSelectedId = selectedTextId;
+        const textExists = newSettings.texts.some(t => t.id === currentSelectedId);
+        if (!textExists) {
+          setSelectedTextId(null);
+          setEditingTextId(null);
+        }
+      }
+      if (newSettings.signatures) {
+        const currentSelectedId = selectedSignatureId;
+        const signatureExists = newSettings.signatures.some(s => s.id === currentSelectedId);
+        if (!signatureExists) {
+          setSelectedSignatureId(null);
+        }
+      }
+      if (newSettings.drawing && newSettings.drawing.history) {
+        const newHistory = newSettings.drawing.history;
+        const newIndex = newSettings.drawing.historyIndex ?? (newHistory.length - 1);
+        updated.drawing.paths = newHistory[newIndex];
+        updated.drawing.historyIndex = newIndex;
+      }
+      return updated;
+    });
 
-  const handleTabChange = async (tab: string) => {
+    if (Object.keys(newSettings).some(key => key !== 'crop' && key !== 'perspectivePoints')) {
+        setPendingCrop(null);
+    }
+    if (newSettings.crop) {
+      setPendingCrop(newSettings.crop);
+    }
+    setProcessedSize(null);
+    setMaxQualitySize(null);
+  }, [selectedTextId, selectedSignatureId]);
+
+  const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
+    setCollageSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      const newActivePage = updated.pages[updated.activePageIndex];
+
+      // Handle layer selection
+      const currentSelectedLayerIds = selectedLayerIds;
+      const existingLayerIds = newActivePage.layers.map(l => l.id);
+      const newSelectedLayerIds = currentSelectedLayerIds.filter(id => existingLayerIds.includes(id));
+      if (newSelectedLayerIds.length !== currentSelectedLayerIds.length) {
+          setSelectedLayerIds(newSelectedLayerIds);
+      }
+      
+      // Handle text selection
+      const currentSelectedTextId = selectedTextId;
+      if (currentSelectedTextId) {
+          const textExists = newActivePage.texts.some(t => t.id === currentSelectedTextId);
+          if (!textExists) {
+              setSelectedTextId(null);
+              setEditingTextId(null);
+          }
+      }
+
+      // Handle signature selection
+      const currentSelectedSignatureId = selectedSignatureId;
+      if (currentSelectedSignatureId) {
+          const signatureExists = newActivePage.signatures.some(s => s.id === currentSelectedSignatureId);
+          if (!signatureExists) {
+              setSelectedSignatureId(null);
+          }
+      }
+
+      return updated;
+    });
+    setProcessedSize(null);
+    setMaxQualitySize(null);
+  }, [selectedLayerIds, selectedTextId, selectedSignatureId]);
+
+  const handleTabChange = useCallback(async (tab: string) => {
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
     setEditorMode(newEditorMode);
     setActiveTab(tab);
@@ -213,7 +290,18 @@ export default function Home() {
     if (tab !== 'draw') {
         updateSettings({ drawing: { ...settings.drawing, isMoving: false }});
     }
-  };
+
+    // Scroll to the selected tab
+    setTimeout(() => {
+        const tabList = controlPanelTabListRef.current;
+        if (tabList) {
+            const selectedTab = tabList.querySelector(`[data-radix-value="${tab}"]`) as HTMLElement;
+            if (selectedTab) {
+                selectedTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+    }, 100);
+  }, [activePage, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
@@ -603,82 +691,6 @@ export default function Home() {
       toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
   };
-
-  const updateSettings = React.useCallback((newSettings: Partial<ImageSettings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      if (newSettings.texts) {
-        // If texts are being updated, ensure the selected ID still exists
-        const currentSelectedId = selectedTextId;
-        const textExists = newSettings.texts.some(t => t.id === currentSelectedId);
-        if (!textExists) {
-          setSelectedTextId(null);
-          setEditingTextId(null);
-        }
-      }
-      if (newSettings.signatures) {
-        const currentSelectedId = selectedSignatureId;
-        const signatureExists = newSettings.signatures.some(s => s.id === currentSelectedId);
-        if (!signatureExists) {
-          setSelectedSignatureId(null);
-        }
-      }
-      if (newSettings.drawing && newSettings.drawing.history) {
-        const newHistory = newSettings.drawing.history;
-        const newIndex = newSettings.drawing.historyIndex ?? (newHistory.length - 1);
-        updated.drawing.paths = newHistory[newIndex];
-        updated.drawing.historyIndex = newIndex;
-      }
-      return updated;
-    });
-
-    if (Object.keys(newSettings).some(key => key !== 'crop' && key !== 'perspectivePoints')) {
-        setPendingCrop(null);
-    }
-    if (newSettings.crop) {
-      setPendingCrop(newSettings.crop);
-    }
-    setProcessedSize(null);
-    setMaxQualitySize(null);
-  }, [selectedTextId, selectedSignatureId]);
-
-  const updateCollageSettings = React.useCallback((newSettings: Partial<CollageSettings>) => {
-    setCollageSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      const newActivePage = updated.pages[updated.activePageIndex];
-
-      // Handle layer selection
-      const currentSelectedLayerIds = selectedLayerIds;
-      const existingLayerIds = newActivePage.layers.map(l => l.id);
-      const newSelectedLayerIds = currentSelectedLayerIds.filter(id => existingLayerIds.includes(id));
-      if (newSelectedLayerIds.length !== currentSelectedLayerIds.length) {
-          setSelectedLayerIds(newSelectedLayerIds);
-      }
-      
-      // Handle text selection
-      const currentSelectedTextId = selectedTextId;
-      if (currentSelectedTextId) {
-          const textExists = newActivePage.texts.some(t => t.id === currentSelectedTextId);
-          if (!textExists) {
-              setSelectedTextId(null);
-              setEditingTextId(null);
-          }
-      }
-
-      // Handle signature selection
-      const currentSelectedSignatureId = selectedSignatureId;
-      if (currentSelectedSignatureId) {
-          const signatureExists = newActivePage.signatures.some(s => s.id === currentSelectedSignatureId);
-          if (!signatureExists) {
-              setSelectedSignatureId(null);
-          }
-      }
-
-      return updated;
-    });
-    setProcessedSize(null);
-    setMaxQualitySize(null);
-  }, [selectedLayerIds, selectedTextId, selectedSignatureId]);
 
   const handleAutoDetectBorder = React.useCallback(async () => {
     if (!imageElement) {
@@ -1375,6 +1387,7 @@ const updateProcessedSize = React.useCallback(async () => {
         <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-muted/40 overflow-y-auto md:overflow-hidden">
           <div className="w-full md:w-[380px] md:flex-shrink-0 bg-card rounded-lg border shadow-sm overflow-hidden">
             <ControlPanel 
+              tabListRef={controlPanelTabListRef}
               settings={settings} 
               updateSettings={updateSettings} 
               originalImage={originalImage}
@@ -1496,10 +1509,3 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
