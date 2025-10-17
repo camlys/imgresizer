@@ -420,6 +420,60 @@ export default function Home() {
   }, [selectedLayerIds, selectedTextId, selectedSignatureId]);
 
   const handleTabChange = useCallback(async (tab: string) => {
+    if (activeTab === 'crop' && tab !== 'crop' && pendingCrop && imageElement) {
+        // Create a cropped version of the image
+        const croppedCanvas = document.createElement('canvas');
+        const ctx = croppedCanvas.getContext('2d');
+        if (!ctx) return;
+
+        croppedCanvas.width = pendingCrop.width;
+        croppedCanvas.height = pendingCrop.height;
+        ctx.drawImage(
+            imageElement,
+            pendingCrop.x,
+            pendingCrop.y,
+            pendingCrop.width,
+            pendingCrop.height,
+            0,
+            0,
+            pendingCrop.width,
+            pendingCrop.height
+        );
+        
+        const newDataUrl = croppedCanvas.toDataURL();
+        const newImage = new Image();
+        newImage.onload = () => {
+             const newWidth = newImage.width;
+            const newHeight = newImage.height;
+            const inset = Math.min(INSET_PX, newWidth / 4, newHeight / 4);
+
+            const head = `data:${originalImage?.src.split(';')[0].split(':')[1]};base64,`;
+            const size = Math.round((newDataUrl.length - head.length) * 3 / 4);
+            
+            setOriginalImage({
+                src: newDataUrl,
+                width: newWidth,
+                height: newHeight,
+                size: size, 
+            });
+
+            setSettings(prev => ({
+                ...prev,
+                width: newWidth,
+                height: newHeight,
+                crop: { x: 0, y: 0, width: newWidth, height: newHeight },
+                perspectivePoints: {
+                    tl: { x: inset, y: inset },
+                    tr: { x: newWidth - inset, y: inset },
+                    bl: { x: inset, y: newHeight - inset },
+                    br: { x: newWidth - inset, y: newHeight - inset },
+                },
+            }));
+            setPendingCrop(null);
+        };
+        newImage.src = newDataUrl;
+    }
+    
     const newEditorMode = tab === 'collage' ? 'collage' : 'single';
     setEditorMode(newEditorMode);
     setActiveTab(tab);
@@ -494,7 +548,7 @@ export default function Home() {
             }
         }
     }, 100);
-  }, [collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas]);
+  }, [activeTab, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
