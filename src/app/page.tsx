@@ -199,6 +199,7 @@ export default function Home() {
           if (!finalCtx) return reject(new Error("Could not create collage canvas context."));
           
           const page = pageToRender || collageSettings.pages[collageSettings.activePageIndex];
+          if (!page) return reject(new Error("No active collage page to render."));
 
           const { width, height, backgroundColor, format } = collageSettings;
           const { layers, sheet, texts, signatures } = page;
@@ -210,7 +211,7 @@ export default function Home() {
             finalCtx.fillRect(0, 0, width, height);
           }
           
-          if (sheet.enabled) {
+          if (sheet && sheet.enabled) {
               finalCtx.strokeStyle = sheet.lineColor;
               finalCtx.lineWidth = 1;
               if (sheet.horizontalLines) {
@@ -387,30 +388,32 @@ export default function Home() {
       const newActivePage = updated.pages[updated.activePageIndex];
 
       // Handle layer selection
-      const currentSelectedLayerIds = selectedLayerIds;
-      const existingLayerIds = newActivePage.layers.map(l => l.id);
-      const newSelectedLayerIds = currentSelectedLayerIds.filter(id => existingLayerIds.includes(id));
-      if (newSelectedLayerIds.length !== currentSelectedLayerIds.length) {
-          setSelectedLayerIds(newSelectedLayerIds);
-      }
-      
-      // Handle text selection
-      const currentSelectedTextId = selectedTextId;
-      if (currentSelectedTextId) {
-          const textExists = newActivePage.texts.some(t => t.id === currentSelectedTextId);
-          if (!textExists) {
-              setSelectedTextId(null);
-              setEditingTextId(null);
-          }
-      }
+      if (newActivePage) {
+        const currentSelectedLayerIds = selectedLayerIds;
+        const existingLayerIds = newActivePage.layers.map(l => l.id);
+        const newSelectedLayerIds = currentSelectedLayerIds.filter(id => existingLayerIds.includes(id));
+        if (newSelectedLayerIds.length !== currentSelectedLayerIds.length) {
+            setSelectedLayerIds(newSelectedLayerIds);
+        }
+        
+        // Handle text selection
+        const currentSelectedTextId = selectedTextId;
+        if (currentSelectedTextId) {
+            const textExists = newActivePage.texts.some(t => t.id === currentSelectedTextId);
+            if (!textExists) {
+                setSelectedTextId(null);
+                setEditingTextId(null);
+            }
+        }
 
-      // Handle signature selection
-      const currentSelectedSignatureId = selectedSignatureId;
-      if (currentSelectedSignatureId) {
-          const signatureExists = newActivePage.signatures.some(s => s.id === currentSelectedSignatureId);
-          if (!signatureExists) {
-              setSelectedSignatureId(null);
-          }
+        // Handle signature selection
+        const currentSelectedSignatureId = selectedSignatureId;
+        if (currentSelectedSignatureId) {
+            const signatureExists = newActivePage.signatures.some(s => s.id === currentSelectedSignatureId);
+            if (!signatureExists) {
+                setSelectedSignatureId(null);
+            }
+        }
       }
 
       return updated;
@@ -547,7 +550,7 @@ export default function Home() {
             }
         }
     }, 100);
-  }, [activeTab, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas]);
+  }, [activeTab, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas, updateCollageSettings]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
@@ -633,7 +636,7 @@ export default function Home() {
             toast({ title: "Error", description: "Could not load image to add to collage.", variant: "destructive" });
         }
         img.src = src;
-    }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages, collageSettings.maxLayersPerPage]);
+    }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages, collageSettings.maxLayersPerPage, updateCollageSettings]);
 
 
     const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
@@ -798,7 +801,7 @@ export default function Home() {
     } finally {
         setIsPageSelecting(false);
     }
-  }, [pdfDoc, renderPdfPageToDataURL, toast]);
+  }, [pdfDoc, renderPdfPageToDataURL, toast, updateCollageSettings]);
 
 
   const handleImageUpload = async (file: File) => {
@@ -1015,7 +1018,7 @@ const updateProcessedSize = React.useCallback(async () => {
 
             if (currentFormat === 'application/pdf') {
                 const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
-                if (pagesToRender.length === 0) return 0;
+                if (pagesToRender.length === 0 || !pagesToRender[0]) return 0;
                 
                 const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
                 const pdfWidth = (firstPageCanvas.width / 300) * 72;
@@ -1063,7 +1066,7 @@ const updateProcessedSize = React.useCallback(async () => {
 
         if (currentFormat === 'application/pdf') {
             const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
-            if (pagesToRender.length === 0) {
+            if (pagesToRender.length === 0 || !activePage) {
               toast({ title: "Empty Project", description: "There are no pages to download.", variant: "destructive" });
               return;
             }
@@ -1206,6 +1209,8 @@ const updateProcessedSize = React.useCallback(async () => {
             });
 
             const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [activePage!];
+
+            if (!activePage && editorMode !== 'collage') return;
 
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
@@ -1416,11 +1421,11 @@ const updateProcessedSize = React.useCallback(async () => {
             height: a4Height,
             backgroundColor: '#ffffff',
             pages: [{
-              ...initialSheetSettings,
               id: Date.now().toString(),
               layers: newLayers,
               texts: [],
               signatures: [],
+              sheet: initialSheetSettings,
             }],
             activePageIndex: 0
           });
@@ -1602,7 +1607,7 @@ const updateProcessedSize = React.useCallback(async () => {
                             t.id === editingTextId ? { ...t, text: newContent } : t
                         );
                         updateSettings({ texts: newTexts });
-                      } else {
+                      } else if (activePage){
                         const newPageTexts = activePage.texts.map(t =>
                             t.id === editingTextId ? { ...t, text: newContent } : t
                         );
