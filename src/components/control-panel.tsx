@@ -40,6 +40,7 @@ interface ControlPanelProps {
   onAutoDetectBorder: () => void;
   tabListRef: React.RefObject<HTMLDivElement>;
   onGeneratePassportPhotos: (image: File, count: number) => void;
+  onClearPassport: () => void;
 }
 
 export function ControlPanel({ 
@@ -67,7 +68,8 @@ export function ControlPanel({
   onAutoLayout,
   onAutoDetectBorder,
   tabListRef,
-  onGeneratePassportPhotos
+  onGeneratePassportPhotos,
+  onClearPassport
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -175,18 +177,7 @@ export function ControlPanel({
          <TabsContent value="passport" className="mt-0">
           <PassportTab
             onGenerate={onGeneratePassportPhotos}
-            onClear={() => {
-              updateCollageSettings({
-                pages: [{
-                  id: Date.now().toString(),
-                  layers: [],
-                  texts: [],
-                  signatures: [],
-                  sheet: initialSheetSettings,
-                }],
-                activePageIndex: 0,
-              });
-            }}
+            onClear={onClearPassport}
           />
         </TabsContent>
       </ScrollArea>

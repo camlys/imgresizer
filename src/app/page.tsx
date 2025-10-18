@@ -1439,6 +1439,19 @@ const updateProcessedSize = React.useCallback(async () => {
     reader.readAsDataURL(file);
   }, [updateCollageSettings]);
 
+  const handleClearPassport = useCallback(() => {
+    updateCollageSettings({
+      pages: [{
+        id: Date.now().toString(),
+        layers: [],
+        texts: [],
+        signatures: [],
+        sheet: initialSheetSettings,
+      }],
+      activePageIndex: 0,
+    });
+  }, [updateCollageSettings]);
+
 
   const editingTextObj = editorMode === 'single' 
     ? settings.texts.find(t => t.id === editingTextId)
@@ -1572,6 +1585,7 @@ const updateProcessedSize = React.useCallback(async () => {
               onAutoLayout={handleAutoLayout}
               onAutoDetectBorder={handleAutoDetectBorder}
               onGeneratePassportPhotos={handleGeneratePassportPhotos}
+              onClearPassport={handleClearPassport}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">
