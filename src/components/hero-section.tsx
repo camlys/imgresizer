@@ -73,8 +73,8 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
                         Start Editing for Free
                     </Button>
                     <div className="relative group rounded-md">
-                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/60 to-pink-700/60 rounded-md transition-opacity duration-300")}></div>
-                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/70 to-pink-700/70 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300")}></div>
+                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/80 to-pink-700/80 rounded-md transition-opacity duration-300")}></div>
+                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/90 to-pink-700/90 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300")}></div>
                         <Button onClick={onLearnMoreClick} size="lg" variant="secondary" className="text-lg py-7 px-8 relative text-white bg-transparent hover:bg-transparent">
                             Collage
                             <ArrowRight className="ml-2" />
