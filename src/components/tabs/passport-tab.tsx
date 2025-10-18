@@ -110,37 +110,36 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="bg-color">Background Color</Label>
-             <div className="relative">
-                <Input
-                  id="bg-color"
-                  value={backgroundColor}
-                  onChange={(e) => setBackgroundColor(e.target.value)}
-                  placeholder="#ffffff"
-                  className="pr-10"
-                />
-                <Input
-                  type="color"
-                  className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none"
-                  value={backgroundColor}
-                  onChange={(e) => setBackgroundColor(e.target.value)}
-                />
-              </div>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Color Presets</Label>
-            <div className="flex gap-2 mt-1">
-              {colorPresets.map(preset => (
-                <Button
-                  key={preset.name}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBackgroundColor(preset.color)}
-                  className="flex-1"
-                >
-                  <div style={{ backgroundColor: preset.color }} className="w-4 h-4 rounded-full border mr-2"></div>
-                  {preset.name}
-                </Button>
-              ))}
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                    <Input
+                        id="bg-color"
+                        value={backgroundColor}
+                        onChange={(e) => setBackgroundColor(e.target.value)}
+                        placeholder="#ffffff"
+                        className="pr-10"
+                    />
+                    <Input
+                        type="color"
+                        className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none"
+                        value={backgroundColor}
+                        onChange={(e) => setBackgroundColor(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-1.5">
+                    {colorPresets.map(preset => (
+                        <button
+                            key={preset.color}
+                            title={preset.name}
+                            onClick={() => setBackgroundColor(preset.color)}
+                            className="w-7 h-7 rounded-full border-2 transition-all"
+                            style={{ 
+                                backgroundColor: preset.color,
+                                borderColor: backgroundColor === preset.color ? 'hsl(var(--primary))' : 'hsl(var(--border))'
+                            }}
+                        />
+                    ))}
+                </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
