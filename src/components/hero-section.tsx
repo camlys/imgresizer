@@ -71,7 +71,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
                         <Upload className="mr-2" />
                         Start Editing for Free
                     </Button>
-                    <Button onClick={onLearnMoreClick} size="lg" variant="outline" className="text-lg py-7 px-8 bg-background/50">
+                    <Button onClick={onLearnMoreClick} size="lg" variant="secondary" className="text-lg py-7 px-8">
                         Collage
                         <ArrowRight className="ml-2" />
                     </Button>
