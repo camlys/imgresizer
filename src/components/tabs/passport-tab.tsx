@@ -64,8 +64,11 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
   
   const colorPresets = [
     { name: 'White', color: '#ffffff' },
+    { name: 'Off-White', color: '#fafafa' },
     { name: 'Light Blue', color: '#e0f2fe' },
+    { name: 'Blue', color: '#a9cce3' },
     { name: 'Light Grey', color: '#f3f4f6' },
+    { name: 'Grey', color: '#d3d3d3' },
   ];
 
   return (
