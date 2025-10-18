@@ -61,6 +61,12 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
     setImageFile(null);
     onClear();
   }
+  
+  const colorPresets = [
+    { name: 'White', color: '#ffffff' },
+    { name: 'Light Blue', color: '#e0f2fe' },
+    { name: 'Light Grey', color: '#f3f4f6' },
+  ];
 
   return (
     <div className="p-1 space-y-4">
@@ -119,6 +125,23 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
                   onChange={(e) => setBackgroundColor(e.target.value)}
                 />
               </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Color Presets</Label>
+            <div className="flex gap-2 mt-1">
+              {colorPresets.map(preset => (
+                <Button
+                  key={preset.name}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBackgroundColor(preset.color)}
+                  className="flex-1"
+                >
+                  <div style={{ backgroundColor: preset.color }} className="w-4 h-4 rounded-full border mr-2"></div>
+                  {preset.name}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button onClick={handleGenerateClick} disabled={!imageFile}>
