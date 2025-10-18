@@ -100,16 +100,12 @@ export function AppHeader({
       const qualityMap = { less: 0.7, medium: 0.5, extreme: 0.25 };
       const targetRatio = qualityMap[quality];
       const targetBytes = originalImage.size * targetRatio;
+
+      const editedCanvas = await generateFinalCanvas();
   
       // --- JPEG Compression ---
       const getBlobForQuality = (quality: number): Promise<Blob | null> => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return Promise.resolve(null);
-        canvas.width = imageElement.naturalWidth;
-        canvas.height = imageElement.naturalHeight;
-        ctx.drawImage(imageElement, 0, 0);
-        return new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+        return new Promise(res => editedCanvas.toBlob(res, 'image/jpeg', quality));
       };
   
       let high = 1.0, low = 0.0, mid = 0.5;
@@ -122,24 +118,16 @@ export function AppHeader({
       }
       const bestQuality = (low + high) / 2;
   
-      const finalCanvas = document.createElement('canvas');
-      const finalCtx = finalCanvas.getContext('2d');
-      if (!finalCtx) throw new Error("Could not create final canvas.");
-  
-      finalCanvas.width = imageElement.naturalWidth;
-      finalCanvas.height = imageElement.naturalHeight;
-      finalCtx.drawImage(imageElement, 0, 0);
-  
-      const jpegDataUrl = finalCanvas.toDataURL('image/jpeg', bestQuality);
-      const jpegFinalBlob = await new Promise<Blob | null>(res => finalCanvas.toBlob(res, 'image/jpeg', bestQuality));
+      const jpegDataUrl = editedCanvas.toDataURL('image/jpeg', bestQuality);
+      const jpegFinalBlob = await new Promise<Blob | null>(res => editedCanvas.toBlob(res, 'image/jpeg', bestQuality));
       if (!jpegFinalBlob) throw new Error("Could not create final JPEG blob.");
   
       // --- PDF Compression ---
       const pdf = new jsPDF();
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = imageElement.naturalWidth;
-      const imgHeight = imageElement.naturalHeight;
+      const imgWidth = editedCanvas.width;
+      const imgHeight = editedCanvas.height;
       const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
       const newImgWidth = imgWidth * ratio;
       const newImgHeight = imgHeight * ratio;
