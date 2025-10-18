@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Upload } from 'lucide-react';
 import { UploadTypeDialog } from './upload-type-dialog';
+import { cn } from '@/lib/utils';
 
 interface HeroSectionProps {
   onUpload: (file: File) => void;
@@ -17,7 +18,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
 
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
-      uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+      uploadInput_ref.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
       uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
@@ -71,10 +72,14 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
                         <Upload className="mr-2" />
                         Start Editing for Free
                     </Button>
-                    <Button onClick={onLearnMoreClick} size="lg" variant="secondary" className="text-lg py-7 px-8">
-                        Collage
-                        <ArrowRight className="ml-2" />
-                    </Button>
+                    <div className="relative group rounded-md">
+                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/40 to-pink-700/40 rounded-md transition-opacity duration-300")}></div>
+                        <div className={cn("absolute inset-0 bg-gradient-to-br from-purple-700/50 to-pink-700/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300")}></div>
+                        <Button onClick={onLearnMoreClick} size="lg" variant="secondary" className="text-lg py-7 px-8 relative text-white bg-transparent hover:bg-transparent">
+                            Collage
+                            <ArrowRight className="ml-2" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
