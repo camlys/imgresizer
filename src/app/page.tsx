@@ -509,8 +509,8 @@ export default function Home() {
           newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
           setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
           setSelectedLayerIds([newLayer.id]);
-          // Reset single editor state after transferring
-          setSettings(initialSettings);
+          // Do not reset single editor state after transferring
+          // setSettings(initialSettings);
       };
       editedImage.src = editedImageSrc;
     }
@@ -1681,3 +1681,5 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
+
+    
