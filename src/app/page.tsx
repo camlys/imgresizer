@@ -510,7 +510,6 @@ export default function Home() {
           setCollageSettings(prev => ({ ...prev, pages: newPages, layout: null }));
           setSelectedLayerIds([newLayer.id]);
           // Do not reset single editor state after transferring
-          // setSettings(initialSettings);
       };
       editedImage.src = editedImageSrc;
     }
@@ -550,7 +549,7 @@ export default function Home() {
             }
         }
     }, 100);
-  }, [activeTab, collageSettings.pages, collageSettings.activePageIndex, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas, updateCollageSettings]);
+  }, [activeTab, collageSettings.activePageIndex, collageSettings.pages, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas, updateCollageSettings]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
@@ -752,7 +751,7 @@ export default function Home() {
                     if (layersOnCurrentPage >= MAX_IMAGES_PER_PAGE) {
                         const newPage: CollagePage = {
                             id: `${Date.now()}-page-${pageNum}`,
-                            layers: [], texts: [], signatures: [], sheet: initialSheetSettings,
+                            layers: [], texts: [], signatures: [], sheet: activePage.sheet ? { ...activePage.sheet } : initialSheetSettings,
                         };
                         updatedPages.push(newPage);
                         currentActivePageIndex = updatedPages.length - 1;
@@ -1345,7 +1344,7 @@ const updateProcessedSize = React.useCallback(async () => {
     updateCollageSettings({ pages: newPages, layout: count });
   }, [activePage, collageSettings.pages, updateCollageSettings]);
 
-  const handleGeneratePassportPhotos = useCallback((file: File, count: number) => {
+  const handleGeneratePassportPhotos = useCallback((file: File, count: number, backgroundColor: string) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -1361,26 +1360,34 @@ const updateProcessedSize = React.useCallback(async () => {
         const photoAspectRatio = photoWidthPx / photoHeightPx;
         const originalAspectRatio = img.width / img.height;
         
-        // Crop the source image to match passport aspect ratio
-        const srcCanvas = document.createElement('canvas');
-        const srcCtx = srcCanvas.getContext('2d');
-        if (!srcCtx) return;
+        // Create a new canvas with the desired background color
+        const bgCanvas = document.createElement('canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        if (!bgCtx) return;
+
+        bgCanvas.width = photoWidthPx;
+        bgCanvas.height = photoHeightPx;
         
-        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+        bgCtx.fillStyle = backgroundColor;
+        bgCtx.fillRect(0, 0, photoWidthPx, photoHeightPx);
+        
+        // Crop and resize the source image to fit inside the passport photo dimensions
+        let sWidth = img.width, sHeight = img.height;
+        let sx = 0, sy = 0;
+
         if (originalAspectRatio > photoAspectRatio) { // Original is wider
           sWidth = img.height * photoAspectRatio;
           sx = (img.width - sWidth) / 2;
-        } else { // Original is taller
+        } else { // Original is taller or same ratio
           sHeight = img.width / photoAspectRatio;
           sy = (img.height - sHeight) / 2;
         }
+
+        // Draw the cropped image onto the background canvas
+        bgCtx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, photoWidthPx, photoHeightPx);
         
-        srcCanvas.width = sWidth;
-        srcCanvas.height = sHeight;
-        srcCtx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
-        
-        const croppedImg = new Image();
-        croppedImg.onload = () => {
+        const composedImg = new Image();
+        composedImg.onload = () => {
           const newLayers: ImageLayer[] = [];
           
           const margin = 30; // ~1cm margin on A4 paper
@@ -1403,15 +1410,15 @@ const updateProcessedSize = React.useCallback(async () => {
 
             const newLayer: ImageLayer = {
                 id: `${Date.now()}-${i}`,
-                src: croppedImg.src,
-                img: croppedImg,
+                src: composedImg.src,
+                img: composedImg,
                 x: xPercent,
                 y: yPercent,
                 width: photoWidthPercent,
                 rotation: 0,
                 opacity: 1,
-                originalWidth: croppedImg.width,
-                originalHeight: croppedImg.height,
+                originalWidth: composedImg.width,
+                originalHeight: composedImg.height,
             };
             newLayers.push(newLayer);
           }
@@ -1419,7 +1426,7 @@ const updateProcessedSize = React.useCallback(async () => {
           updateCollageSettings({
             width: a4Width,
             height: a4Height,
-            backgroundColor: '#ffffff',
+            backgroundColor: '#ffffff', // A4 sheet is always white
             pages: [{
               id: Date.now().toString(),
               layers: newLayers,
@@ -1432,7 +1439,7 @@ const updateProcessedSize = React.useCallback(async () => {
           setEditorMode('collage');
           setActiveTab('passport');
         };
-        croppedImg.src = srcCanvas.toDataURL();
+        composedImg.src = bgCanvas.toDataURL();
       };
       img.src = e.target?.result as string;
     };

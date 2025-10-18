@@ -39,7 +39,7 @@ interface ControlPanelProps {
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
   onAutoDetectBorder: () => void;
   tabListRef: React.RefObject<HTMLDivElement>;
-  onGeneratePassportPhotos: (image: File, count: number) => void;
+  onGeneratePassportPhotos: (image: File, count: number, backgroundColor: string) => void;
   onClearPassport: () => void;
 }
 
@@ -92,6 +92,7 @@ export function ControlPanel({
   };
 
   const collageUpdateTextSettings = (newItems: Partial<{texts: TextOverlay[], signatures: SignatureOverlay[]}>) => {
+    if (!activePage) return;
     const newPages = [...collageSettings.pages];
     const newActivePage = {...activePage, ...newItems};
     newPages[collageSettings.activePageIndex] = newActivePage;

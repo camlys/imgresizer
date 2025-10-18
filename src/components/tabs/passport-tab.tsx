@@ -10,13 +10,14 @@ import React, { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PassportTabProps {
-  onGenerate: (image: File, count: number) => void;
+  onGenerate: (image: File, count: number, backgroundColor: string) => void;
   onClear: () => void;
 }
 
 export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [copyCount, setCopyCount] = useState<number>(8);
+  const [backgroundColor, setBackgroundColor] = useState<string>('#ffffff');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -53,7 +54,7 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
       });
       return;
     }
-    onGenerate(imageFile, copyCount);
+    onGenerate(imageFile, copyCount, backgroundColor);
   };
   
   const handleClear = () => {
@@ -100,6 +101,24 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
               onChange={(e) => setCopyCount(parseInt(e.target.value) || 1)}
               min="1"
             />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bg-color">Background Color</Label>
+             <div className="relative">
+                <Input
+                  id="bg-color"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  placeholder="#ffffff"
+                  className="pr-10"
+                />
+                <Input
+                  type="color"
+                  className="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 p-1 cursor-pointer bg-transparent border-none"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                />
+              </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button onClick={handleGenerateClick} disabled={!imageFile}>
