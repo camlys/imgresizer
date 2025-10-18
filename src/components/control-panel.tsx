@@ -9,8 +9,9 @@ import { TextTab } from '@/components/tabs/text-tab';
 import { DrawTab } from '@/components/tabs/draw-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
+import { PassportTab } from '@/components/tabs/passport-tab';
 import type { ImageSettings, OriginalImage, CropSettings, CollageSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
-import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Paintbrush } from 'lucide-react';
+import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Paintbrush, Contact } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 interface ControlPanelProps {
@@ -38,6 +39,7 @@ interface ControlPanelProps {
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
   onAutoDetectBorder: () => void;
   tabListRef: React.RefObject<HTMLDivElement>;
+  onGeneratePassportPhotos: (image: File, count: number) => void;
 }
 
 export function ControlPanel({ 
@@ -65,6 +67,7 @@ export function ControlPanel({
   onAutoLayout,
   onAutoDetectBorder,
   tabListRef,
+  onGeneratePassportPhotos
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -75,6 +78,7 @@ export function ControlPanel({
     { value: 'adjustments', icon: SlidersHorizontal, label: 'Adjust' },
     { value: 'draw', icon: Paintbrush, label: 'Draw' },
     { value: 'collage', icon: Layers, label: 'Collage' },
+    { value: 'passport', icon: Contact, label: 'Passport' },
   ];
   
   const activePage = collageSettings.pages[collageSettings.activePageIndex];
@@ -166,6 +170,23 @@ export function ControlPanel({
                 setSelectedSignatureId={setSelectedSignatureId}
               />
             }
+          />
+        </TabsContent>
+         <TabsContent value="passport" className="mt-0">
+          <PassportTab
+            onGenerate={onGeneratePassportPhotos}
+            onClear={() => {
+              updateCollageSettings({
+                pages: [{
+                  id: Date.now().toString(),
+                  layers: [],
+                  texts: [],
+                  signatures: [],
+                  sheet: initialSheetSettings,
+                }],
+                activePageIndex: 0,
+              });
+            }}
           />
         </TabsContent>
       </ScrollArea>

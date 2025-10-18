@@ -457,8 +457,7 @@ export default function Home() {
                 size: size, 
             });
 
-            setSettings(prev => ({
-                ...prev,
+            updateSettings({
                 width: newWidth,
                 height: newHeight,
                 crop: { x: 0, y: 0, width: newWidth, height: newHeight },
@@ -468,13 +467,13 @@ export default function Home() {
                     bl: { x: inset, y: newHeight - inset },
                     br: { x: newWidth - inset, y: newHeight - inset },
                 },
-            }));
+            });
             setPendingCrop(null);
         };
         newImage.src = newDataUrl;
     }
     
-    const newEditorMode = tab === 'collage' ? 'collage' : 'single';
+    const newEditorMode = (tab === 'collage' || tab === 'passport') ? 'collage' : 'single';
     setEditorMode(newEditorMode);
     setActiveTab(tab);
     
@@ -531,7 +530,7 @@ export default function Home() {
       setEditingTextId(null);
       setSelectedSignatureId(null);
     }
-    if (tab !== 'collage') {
+    if (tab !== 'collage' && tab !== 'passport') {
       setSelectedLayerIds([]);
     }
     if (tab !== 'draw') {
@@ -813,7 +812,7 @@ export default function Home() {
     setEditorMode('single');
     setCollageSettings(initialCollageSettings);
     setSelectedLayerIds([]);
-    if (activeTab === 'collage') setActiveTab('resize');
+    if (activeTab === 'collage' || activeTab === 'passport') setActiveTab('resize');
 
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -1341,6 +1340,101 @@ const updateProcessedSize = React.useCallback(async () => {
     updateCollageSettings({ pages: newPages, layout: count });
   }, [activePage, collageSettings.pages, updateCollageSettings]);
 
+  const handleGeneratePassportPhotos = useCallback((file: File, count: number) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // A4 at 300 DPI
+        const a4Width = 2481;
+        const a4Height = 3507;
+
+        // Passport photo size: 3.5cm x 4.5cm at 300 DPI
+        const photoWidthPx = Math.round(3.5 / 2.54 * 300); // 413
+        const photoHeightPx = Math.round(4.5 / 2.54 * 300); // 531
+        
+        const photoAspectRatio = photoWidthPx / photoHeightPx;
+        const originalAspectRatio = img.width / img.height;
+        
+        // Crop the source image to match passport aspect ratio
+        const srcCanvas = document.createElement('canvas');
+        const srcCtx = srcCanvas.getContext('2d');
+        if (!srcCtx) return;
+        
+        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+        if (originalAspectRatio > photoAspectRatio) { // Original is wider
+          sWidth = img.height * photoAspectRatio;
+          sx = (img.width - sWidth) / 2;
+        } else { // Original is taller
+          sHeight = img.width / photoAspectRatio;
+          sy = (img.height - sHeight) / 2;
+        }
+        
+        srcCanvas.width = sWidth;
+        srcCanvas.height = sHeight;
+        srcCtx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+        
+        const croppedImg = new Image();
+        croppedImg.onload = () => {
+          const newLayers: ImageLayer[] = [];
+          
+          const margin = 30; // ~1cm margin on A4 paper
+          const gap = 15;
+          const availableWidth = a4Width - 2 * margin;
+
+          const cols = Math.floor((availableWidth + gap) / (photoWidthPx + gap));
+          
+          const photoWidthPercent = (photoWidthPx / a4Width) * 100;
+
+          for(let i=0; i<count; i++) {
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            
+            const xPx = margin + col * (photoWidthPx + gap);
+            const yPx = margin + row * (photoHeightPx + gap);
+            
+            const xPercent = ((xPx + photoWidthPx/2) / a4Width) * 100;
+            const yPercent = ((yPx + photoHeightPx/2) / a4Height) * 100;
+
+            const newLayer: ImageLayer = {
+                id: `${Date.now()}-${i}`,
+                src: croppedImg.src,
+                img: croppedImg,
+                x: xPercent,
+                y: yPercent,
+                width: photoWidthPercent,
+                rotation: 0,
+                opacity: 1,
+                originalWidth: croppedImg.width,
+                originalHeight: croppedImg.height,
+            };
+            newLayers.push(newLayer);
+          }
+
+          updateCollageSettings({
+            width: a4Width,
+            height: a4Height,
+            backgroundColor: '#ffffff',
+            pages: [{
+              ...initialSheetSettings,
+              id: Date.now().toString(),
+              layers: newLayers,
+              texts: [],
+              signatures: [],
+            }],
+            activePageIndex: 0
+          });
+          setEditorMode('collage');
+          setActiveTab('passport');
+        };
+        croppedImg.src = srcCanvas.toDataURL();
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }, [updateCollageSettings]);
+
+
   const editingTextObj = editorMode === 'single' 
     ? settings.texts.find(t => t.id === editingTextId)
     : activePage?.texts.find(t => t.id === editingTextId);
@@ -1472,6 +1566,7 @@ const updateProcessedSize = React.useCallback(async () => {
               setSelectedLayerIds={setSelectedLayerIds}
               onAutoLayout={handleAutoLayout}
               onAutoDetectBorder={handleAutoDetectBorder}
+              onGeneratePassportPhotos={handleGeneratePassportPhotos}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">
