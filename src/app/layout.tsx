@@ -182,11 +182,11 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="ImgResizer: Free, Private Online Image & Photo Editor, Collage Maker" />
+        <meta name="twitter:title" content="Image Resizer, ImgResizer.xyz - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
         <meta name="twitter:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs. No watermarks." />
         <meta name="twitter:creator" content="@ImgResizer" />
         <meta name="twitter:image" content="https://www.imgresizer.xyz/imgresizer.png" />
-        <meta property="og:title" content="ImgResizer: Free, Private Online Image & Photo Editor, Collage Maker" />
+        <meta property="og:title" content="Image Resizer, ImgResizer.xyz - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
         <meta property="og:description" content="The simple, powerful, and privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs. No watermarks." />
         <meta property="og:url" content="https://www.imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
