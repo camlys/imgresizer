@@ -130,26 +130,37 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'ImgResizer',
+    name: 'ImgResizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool',
     url: 'https://www.imgresizer.xyz',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
-    description: 'A free, privacy-focused online tool to resize, crop, edit images, and create photo collages from images and PDFs.',
+    description: 'Resize, edit, and compress photos or PDFs instantly with ImgResizer.xyz! Change image size, format, and background—all in one place. Fast, free, and mobile-friendly online editor.',
     featureList: [
-      'Image Resizing',
-      'Image Cropping',
-      'Perspective Correction',
-      'Image Format Conversion (PNG, JPEG, WEBP, PDF)',
+      'Image Resizing (px, cm, inch, mm)',
+      'Image Cropping & Perspective Correction',
+      'Image Format Conversion (PNG, JPEG, WEBP, PDF, GIF, BMP, SVG)',
       'Color Adjustments (Brightness, Contrast, Saturation)',
-      'Photo Filters (Grayscale, Sepia, etc.)',
-      'Add Text to Images',
+      'Photo Filters (Grayscale, Sepia, Vintage, etc.)',
+      'Add Text to Images with Custom Fonts',
       'Add Signature/Watermark to Images',
-      'PDF to Image Conversion',
-      'Online Photo Collage Maker',
-      'Client-side processing for privacy',
-      'Secure PDF password handling',
+      'PDF to Image Conversion and Editing',
+      'Online Photo Collage Maker with Layouts',
+      'Passport Photo Generator for Standard Sizes',
+      'Client-side processing for 100% privacy',
+      'Secure PDF password handling in-browser',
       'Drawing and annotation tools',
+      'No registration or sign-up required',
+      'Free to use with no watermarks',
     ],
+    screenshot: 'https://www.imgresizer.xyz/imgresizer.png',
+    video: {
+        '@type': 'VideoObject',
+        name: 'ImgResizer - How to Edit Images Online for Free',
+        description: 'A quick tutorial on how to use ImgResizer to resize, crop, and edit your images and PDFs online with full privacy.',
+        thumbnailUrl: 'https://www.imgresizer.xyz/imgresizer.png',
+        uploadDate: '2024-01-01T08:00:00+00:00',
+        // "contentUrl": "https://www.example.com/video.mp4" // To be added when a video is available
+    },
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -159,6 +170,15 @@ export default function RootLayout({
       '@type': 'Organization',
       name: 'ImgResizer',
       url: 'https://www.imgresizer.xyz'
+    },
+    author: {
+        '@type': 'Organization',
+        name: 'ImgResizer',
+        url: 'https://www.imgresizer.xyz'
+    },
+    softwareHelp: {
+        '@type': 'CreativeWork',
+        url: 'https://www.imgresizer.xyz/features'
     }
   };
 
