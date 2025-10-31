@@ -9,6 +9,8 @@ import { CookieConsentBanner } from '@/components/cookie-consent-banner';
 import { useEffect, useState, useCallback } from 'react';
 import { ClientOnly } from '@/components/client-only';
 import { Inter, Space_Grotesk } from 'next/font/google';
+import { InstallPwaBanner } from '@/components/install-pwa-banner';
+
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -163,6 +165,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={spaceGrotesk.variable}>
       <head>
+        <title>Image Resizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool</title>
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5066894312897940"
      crossOrigin="anonymous"></script>
         <link rel="canonical" href="https://www.imgresizer.xyz" />
@@ -182,11 +185,11 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Image Resizer, ImgResizer.xyz - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
+        <meta name="twitter:title" content="Image Resizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
         <meta name="twitter:description" content="Image Resizer, Resize, edit, and compress your photos or PDFs instantly with ImgResizer.xyz! ✨ Change image size, format, and background — all in one place. Fast, free, and mobile-friendly online editor." />
         <meta name="twitter:creator" content="@ImgResizer" />
         <meta name="twitter:image" content="https://www.imgresizer.xyz/imgresizer.png" />
-        <meta property="og:title" content="Image Resizer, ImgResizer.xyz - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
+        <meta property="og:title" content="Image Resizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
         <meta property="og:description" content="Image Resizer, Resize, edit, and compress your photos or PDFs instantly with ImgResizer.xyz! ✨ Change image size, format, and background — all in one place. Fast, free, and mobile-friendly online editor." />
         <meta property="og:url" content="https://www.imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
@@ -207,6 +210,7 @@ export default function RootLayout({
           <Toaster />
           <ClientOnly>
             <CookieConsentBanner />
+            <InstallPwaBanner />
           </ClientOnly>
         </ThemeProvider>
       </body>
