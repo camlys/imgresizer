@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
 import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,6 +66,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const [aspectRatio, setAspectRatio] = useState(originalImage ? originalImage.width / originalImage.height : 1);
     const { toast } = useToast();
     const [showPresets, setShowPresets] = useState(false);
+    const presetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset>({
         format: 'image/jpeg',
@@ -208,6 +209,19 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         setIsOptimizing(false);
     };
 
+    const handlePresetMouseEnter = () => {
+        if (presetTimeoutRef.current) {
+            clearTimeout(presetTimeoutRef.current);
+        }
+        setShowPresets(true);
+    };
+
+    const handlePresetMouseLeave = () => {
+        presetTimeoutRef.current = setTimeout(() => {
+            setShowPresets(false);
+        }, 200);
+    };
+
 
     return (
         <div className="space-y-4 p-1">
@@ -252,13 +266,17 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid gap-1.5">
+                            <div 
+                                className="grid gap-1.5"
+                                onMouseEnter={handlePresetMouseEnter}
+                                onMouseLeave={handlePresetMouseLeave}
+                            >
                                 <div 
-                                    className="flex items-center cursor-pointer"
+                                    className="flex items-center justify-between cursor-pointer"
                                     onClick={() => setShowPresets(!showPresets)}
                                 >
                                     <Label className="text-xs text-muted-foreground cursor-pointer">Standard Presets</Label>
-                                    <ChevronDown className={`h-4 w-4 ml-1 text-muted-foreground transition-transform ${showPresets ? 'rotate-180' : ''}`} />
+                                    <ChevronDown className={`h-4 w-4 text-primary transition-transform ${showPresets ? 'rotate-180' : ''}`} />
                                 </div>
 
                                 {showPresets && (
