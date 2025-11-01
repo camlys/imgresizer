@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown, Target } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
@@ -359,9 +359,18 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                         <SelectItem value="MB">MB</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Button variant="outline" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize} className="px-4">
-                                    {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
-                                </Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="outline" size="icon" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize}>
+                                          {isOptimizing ? <Loader2 className="animate-spin"/> : <Target />}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Optimize to Target Size</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 </div>
                                 <p className="text-xs text-muted-foreground">Sets quality to meet size for JPEG/WEBP.</p>
                             </div>
