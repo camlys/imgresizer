@@ -1176,21 +1176,27 @@ const updateProcessedSize = React.useCallback(async () => {
         const currentQuality = editorMode === 'single' ? settings.quality : collageSettings.quality;
 
         canvasToShare.toBlob(async (blob) => {
+            if (!blob) {
+                await fallbackShare();
+                return;
+            }
+            
+            const extension = currentFormat.split('/')[1].split('+')[0] || 'png';
+            const filename = `imgresizer-edited-image.${extension}`;
+            const file = new File([blob], filename, { type: currentFormat });
+
             const shareData: ShareData = {
                 title: 'ImgResizer: Free Online Image Editor',
                 text: 'Check out this image I edited with the free and private ImgResizer web app!',
                 url: 'https://www.imgresizer.xyz/',
+                files: [file]
             };
-
-            if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: blob.type })] })) {
-                const extension = currentFormat.split('/')[1].split('+')[0] || 'png';
-                const filename = `imgresizer-edited-image.${extension}`;
-                const file = new File([blob], filename, { type: currentFormat });
-                shareData.files = [file];
-            }
             
-            if (navigator.share) {
+            if (navigator.canShare && navigator.canShare(shareData)) {
                 await navigator.share(shareData);
+            } else if (navigator.canShare && navigator.canShare({ title: shareData.title, text: shareData.text, url: shareData.url })) {
+                 // Fallback to sharing without the file if file sharing is not supported but basic sharing is
+                await navigator.share({ title: shareData.title, text: shareData.text, url: shareData.url });
             } else {
                 await fallbackShare();
             }
@@ -1771,5 +1777,3 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
-
-    
