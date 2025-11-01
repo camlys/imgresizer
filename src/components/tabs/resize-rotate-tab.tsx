@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2 } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
@@ -65,6 +65,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     const [unit, setUnit] = useState(settings.unit);
     const [aspectRatio, setAspectRatio] = useState(originalImage ? originalImage.width / originalImage.height : 1);
     const { toast } = useToast();
+    const [showPresets, setShowPresets] = useState(false);
 
     const [quickActionPreset, setQuickActionPreset] = useState<QuickActionPreset>({
         format: 'image/jpeg',
@@ -205,10 +206,6 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         setIsOptimizing(true);
         await onTargetSizeSubmit(size, targetUnit);
         setIsOptimizing(false);
-        toast({
-            title: "Optimization Complete",
-            description: "Quality has been adjusted to meet the target file size."
-        });
     };
 
 
@@ -256,17 +253,26 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-1.5">
-                                <Label className="text-xs text-muted-foreground">Standard Presets</Label>
-                                <div className="overflow-x-auto pb-2">
-                                    <div className="flex gap-2 whitespace-nowrap">
-                                        {standardPresets.map(p => (
-                                            <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p)} className="h-auto py-2 flex-col">
-                                                <span>{p.name}</span>
-                                                <span className="text-xs text-muted-foreground">{p.width}x{p.height}</span>
-                                            </Button>
-                                        ))}
-                                    </div>
+                                <div 
+                                    className="flex items-center cursor-pointer"
+                                    onClick={() => setShowPresets(!showPresets)}
+                                >
+                                    <Label className="text-xs text-muted-foreground cursor-pointer">Standard Presets</Label>
+                                    <ChevronDown className={`h-4 w-4 ml-1 text-muted-foreground transition-transform ${showPresets ? 'rotate-180' : ''}`} />
                                 </div>
+
+                                {showPresets && (
+                                    <div className="overflow-x-auto pb-2 mt-2">
+                                        <div className="flex gap-2 whitespace-nowrap">
+                                            {standardPresets.map(p => (
+                                                <Button key={p.name} variant="outline" size="sm" onClick={() => applyPreset(p)} className="h-auto py-2 flex-col">
+                                                    <span>{p.name}</span>
+                                                    <span className="text-xs text-muted-foreground">{p.width}x{p.height}</span>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex items-end gap-2">
                                 <div className="grid gap-1.5 flex-1">
@@ -445,3 +451,4 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     
 
     
+
