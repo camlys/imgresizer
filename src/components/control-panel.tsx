@@ -10,7 +10,7 @@ import { DrawTab } from '@/components/tabs/draw-tab';
 import { AdjustmentsTab } from '@/components/tabs/adjustments-tab';
 import { CollageTab } from '@/components/tabs/collage-tab';
 import { PassportTab } from '@/components/tabs/passport-tab';
-import type { ImageSettings, OriginalImage, CropSettings, CollageSettings, TextOverlay, SignatureOverlay } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, CollageSettings, TextOverlay, SignatureOverlay, Unit } from '@/lib/types';
 import { SlidersHorizontal, Crop, Type, Scan, RotateCcw, Layers, Paintbrush, Contact } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -41,6 +41,7 @@ interface ControlPanelProps {
   tabListRef: React.RefObject<HTMLDivElement>;
   onGeneratePassportPhotos: (image: File, count: number, backgroundColor: string) => void;
   onClearPassport: () => void;
+  onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB') => Promise<void>;
 }
 
 export function ControlPanel({ 
@@ -69,7 +70,8 @@ export function ControlPanel({
   onAutoDetectBorder,
   tabListRef,
   onGeneratePassportPhotos,
-  onClearPassport
+  onClearPassport,
+  onTargetSizeSubmit
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -120,6 +122,7 @@ export function ControlPanel({
             processedSize={processedSize}
             isFromMultiPagePdf={isFromMultiPagePdf}
             onViewPages={() => onViewPages('single')}
+            onTargetSizeSubmit={onTargetSizeSubmit}
           />
         </TabsContent>
         <TabsContent value="crop" className="mt-0">

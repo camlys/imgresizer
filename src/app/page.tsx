@@ -7,13 +7,12 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath, Unit } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as pdfjsLib from 'pdfjs-dist';
-import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/utils';
 import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
@@ -22,6 +21,8 @@ import { InstallPwaBanner } from '@/components/install-pwa-banner';
 import { AppGrid } from '@/components/app-grid';
 import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
+import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
+
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -1459,6 +1460,76 @@ const updateProcessedSize = React.useCallback(async () => {
     });
   }, [updateCollageSettings]);
 
+  const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
+    const format = editorMode === 'single' ? settings.format : collageSettings.format;
+
+    if (format === 'application/pdf') {
+        const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
+        
+        if (pagesToRender.length === 0) return new Blob();
+
+        const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
+        const pdfWidth = (firstPageCanvas.width / 300) * 72;
+        const pdfHeight = (firstPageCanvas.height / 300) * 72;
+        
+        const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+        const pdf = new jsPDF({
+            orientation,
+            unit: 'pt',
+            format: [pdfWidth, pdfHeight]
+        });
+
+        const imgData = firstPageCanvas.toDataURL('image/jpeg', quality);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+        const singlePageBlob = pdf.output('blob');
+        const estimatedSize = singlePageBlob.size * pagesToRender.length;
+        
+        return new Blob([new ArrayBuffer(estimatedSize)], { type: 'application/pdf' });
+    }
+
+    const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
+    const canvas = await generateFinalCanvas(pageToRender, { quality });
+
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, format === 'application/pdf' ? 'image/jpeg' : format, quality);
+    });
+  }, [generateFinalCanvas, editorMode, settings, collageSettings]);
+
+  const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB') => {
+    const numericSize = targetSize;
+    if (!numericSize || numericSize <= 0) return;
+
+    const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
+    
+    let high = 1.0;
+    let low = 0.0;
+    let mid = 0.5;
+    let bestQuality = 0.5;
+    
+    for(let i = 0; i < 25; i++) { 
+      mid = (low + high) / 2;
+      const blob = await getBlobFromCanvas(mid);
+      if (!blob) {
+        return;
+      }
+      
+      if(blob.size > targetBytes) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+      bestQuality = (low + high) / 2;
+    }
+    
+    const quality = parseFloat(bestQuality.toFixed(2));
+    if (editorMode === 'single') {
+        updateSettings({ quality });
+    } else {
+        updateCollageSettings({ quality });
+    }
+    await updateProcessedSize();
+  };
 
   const editingTextObj = editorMode === 'single' 
     ? settings.texts.find(t => t.id === editingTextId)
@@ -1593,6 +1664,7 @@ const updateProcessedSize = React.useCallback(async () => {
               onAutoDetectBorder={handleAutoDetectBorder}
               onGeneratePassportPhotos={handleGeneratePassportPhotos}
               onClearPassport={handleClearPassport}
+              onTargetSizeSubmit={handleTargetSize}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">

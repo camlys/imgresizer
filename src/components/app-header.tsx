@@ -11,7 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { ImageSettings, CollageSettings, CollagePage, QuickActionPreset, OriginalImage } from '@/lib/types';
-import { formatBytes, autoDetectBorders, applyPerspectiveTransform } from '@/lib/utils';
+import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 import { UploadTypeDialog } from './upload-type-dialog';
 import { LogoIcon } from './logo';
@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
+import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -68,9 +69,6 @@ export function AppHeader({
   originalImage,
 }: AppHeaderProps) {
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
-  const [targetSize, setTargetSize] = useState('');
-  const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
-  const [isOptimizing, setIsOptimizing] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [filename, setFilename] = useState('imgresizer-export');
   const [isUploadTypeDialogOpen, setIsUploadTypeDialogOpen] = useState(false);
@@ -298,89 +296,6 @@ export function AppHeader({
       onUpload(file);
     }
   };
-  
-  const getBlobFromCanvas = useCallback(async (quality: number): Promise<Blob | null> => {
-    const format = currentSettings.format;
-
-    if (format === 'application/pdf') {
-        const pagesToRender = editorMode === 'collage' ? collageSettings.pages : [collageSettings.pages[collageSettings.activePageIndex]!];
-        
-        if (pagesToRender.length === 0) return new Blob();
-
-        // For size estimation, only render the first page to avoid blocking
-        const firstPageCanvas = await generateFinalCanvas(pagesToRender[0], { quality });
-        const pdfWidth = (firstPageCanvas.width / 300) * 72;
-        const pdfHeight = (firstPageCanvas.height / 300) * 72;
-        
-        const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
-        const pdf = new jsPDF({
-            orientation,
-            unit: 'pt',
-            format: [pdfWidth, pdfHeight]
-        });
-
-        const imgData = firstPageCanvas.toDataURL('image/jpeg', quality);
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-        // Multiply the size of the first page by the total number of pages for a rough estimate
-        const singlePageBlob = pdf.output('blob');
-        const estimatedSize = singlePageBlob.size * pagesToRender.length;
-        
-        // Return a blob with the estimated size. The content doesn't matter here.
-        return new Blob([new ArrayBuffer(estimatedSize)], { type: 'application/pdf' });
-    }
-
-    const pageToRender = editorMode === 'collage' ? collageSettings.pages[collageSettings.activePageIndex] : undefined;
-    const canvas = await generateFinalCanvas(pageToRender, { quality });
-
-    return new Promise((resolve) => {
-        canvas.toBlob(resolve, format === 'application/pdf' ? 'image/jpeg' : format, quality);
-    });
-}, [generateFinalCanvas, editorMode, collageSettings, currentSettings.format]);
-
-
-  const handleTargetSize = async () => {
-    const numericSize = parseFloat(targetSize);
-    if (!numericSize || numericSize <= 0) return;
-
-    setIsOptimizing(true);
-    const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
-    
-    let high = 1.0;
-    let low = 0.0;
-    let mid = 0.5;
-    let bestQuality = 0.5;
-    let finalBlob: Blob | null = null;
-    
-    for(let i = 0; i < 25; i++) { 
-      mid = (low + high) / 2;
-      const blob = await getBlobFromCanvas(mid);
-      if (!blob) {
-        setIsOptimizing(false);
-        return;
-      }
-      finalBlob = blob;
-      
-      if(blob.size > targetBytes) {
-        high = mid;
-      } else {
-        low = mid;
-      }
-      bestQuality = (low + high) / 2;
-    }
-    
-    if (finalBlob) {
-        const quality = parseFloat(bestQuality.toFixed(2));
-        if (editorMode === 'single') {
-            (currentUpdateSettings as (s: Partial<ImageSettings>) => void)({ quality });
-        } else {
-            (currentUpdateSettings as (s: Partial<CollageSettings>) => void)({ quality });
-        }
-        setProcessedSize(finalBlob.size);
-    }
-    
-    setIsOptimizing(false);
-  };
 
   const handleDownloadClick = () => {
     onDownload(filename);
@@ -511,30 +426,6 @@ export function AppHeader({
                             }}
                             onValueCommit={() => onUpdateProcessedSize()}
                           />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">Target File Size (Optional)</Label>
-                            <div className="flex items-center gap-2">
-                            <Input 
-                                type="number"
-                                placeholder="e.g. 500"
-                                value={targetSize}
-                                onChange={(e) => setTargetSize(e.target.value)}
-                                disabled={isOptimizing}
-                            />
-                            <Select value={targetUnit} onValueChange={(val: 'KB' | 'MB') => setTargetUnit(val)} disabled={isOptimizing}>
-                                <SelectTrigger className="w-[80px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="KB">KB</SelectItem>
-                                    <SelectItem value="MB">MB</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="outline" onClick={handleTargetSize} disabled={isOptimizing || !targetSize} className="px-4">
-                                {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
-                            </Button>
-                            </div>
                         </div>
                       </>
                     )}

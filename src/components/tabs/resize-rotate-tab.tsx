@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
@@ -56,9 +56,10 @@ interface ResizeRotateTabProps {
     processedSize: number | null;
     isFromMultiPagePdf: boolean;
     onViewPages: () => void;
+    onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB') => Promise<void>;
 }
 
-export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize, isFromMultiPagePdf, onViewPages }: ResizeRotateTabProps) {
+export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize, isFromMultiPagePdf, onViewPages, onTargetSizeSubmit }: ResizeRotateTabProps) {
     const [width, setWidth] = useState(convertFromPx(settings.width, settings.unit, settings.dpi).toString());
     const [height, setHeight] = useState(convertFromPx(settings.height, settings.unit, settings.dpi).toString());
     const [unit, setUnit] = useState(settings.unit);
@@ -70,6 +71,11 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         targetUnit: 'KB',
         autoCrop: false,
     });
+    
+    // Target size state
+    const [targetSize, setTargetSize] = useState('');
+    const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
+    const [isOptimizing, setIsOptimizing] = useState(false);
 
     useEffect(() => {
         try {
@@ -184,6 +190,26 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         description: `Dimensions set to ${width}x${height}px. Don't forget to check the file size requirements.`,
       })
     };
+    
+    const handleTargetSizeClick = async () => {
+        const size = parseFloat(targetSize);
+        if (!size || size <= 0) {
+            toast({
+                title: "Invalid Size",
+                description: "Please enter a valid target size.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsOptimizing(true);
+        await onTargetSizeSubmit(size, targetUnit);
+        setIsOptimizing(false);
+        toast({
+            title: "Optimization Complete",
+            description: "Quality has been adjusted to meet the target file size."
+        });
+    };
 
 
     return (
@@ -289,6 +315,31 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                     <Label htmlFor="dpi">DPI</Label>
                                     <Input id="dpi" type="number" value={settings.dpi} onChange={handleDpiChange} min="1" />
                                 </div>
+                            </div>
+                             <div className="space-y-2 pt-2 border-t mt-4">
+                                <Label className="text-xs text-muted-foreground">Target File Size (Optional)</Label>
+                                <div className="flex items-center gap-2">
+                                <Input 
+                                    type="number"
+                                    placeholder="e.g. 500"
+                                    value={targetSize}
+                                    onChange={(e) => setTargetSize(e.target.value)}
+                                    disabled={isOptimizing}
+                                />
+                                <Select value={targetUnit} onValueChange={(val: 'KB' | 'MB') => setTargetUnit(val)} disabled={isOptimizing}>
+                                    <SelectTrigger className="w-[80px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="KB">KB</SelectItem>
+                                        <SelectItem value="MB">MB</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize} className="px-4">
+                                    {isOptimizing ? <Loader2 className="animate-spin"/> : 'Set'}
+                                </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Sets quality to meet size for JPEG/WEBP.</p>
                             </div>
                         </CardContent>
                     </Card>
