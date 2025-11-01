@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ImageSettings, OriginalImage, Unit, QuickActionPreset } from '@/lib/types';
-import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown, Target } from 'lucide-react';
+import { Lock, Unlock, Scan, BookOpen, Zap, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
@@ -362,8 +362,8 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button variant="outline" size="icon" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize}>
-                                          {isOptimizing ? <Loader2 className="animate-spin"/> : <Target />}
+                                      <Button variant="outline" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize} className="px-3">
+                                          {isOptimizing ? <Loader2 className="animate-spin"/> : <Zap className="h-5 w-5" />}
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -478,4 +478,3 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     
 
     
-
