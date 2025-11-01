@@ -22,6 +22,7 @@ import { AppGrid } from '@/components/app-grid';
 import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
+import { useRouter } from 'next/navigation';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -108,6 +109,7 @@ export default function Home() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
 
   const [pendingCrop, setPendingCrop] = React.useState<CropSettings | null>(null);
   const [imageElement, setImageElement] = React.useState<HTMLImageElement | null>(null);
@@ -1498,7 +1500,7 @@ const updateProcessedSize = React.useCallback(async () => {
 
   const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB') => {
     const numericSize = targetSize;
-    if (!numericSize || numericSize <= 0) return;
+    if (!numericSize || numericSize <= 0 || !originalImage) return;
 
     const targetBytes = targetUnit === 'KB' ? numericSize * 1024 : numericSize * 1024 * 1024;
     
@@ -1523,12 +1525,21 @@ const updateProcessedSize = React.useCallback(async () => {
     }
     
     const quality = parseFloat(bestQuality.toFixed(2));
-    if (editorMode === 'single') {
-        updateSettings({ quality });
-    } else {
-        updateCollageSettings({ quality });
+    const finalSettings = { ...settings, quality };
+
+    const finalCanvas = await generateFinalCanvas(undefined, finalSettings);
+    const finalBlob = await new Promise<Blob|null>(res => finalCanvas.toBlob(res, finalSettings.format, finalSettings.quality));
+
+    if (finalBlob) {
+        const result = {
+            dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
+            size: finalBlob.size,
+            originalSize: originalImage.size,
+            filename: `imgresizer-export.${finalSettings.format.split('/')[1]}`
+        };
+        sessionStorage.setItem('optimizedResult', JSON.stringify(result));
+        router.push('/result');
     }
-    await updateProcessedSize();
   };
 
   const editingTextObj = editorMode === 'single' 
