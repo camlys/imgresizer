@@ -76,8 +76,8 @@ export default function ResultPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="relative">
-                                            <img src={result.dataUrl} alt="Optimized image" className="rounded-lg shadow-lg w-full" />
+                                        <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center max-h-96">
+                                            <img src={result.dataUrl} alt="Optimized image" className="max-h-full object-contain" />
                                         </div>
                                         <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
                                             <p className="text-4xl font-bold">{reductionPercentage}%</p>
