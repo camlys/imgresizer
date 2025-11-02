@@ -17,6 +17,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+     {
+      url: `${baseUrl}/compress`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.5,
+    },
     {
       url: `${baseUrl}/features`,
       lastModified: new Date(),
@@ -46,6 +52,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 0.3,
+    },
+     {
+      url: `${baseUrl}/result`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.5,
     },
     {
       url: `${baseUrl}/seo-info`,
