@@ -130,8 +130,8 @@ export default function CompressPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="relative">
-                                            <iframe src={result.pdf.dataUrl} className="rounded-lg shadow-lg w-full aspect-[8.5/11]" title="PDF Preview"></iframe>
+                                        <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center aspect-[4/3]">
+                                            <iframe src={result.pdf.dataUrl} className="w-full h-full" title="PDF Preview"></iframe>
                                             <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
                                                 {qualityTextMap[result.quality]}
                                             </div>
