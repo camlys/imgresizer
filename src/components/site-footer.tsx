@@ -108,8 +108,8 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2 text-sm">
                 <li><Link href="/hub" className="text-muted-foreground hover:text-foreground">App Hub</Link></li>
                 <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Features</Link></li>
-                <li><Link href="https://www.imgresizer.xyz" className="text-muted-foreground hover:text-foreground">Image Resizer</Link></li>
-                 <li><Link href="https://www.imgresizer.xyz" className="text-muted-foreground hover:text-foreground">PDF Converter</Link></li>
+                <li><Link href="https://imgresizer.xyz" className="text-muted-foreground hover:text-foreground">Image Resizer</Link></li>
+                 <li><Link href="https://imgresizer.xyz" className="text-muted-foreground hover:text-foreground">PDF Converter</Link></li>
                  <li><Link href="/seo-info" className="text-muted-foreground hover:text-foreground">SEO Info</Link></li>
               </ul>
             </div>

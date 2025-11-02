@@ -131,7 +131,7 @@ export default function RootLayout({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: 'ImgResizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool',
-    url: 'https://www.imgresizer.xyz',
+    url: 'https://imgresizer.xyz',
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'All',
     description: 'Resize, edit, and compress photos or PDFs instantly with ImgResizer.xyz! Change image size, format, and background—all in one place. Fast, free, and mobile-friendly online editor.',
@@ -169,12 +169,12 @@ export default function RootLayout({
     creator: {
       '@type': 'Organization',
       name: 'ImgResizer',
-      url: 'https://www.imgresizer.xyz'
+      url: 'https://imgresizer.xyz'
     },
     author: {
         '@type': 'Organization',
         name: 'ImgResizer',
-        url: 'https://www.imgresizer.xyz'
+        url: 'https://imgresizer.xyz'
     },
     softwareHelp: {
         '@type': 'CreativeWork',
@@ -188,7 +188,7 @@ export default function RootLayout({
         <title>Image Resizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool</title>
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5066894312897940"
      crossOrigin="anonymous"></script>
-        <link rel="canonical" href="https://www.imgresizer.xyz" />
+        <link rel="canonical" href="https://imgresizer.xyz" />
         <meta name="description" content="Resize, edit, and compress your photos or PDFs instantly with ImgResizer.xyz! ✨ Change image size, format, and background — all in one place. Fast, free, and mobile-friendly online editor." />
         <meta name="keywords" content="image resizer, photo editor, online image editor, free photo editor, crop image, resize image, convert image format, private image editor, ImgResizer, SEO, metadata, keywords, free image editor no watermark, online photo collage maker, pdf to jpg converter online, perspective correction, photo resizer, JPG converter, image to PDF, online picture editor, photo collage maker, image compressor, change image size, edit photos online, best free photo editor, picture editor, photo editor free, edit pictures, image resizer online, resize image online, png to jpg, webp to png, image to pdf converter, secure document editing" />
         <meta name="google-site-verification" content="vAXaQAf1AwfzrK402zrQbne-DlogUKuiHaQAWg7P09A" />
@@ -211,7 +211,7 @@ export default function RootLayout({
         <meta name="twitter:image" content="https://www.imgresizer.xyz/imgresizer.png" />
         <meta property="og:title" content="Image Resizer - Free Online Image & PDF Resizer, Editor & Background Remover Tool" />
         <meta property="og:description" content="Resize, edit, and compress your photos or PDFs instantly with ImgResizer.xyz! ✨ Change image size, format, and background — all in one place. Fast, free, and mobile-friendly online editor." />
-        <meta property="og:url" content="https://www.imgresizer.xyz" />
+        <meta property="og:url" content="https://imgresizer.xyz" />
         <meta property="og:site_name" content="ImgResizer" />
         <meta property="og:image" content="https://www.imgresizer.xyz/imgresizer.png" />
         <meta property="og:image:width" content="1200" />
