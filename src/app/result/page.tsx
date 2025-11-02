@@ -50,7 +50,7 @@ export default function ResultPage() {
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <SiteHeader />
             <main className="flex-1 container mx-auto py-12 px-6">
-                <Card className="max-w-lg mx-auto">
+                <Card className="max-w-4xl mx-auto">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-3xl font-bold font-headline">
                             <Zap className="text-primary" />
@@ -67,38 +67,36 @@ export default function ResultPage() {
                                 <p>Loading result...</p>
                             </div>
                         ) : result ? (
-                            <div className="space-y-6">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <ImageIcon className="text-primary" />
-                                            Optimized Image
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center h-96">
-                                            <img src={result.dataUrl} alt="Optimized image" className="max-w-full max-h-full object-contain" />
+                            <div className="grid md:grid-cols-2 gap-8 items-start">
+                                <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center aspect-video">
+                                    <img src={result.dataUrl} alt="Optimized image" className="w-full h-full object-contain" />
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
+                                        <p className="text-4xl font-bold">{reductionPercentage}%</p>
+                                        <p className="font-semibold">Size Reduction</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-center">
+                                        <div className="p-4 bg-muted rounded-lg">
+                                            <p className="text-sm text-muted-foreground">Original Size</p>
+                                            <p className="text-xl font-bold">{formatBytes(result.originalSize)}</p>
                                         </div>
-                                        <div className="p-4 bg-green-500/10 text-green-700 rounded-lg text-center">
-                                            <p className="text-4xl font-bold">{reductionPercentage}%</p>
-                                            <p className="font-semibold">Size Reduction</p>
+                                        <div className="p-4 bg-muted rounded-lg">
+                                            <p className="text-sm text-muted-foreground">Optimized Size</p>
+                                            <p className="text-xl font-bold text-primary">{formatBytes(result.size)}</p>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-center">
-                                            <div className="p-4 bg-muted rounded-lg">
-                                                <p className="text-sm text-muted-foreground">Original Size</p>
-                                                <p className="text-xl font-bold">{formatBytes(result.originalSize)}</p>
-                                            </div>
-                                            <div className="p-4 bg-muted rounded-lg">
-                                                <p className="text-sm text-muted-foreground">Optimized Size</p>
-                                                <p className="text-xl font-bold text-primary">{formatBytes(result.size)}</p>
-                                            </div>
-                                        </div>
-                                        <Button onClick={handleDownload} className="w-full">
-                                            <Download className="mr-2" />
-                                            Download Image
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                    <Button onClick={handleDownload} className="w-full">
+                                        <Download className="mr-2" />
+                                        Download Image
+                                    </Button>
+                                    <Button asChild variant="outline" className="w-full">
+                                        <Link href="/">
+                                            <ArrowLeft className="mr-2" />
+                                            Back to Editor
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
