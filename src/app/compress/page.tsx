@@ -94,8 +94,8 @@ export default function CompressPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="relative">
-                                            <img src={result.jpeg.dataUrl} alt="Compressed JPEG image" className="rounded-lg shadow-lg w-full" />
+                                        <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center aspect-[4/3]">
+                                            <img src={result.jpeg.dataUrl} alt="Compressed JPEG image" className="w-full h-full object-contain" />
                                             <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
                                                 {qualityTextMap[result.quality]}
                                             </div>
