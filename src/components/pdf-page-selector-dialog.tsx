@@ -367,6 +367,31 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
           <DialogTitle>Import Pages</DialogTitle>
           <DialogDescription>Select pages from <span className="font-semibold text-primary">{pdfDoc?.file.name}</span> to add to the organizer.</DialogDescription>
         </DialogHeader>
+        
+        <div className="pt-4 border-b -mx-6 px-6 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="import-select-all"
+                        checked={pdfDoc?.numPages > 0 && selectedPages.length === pdfDoc?.numPages}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                    />
+                    <Label htmlFor="import-select-all" className="cursor-pointer text-sm">
+                        {selectedPages.length === pdfDoc?.numPages ? 'Deselect All' : 'Select All'}
+                    </Label>
+                </div>
+                <div className="flex items-center gap-4 sm:justify-end">
+                    <p className="text-sm text-muted-foreground">{selectedPages.length} of {pdfDoc?.numPages} pages selected.</p>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button onClick={handleImport} disabled={selectedPages.length === 0}>
+                            Import ({selectedPages.length}) Pages
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 py-4">
             {pdfDoc && Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1).map(pageNum => (
@@ -380,27 +405,6 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
             ))}
           </div>
         </ScrollArea>
-        <DialogFooter className="pt-4 border-t flex-col-reverse sm:flex-row justify-between sm:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                  id="import-select-all"
-                  checked={pdfDoc?.numPages > 0 && selectedPages.length === pdfDoc?.numPages}
-                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-              />
-              <Label htmlFor="import-select-all" className="cursor-pointer text-sm">
-                  {selectedPages.length === pdfDoc?.numPages ? 'Deselect All' : 'Select All'}
-              </Label>
-            </div>
-            <div className="flex items-center gap-4 sm:justify-end">
-              <p className="text-sm text-muted-foreground">{selectedPages.length} of {pdfDoc?.numPages} pages selected.</p>
-              <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                  <Button onClick={handleImport} disabled={selectedPages.length === 0}>
-                      Import ({selectedPages.length}) Pages
-                  </Button>
-              </div>
-            </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -957,5 +961,3 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
-
-    
