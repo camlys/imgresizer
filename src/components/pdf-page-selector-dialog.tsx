@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -386,7 +387,7 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
   onPageSelect: (docId: string, pageNum: number) => void;
-  onAddFile: (file: File) => Promise<PdfDocumentInfo | null>;
+  onAddFile: (file: File, pagesToImport?: number[]) => Promise<PdfDocumentInfo | null>;
   isPageSelecting: boolean;
 }
 
