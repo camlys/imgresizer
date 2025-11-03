@@ -31,6 +31,7 @@ import { Input } from './ui/input';
 import jsPDF from 'jspdf';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
+import { DialogFooter } from './ui/dialog';
 
 
 interface PagePreviewProps {
@@ -165,14 +166,6 @@ function PagePreview({
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onAddAfter(pageMeta)}>
-                                <PlusSquare size={14} />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Insert pages after this</p></TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onDownload(pageMeta)}>
                                 <Download size={14} />
                             </Button>
@@ -210,6 +203,18 @@ function PagePreview({
                   ref={canvasRef} 
                   className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''} cursor-pointer`}
                 />
+                <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="secondary" size="icon" className="h-8 w-8 shadow-md" onClick={() => onAddAfter(pageMeta)}>
+                                    <PlusSquare size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Insert pages after this</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
             </div>
             <div className="flex items-center gap-1 w-full justify-center">
                 {isEditingName ? (
@@ -375,11 +380,11 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
             ))}
           </div>
         </ScrollArea>
-        <div className="pt-4 border-t flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-4">
+        <DialogFooter className="pt-4 border-t flex-col-reverse sm:flex-row justify-between sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <Checkbox
                   id="import-select-all"
-                  checked={selectedPages.length === pdfDoc?.numPages}
+                  checked={pdfDoc?.numPages > 0 && selectedPages.length === pdfDoc?.numPages}
                   onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
               />
               <Label htmlFor="import-select-all" className="cursor-pointer text-sm">
@@ -395,7 +400,7 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
                   </Button>
               </div>
             </div>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -407,7 +412,7 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
   onPageSelect: (docId: string, pageNum: number) => void;
-  onAddFile: (file: File) => Promise<PdfDocumentInfo | null>;
+  onAddFile: (file: File, pagesToImport?: number[]) => Promise<PdfDocumentInfo | null>;
   isPageSelecting: boolean;
 }
 
@@ -952,3 +957,5 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
+
+    
