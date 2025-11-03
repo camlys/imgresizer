@@ -118,7 +118,6 @@ export default function Home() {
   // PDF Page Selection
   const [isPdfSelectorOpen, setIsPdfSelectorOpen] = React.useState(false);
   const [pdfDocs, setPdfDocs] = React.useState<PdfDocumentInfo[]>([]);
-  const [isFromMultiPagePdf, setIsFromMultiPagePdf] = React.useState(false);
   const [isPageSelecting, setIsPageSelecting] = React.useState(false);
 
   // PDF Password
@@ -639,7 +638,7 @@ export default function Home() {
     }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages, collageSettings.maxLayersPerPage, updateCollageSettings]);
 
 
-    const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number, isMultiPage: boolean) => {
+    const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number) => {
     setIsLoading(true);
     try {
       const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
@@ -670,7 +669,6 @@ export default function Home() {
         setProcessedSize(null);
         setMaxQualitySize(null);
         setIsLoading(false);
-        setIsFromMultiPagePdf(isMultiPage);
       };
       img.onerror = () => {
         toast({ title: "Error", description: "Could not load PDF page as image.", variant: "destructive" });
@@ -693,7 +691,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
       try {
           // Defer heavy operation to allow UI to update
           setTimeout(() => {
-              loadPageAsImage(sourceDoc.doc, pageNum, sourceDoc.file.size, sourceDoc.numPages > 1);
+              loadPageAsImage(sourceDoc.doc, pageNum, sourceDoc.file.size);
           }, 50);
       } catch (error) {
           console.error("Error handling PDF page selection:", error);
@@ -704,12 +702,9 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
     }
 }, [pdfDocs, loadPageAsImage, toast]);
 
-  const handleMultiplePdfPageSelect = React.useCallback(async (pageNums: number[]) => {
-    // This function is for collage mode and is not used in the simplified single-doc logic.
-    // However, we keep it for potential future re-integration of collage multi-page import.
-  }, []);
+  const processPdfFile = async (file: File, password?: string, pagesToImport?: number[]) => {
+    const isMainUpload = !pagesToImport;
 
-  const processPdfFile = async (file: File, password?: string, source: 'single' | 'collage' = 'single') => {
     try {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
@@ -724,21 +719,23 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
           file: file,
           doc: doc,
           numPages: doc.numPages,
+          pagesToImport: pagesToImport,
         };
 
-        if (source === 'collage') {
-          setPdfDocs(prev => [...prev, newDocInfo]);
-          if (!isPdfSelectorOpen) setIsPdfSelectorOpen(true);
-        } else {
+        if (isMainUpload) {
            setPdfDocs([newDocInfo]);
            setIsLoading(false);
            setIsPdfSelectorOpen(true);
+        } else {
+            setPdfDocs(prev => [...prev, newDocInfo]);
+            if (!isPdfSelectorOpen) setIsPdfSelectorOpen(true);
         }
+
     } catch (error: any) {
         if (error.name === 'PasswordException') {
             setIsLoading(false);
             setPasswordPdfFile(file);
-            passwordRetryFunction.current = (pw) => processPdfFile(file, pw, source);
+            passwordRetryFunction.current = (pw) => processPdfFile(file, pw, pagesToImport);
             setIsPasswordDialogOpen(true);
         } else {
             console.error("Error processing PDF:", error);
@@ -756,7 +753,6 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
   const handleImageUpload = async (file: File) => {
     setIsLoading(true);
     setPdfDocs([]);
-    setIsFromMultiPagePdf(false);
     setIsPageSelecting(false);
     
     // Reset collage mode if a new single file is uploaded
@@ -804,7 +800,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
         };
         reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-        await processPdfFile(file, undefined, 'single');
+        await processPdfFile(file, undefined);
     } else {
         toast({
             title: "Invalid File",
@@ -823,7 +819,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
       };
       reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-       await processPdfFile(file, undefined, 'collage');
+       await processPdfFile(file, undefined);
     } else {
       toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
@@ -1479,9 +1475,8 @@ const updateProcessedSize = React.useCallback(async () => {
           onOpenChange={setIsPdfSelectorOpen}
           pdfDocs={pdfDocs}
           onPageSelect={handlePdfPageSelect}
-          onMultiplePagesSelect={handleMultiplePdfPageSelect}
           isPageSelecting={isPageSelecting}
-          onAddFile={(file) => processPdfFile(file, undefined, 'collage')}
+          onAddFile={processPdfFile}
         />
         <PasswordDialog
           isOpen={isPasswordDialogOpen}
@@ -1538,7 +1533,7 @@ const updateProcessedSize = React.useCallback(async () => {
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
               onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
-              isFromMultiPagePdf={pdfDocs.length > 0 && pdfDocs.some(d => d.numPages > 1)}
+              isFromMultiPagePdf={pdfDocs.some(d => d.numPages > 1)}
               onViewPages={() => setIsPdfSelectorOpen(true)}
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
@@ -1615,9 +1610,8 @@ const updateProcessedSize = React.useCallback(async () => {
             onOpenChange={setIsPdfSelectorOpen}
             pdfDocs={pdfDocs}
             onPageSelect={handlePdfPageSelect}
-            onMultiplePagesSelect={handleMultiplePdfPageSelect}
             isPageSelecting={isPageSelecting}
-            onAddFile={(file) => processPdfFile(file, undefined, 'collage')}
+            onAddFile={processPdfFile}
         />
          <PasswordDialog
           isOpen={isPasswordDialogOpen}

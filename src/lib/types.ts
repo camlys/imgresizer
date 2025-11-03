@@ -58,6 +58,7 @@ export type SheetSettings = {
   enabled: boolean;
   horizontalLines: boolean;
   verticalLines: boolean;
+
   lineColor: string;
   spacing: number;
   marginTop: number;
@@ -150,4 +151,5 @@ export interface PdfDocumentInfo {
   file: File;
   doc: any; // pdfjsLib.PDFDocumentProxy
   numPages: number;
+  pagesToImport?: number[];
 }

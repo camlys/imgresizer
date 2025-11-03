@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -221,14 +222,156 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
     );
 }
 
+interface ImportPagePreviewProps {
+  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pageNumber: number;
+  onSelect: () => void;
+  isSelected: boolean;
+}
+
+function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportPagePreviewProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
+    
+    const renderPage = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const page = await pdfDoc.getPage(pageNumber);
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const desiredWidth = 300;
+            const viewport = page.getViewport({ scale: 1 });
+            const scale = desiredWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale });
+            
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            
+            canvas.height = scaledViewport.height;
+            canvas.width = scaledViewport.width;
+            
+            const task = page.render({ canvasContext: context, viewport: scaledViewport });
+            await task.promise;
+        } catch (error) {
+            console.error(`Failed to render page ${pageNumber}`, error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [pdfDoc, pageNumber]);
+    
+     useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: "200px" } 
+        );
+
+        if (containerRef.current) observer.observe(containerRef.current);
+        return () => {
+          if (containerRef.current) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            observer.unobserve(containerRef.current);
+          }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isVisible) renderPage();
+    }, [isVisible, renderPage]);
+
+    return (
+        <div 
+            ref={containerRef}
+            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer"
+            onClick={onSelect}
+        >
+             <div className="absolute top-3 right-3 z-10">
+                <Checkbox checked={isSelected} className="h-7 w-7 bg-background" />
+             </div>
+             <div className={`relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden ${isSelected ? 'border-primary border-2' : 'border-transparent border-2 hover:border-primary/50'}`}>
+                {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
+                <canvas ref={canvasRef} className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`} />
+             </div>
+             <p className="text-sm font-medium">Page {pageNumber}</p>
+        </div>
+    );
+}
+
+interface ImportDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  pdfDoc: PdfDocumentInfo;
+  onImport: (pagesToImport: number[]) => void;
+}
+
+function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogProps) {
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+
+  const togglePageSelection = (pageNum: number) => {
+    setSelectedPages(prev => 
+      prev.includes(pageNum) 
+        ? prev.filter(p => p !== pageNum)
+        : [...prev, pageNum]
+    );
+  };
+  
+  const handleImport = () => {
+    onImport(selectedPages);
+    onOpenChange(false);
+  };
+  
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedPages([]);
+    }
+  }, [isOpen]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Import Pages</DialogTitle>
+          <DialogDescription>Select pages from <span className="font-semibold text-primary">{pdfDoc?.file.name}</span> to add to the organizer.</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 py-4">
+            {pdfDoc && Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1).map(pageNum => (
+              <ImportPagePreview
+                key={pageNum}
+                pdfDoc={pdfDoc.doc}
+                pageNumber={pageNum}
+                onSelect={() => togglePageSelection(pageNum)}
+                isSelected={selectedPages.includes(pageNum)}
+              />
+            ))}
+          </div>
+        </ScrollArea>
+        <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleImport} disabled={selectedPages.length === 0}>
+                Import ({selectedPages.length}) Pages
+            </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
   onPageSelect: (docId: string, pageNum: number) => void;
-  onMultiplePagesSelect: (pageNums: number[]) => void;
+  onAddFile: (file: File, pagesToImport?: number[]) => void;
   isPageSelecting: boolean;
-  onAddFile: (file: File) => void;
 }
 
 export function PdfPageSelectorDialog({ 
@@ -236,9 +379,8 @@ export function PdfPageSelectorDialog({
   onOpenChange, 
   pdfDocs, 
   onPageSelect,
-  onMultiplePagesSelect,
-  isPageSelecting,
   onAddFile,
+  isPageSelecting,
 }: PdfPageSelectorDialogProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -250,12 +392,14 @@ export function PdfPageSelectorDialog({
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
     
-    // State for delete confirmation
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<string[] | null>(null);
 
     const [searchMode, setSearchMode] = useState<'text' | 'range'>('text');
     const [searchValue, setSearchValue] = useState('');
+    
+    const [isImporting, setIsImporting] = useState(false);
+    const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
 
     const generatePageKey = (docId: string, pageNumber: number) => `${docId}__${pageNumber}`;
 
@@ -531,203 +675,228 @@ export function PdfPageSelectorDialog({
         });
         setSelectedPageKeys([]); // Deselect after download
     };
-
-    const handleAddSelectedToCollage = () => {
-        if (selectedPageKeys.length > 0) {
-            // This function expects page numbers, but for simplicity in this context,
-            // we're passing the full key. This would need to be handled by the parent
-            // or the parent function signature would need to be updated.
-            // For now, we'll assume the parent can parse it.
-            // A better implementation would be to pass `[{docId, pageNum}]`.
-            const pagesToImport = selectedPageKeys.map(key => parseInt(key.split('__')[1]));
-            onMultiplePagesSelect(pagesToImport);
-        }
-    };
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
-        onAddFile(file);
+      if (file && file.type === 'application/pdf') {
+          try {
+              const arrayBuffer = await file.arrayBuffer();
+              const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+              const doc = await loadingTask.promise;
+              setPendingImportDoc({
+                  id: file.name + '-' + Date.now(),
+                  file: file,
+                  doc: doc,
+                  numPages: doc.numPages,
+              });
+              setIsImporting(true);
+          } catch (error) {
+              toast({ title: "PDF Error", description: "Could not read the selected PDF file.", variant: "destructive"});
+          }
+      } else if (file) {
+        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
       }
       if (e.target) {
         e.target.value = '';
       }
     };
+    
+    const handleImportPages = (pagesToImport: number[]) => {
+      if (pendingImportDoc) {
+        onAddFile(pendingImportDoc.file, pagesToImport);
+      }
+    };
 
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => {
-          if (!open) {
-              setPagesMeta([]);
-              setSelectedPageKeys([]);
-              setDeletedPageKeys(new Set());
-              setDeletionHistory([]);
-          }
-          onOpenChange(open);
-        }}>
-            <DialogContent
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              className="max-w-6xl h-[90vh] flex flex-col"
-            >
-                <DialogHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="flex-1">
-                          <DialogTitle>Organize and Select Pages</DialogTitle>
-                          <DialogDescription className="hidden sm:block">
-                              Click a page to edit it in the main editor.
-                          </DialogDescription>
+        <>
+            <Dialog open={isOpen} onOpenChange={(open) => {
+              if (!open) {
+                  setPagesMeta([]);
+                  setSelectedPageKeys([]);
+                  setDeletedPageKeys(new Set());
+                  setDeletionHistory([]);
+              }
+              onOpenChange(open);
+            }}>
+                <DialogContent
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  className="max-w-6xl h-[90vh] flex flex-col"
+                >
+                    <DialogHeader>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex-1">
+                              <DialogTitle>Organize and Select Pages</DialogTitle>
+                              <DialogDescription className="hidden sm:block">
+                                  Click a page to edit it in the main editor.
+                              </DialogDescription>
+                          </div>
+                           <input 
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleFileChange}
+                              accept="application/pdf"
+                              className="hidden"
+                            />
+                           {!isLoading && (
+                            <div className="flex items-center gap-2">
+                               <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                                 <FileUp className="mr-2 h-4 w-4"/> Add File
+                               </Button>
+                               <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
+                                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
+                                      {searchMode === 'text' ? 
+                                          <Search className="h-4 w-4 text-muted-foreground" /> :
+                                          <List className="h-4 w-4 text-muted-foreground" />
+                                      }
+                                  </div>
+                                  <Input 
+                                      placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
+                                      value={searchValue}
+                                      onChange={(e) => setSearchValue(e.target.value)}
+                                      onKeyDown={handleSearchKeyDown}
+                                      className="pl-8 pr-10 h-9"
+                                  />
+                                  <TooltipProvider>
+                                      <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost" size="icon"
+                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                                onClick={() => {
+                                                    setSearchMode(prev => prev === 'text' ? 'range' : 'text');
+                                                    setSearchValue('');
+                                                }}
+                                            >
+                                              {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                              <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
+                                          </TooltipContent>
+                                      </Tooltip>
+                                  </TooltipProvider>
+                               </div>
+                            </div>
+                           )}
                       </div>
-                       <input 
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept="application/pdf"
-                          className="hidden"
-                        />
-                       {!isLoading && (
-                        <div className="flex items-center gap-2">
-                           <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-                             <FileUp className="mr-2 h-4 w-4"/> Add File
-                           </Button>
-                           <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
-                              <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
-                                  {searchMode === 'text' ? 
-                                      <Search className="h-4 w-4 text-muted-foreground" /> :
-                                      <List className="h-4 w-4 text-muted-foreground" />
-                                  }
-                              </div>
-                              <Input 
-                                  placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
-                                  value={searchValue}
-                                  onChange={(e) => setSearchValue(e.target.value)}
-                                  onKeyDown={handleSearchKeyDown}
-                                  className="pl-8 pr-10 h-9"
-                              />
-                              <TooltipProvider>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost" size="icon"
-                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                            onClick={() => {
-                                                setSearchMode(prev => prev === 'text' ? 'range' : 'text');
-                                                setSearchValue('');
-                                            }}
-                                        >
-                                          {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                          <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
-                                      </TooltipContent>
-                                  </Tooltip>
-                              </TooltipProvider>
-                           </div>
-                        </div>
-                       )}
-                  </div>
-                </DialogHeader>
-                
-                {!isLoading && (
-                     <div className="flex flex-col gap-4 py-2 border-b">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id="select-all"
-                                    checked={visiblePageKeys.length > 0 && selectedPageKeys.length === visiblePageKeys.length}
-                                    onCheckedChange={handleToggleSelectAll}
-                                />
-                                <Label htmlFor="select-all" className="cursor-pointer text-sm">
-                                    {selectedPageKeys.length === visiblePageKeys.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
-                                </Label>
-                                </div>
-                                {selectedPageKeys.length > 0 && (
-                                <Button variant="destructive-outline" size="sm" onClick={() => confirmDelete(selectedPageKeys)}>
-                                    <Trash2 size={16} className="mr-2"/>
-                                    Delete ({selectedPageKeys.length})
-                                </Button>
+                    </DialogHeader>
+                    
+                    {!isLoading && (
+                         <div className="flex flex-col gap-4 py-2 border-b">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="select-all"
+                                        checked={visiblePageKeys.length > 0 && selectedPageKeys.length === visiblePageKeys.length}
+                                        onCheckedChange={handleToggleSelectAll}
+                                    />
+                                    <Label htmlFor="select-all" className="cursor-pointer text-sm">
+                                        {selectedPageKeys.length === visiblePageKeys.length ? 'Deselect All' : `Select All (${visiblePages.length})`}
+                                    </Label>
+                                    </div>
+                                    {selectedPageKeys.length > 0 && (
+                                    <Button variant="destructive-outline" size="sm" onClick={() => confirmDelete(selectedPageKeys)}>
+                                        <Trash2 size={16} className="mr-2"/>
+                                        Delete ({selectedPageKeys.length})
+                                    </Button>
+                                    )}
+                                    {deletionHistory.length > 0 && (
+                                    <div className="text-sm text-muted-foreground">
+                                        {deletedPageKeys.size} page(s) deleted.
+                                        <Button variant="link" className="p-1 h-auto" onClick={handleUndoDelete}>Undo</Button>
+                                    </div>
                                 )}
-                                {deletionHistory.length > 0 && (
-                                <div className="text-sm text-muted-foreground">
-                                    {deletedPageKeys.size} page(s) deleted.
-                                    <Button variant="link" className="p-1 h-auto" onClick={handleUndoDelete}>Undo</Button>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
+                                    <SelectTrigger className="w-[120px] h-9 text-sm">
+                                        <SelectValue placeholder="Format" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="application/pdf">PDF</SelectItem>
+                                        <SelectItem value="image/png">PNG</SelectItem>
+                                        <SelectItem value="image/jpeg">JPEG</SelectItem>
+                                        <SelectItem value="image/webp">WEBP</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handleDownloadSelected} disabled={selectedPageKeys.length === 0 || isDownloading} size="sm" className="min-w-[150px]">
+                                    {isDownloading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    Download ({selectedPageKeys.length})
+                                </Button>
+                                </div>
+                            </div>
+                         </div>
+                    )}
+                   
+                    {isLoading || isPageSelecting ? (
+                        <div className="flex-1 flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                            <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Processing pages...' : 'Loading PDF...'}</p>
+                        </div>
+                    ) : (
+                        <ScrollArea className="flex-1 -mx-6 px-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
+                               {filteredPages.map(pageMeta => {
+                                const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
+                                if (!sourceDoc) return null;
+                                return (
+                                   <PagePreview
+                                       key={generatePageKey(pageMeta.docId, pageMeta.pageNumber)}
+                                       pdfDoc={sourceDoc.doc}
+                                       pageMeta={pageMeta}
+                                       onSelect={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
+                                       isSelected={selectedPageKeys.includes(generatePageKey(pageMeta.docId, pageMeta.pageNumber))}
+                                       onToggleSelection={handleToggleSelection}
+                                       onRotate={handlePageRotate}
+                                       onDelete={() => confirmDelete([generatePageKey(pageMeta.docId, pageMeta.pageNumber)])}
+                                       onNameChange={handleNameChange}
+                                       onDownload={downloadPage}
+                                   />
+                               )})}
+                            </div>
+                             {filteredPages.length === 0 && (
+                                <div className="text-center py-16 text-muted-foreground">
+                                    <p>No pages found for your search.</p>
                                 </div>
                             )}
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                            <Select value={downloadFormat} onValueChange={(v: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf') => setDownloadFormat(v)}>
-                                <SelectTrigger className="w-[120px] h-9 text-sm">
-                                    <SelectValue placeholder="Format" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="application/pdf">PDF</SelectItem>
-                                    <SelectItem value="image/png">PNG</SelectItem>
-                                    <SelectItem value="image/jpeg">JPEG</SelectItem>
-                                    <SelectItem value="image/webp">WEBP</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button onClick={handleDownloadSelected} disabled={selectedPageKeys.length === 0 || isDownloading} size="sm" className="min-w-[150px]">
-                                {isDownloading ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Download className="mr-2 h-4 w-4" />
-                                )}
-                                Download ({selectedPageKeys.length})
-                            </Button>
-                            </div>
-                        </div>
-                     </div>
-                )}
-               
-                {isLoading || isPageSelecting ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Processing pages...' : 'Loading PDF...'}</p>
-                    </div>
-                ) : (
-                    <ScrollArea className="flex-1 -mx-6 px-6">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
-                           {filteredPages.map(pageMeta => {
-                            const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
-                            if (!sourceDoc) return null;
-                            return (
-                               <PagePreview
-                                   key={generatePageKey(pageMeta.docId, pageMeta.pageNumber)}
-                                   pdfDoc={sourceDoc.doc}
-                                   pageMeta={pageMeta}
-                                   onSelect={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
-                                   isSelected={selectedPageKeys.includes(generatePageKey(pageMeta.docId, pageMeta.pageNumber))}
-                                   onToggleSelection={handleToggleSelection}
-                                   onRotate={handlePageRotate}
-                                   onDelete={() => confirmDelete([generatePageKey(pageMeta.docId, pageMeta.pageNumber)])}
-                                   onNameChange={handleNameChange}
-                                   onDownload={downloadPage}
-                               />
-                           )})}
-                        </div>
-                         {filteredPages.length === 0 && (
-                            <div className="text-center py-16 text-muted-foreground">
-                                <p>No pages found for your search.</p>
-                            </div>
-                        )}
-                    </ScrollArea>
-                )}
-                 <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will hide {pagesToDelete?.length} page(s). You can undo this action, but they will be excluded from downloads unless restored.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={executeDelete}>Continue</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </DialogContent>
-        </Dialog>
+                        </ScrollArea>
+                    )}
+                     <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will hide {pagesToDelete?.length} page(s). You can undo this action, but they will be excluded from downloads unless restored.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={executeDelete}>Continue</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </DialogContent>
+            </Dialog>
+            
+            {pendingImportDoc && (
+                <ImportDialog
+                    isOpen={isImporting}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setPendingImportDoc(null);
+                        }
+                        setIsImporting(open);
+                    }}
+                    pdfDoc={pendingImportDoc}
+                    onImport={handleImportPages}
+                />
+            )}
+        </>
     );
 }
