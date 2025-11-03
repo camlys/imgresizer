@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -21,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, FileUp } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -31,31 +30,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from './ui/input';
 import jsPDF from 'jspdf';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
-import type { PdfDocumentInfo } from '@/lib/types';
+import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
 
-
-interface PageMetadata {
-  docId: string;
-  docName: string;
-  pageNumber: number;
-  rotation: number;
-  name: string;
-}
 
 interface PagePreviewProps {
   pdfDoc: pdfjsLib.PDFDocumentProxy;
   pageMeta: PageMetadata;
-  onSelect: () => void;
+  onSelectForEdit: () => void;
+  onSelectForImport: () => void;
   isSelected: boolean;
-  onToggleSelection: (docId: string, pageNumber: number) => void;
   onRotate: (docId: string, pageNumber: number, degree: number) => void;
   onDelete: (docId: string, pageNumber: number) => void;
   onNameChange: (docId: string, pageNumber: number, newName: string) => void;
   onDownload: (pageMeta: PageMetadata) => void;
+  onAddAfter: (pageMeta: PageMetadata) => void;
 }
 
 
-function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection, onRotate, onDelete, onNameChange, onDownload }: PagePreviewProps) {
+function PagePreview({ 
+    pdfDoc, 
+    pageMeta, 
+    onSelectForEdit,
+    onSelectForImport, 
+    isSelected, 
+    onRotate, 
+    onDelete, 
+    onNameChange, 
+    onDownload,
+    onAddAfter
+}: PagePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
@@ -140,7 +143,7 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
       if ((e.target as HTMLElement).closest('button, input, label')) {
         return;
       }
-      onSelect();
+      onSelectForEdit();
     };
 
     const handleNameSubmit = () => {
@@ -162,6 +165,14 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onAddAfter(pageMeta)}>
+                                <PlusSquare size={14} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Insert pages after this</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onDownload(pageMeta)}>
                                 <Download size={14} />
                             </Button>
@@ -180,7 +191,7 @@ function PagePreview({ pdfDoc, pageMeta, onSelect, isSelected, onToggleSelection
                 <Checkbox
                     id={`select-page-${pageMeta.docId}-${pageMeta.pageNumber}`}
                     checked={isSelected}
-                    onCheckedChange={() => onToggleSelection(pageMeta.docId, pageMeta.pageNumber)}
+                    onCheckedChange={() => onSelectForImport()}
                     className="h-7 w-7 bg-background"
                     aria-label={`Select page ${pageMeta.pageNumber} from ${pageMeta.docName}`}
                 />
@@ -353,11 +364,16 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
             ))}
           </div>
         </ScrollArea>
-        <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleImport} disabled={selectedPages.length === 0}>
-                Import ({selectedPages.length}) Pages
-            </Button>
+        <DialogFooter className="flex-row justify-between sm:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">{selectedPages.length} of {pdfDoc?.numPages} pages selected.</p>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button onClick={handleImport} disabled={selectedPages.length === 0}>
+                    Import ({selectedPages.length}) Pages
+                </Button>
+            </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -370,7 +386,7 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
   onPageSelect: (docId: string, pageNum: number) => void;
-  onAddFile: (file: File, pagesToImport?: number[]) => void;
+  onAddFile: (file: File) => Promise<PdfDocumentInfo | null>;
   isPageSelecting: boolean;
 }
 
@@ -400,6 +416,7 @@ export function PdfPageSelectorDialog({
     
     const [isImporting, setIsImporting] = useState(false);
     const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
+    const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
 
     const generatePageKey = (docId: string, pageNumber: number) => `${docId}__${pageNumber}`;
 
@@ -418,15 +435,16 @@ export function PdfPageSelectorDialog({
             setIsLoading(true);
             const allMeta: PageMetadata[] = [];
             pdfDocs.forEach(docInfo => {
-                for (let i = 1; i <= docInfo.numPages; i++) {
+                const pageNumbers = docInfo.pagesToImport || Array.from({ length: docInfo.numPages }, (_, i) => i + 1);
+                pageNumbers.forEach(pageNum => {
                     allMeta.push({
                         docId: docInfo.id,
                         docName: docInfo.file.name,
-                        pageNumber: i,
+                        pageNumber: pageNum,
                         rotation: 0,
-                        name: `${docInfo.file.name} - Page ${i}`,
+                        name: `${docInfo.file.name} - Page ${pageNum}`,
                     });
-                }
+                });
             });
             setPagesMeta(allMeta);
             setIsLoading(false);
@@ -437,6 +455,52 @@ export function PdfPageSelectorDialog({
             setSearchMode('text');
         }
     }, [pdfDocs, isOpen]);
+    
+    const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
+        const index = pagesMeta.findIndex(p => p.docId === pageMeta.docId && p.pageNumber === pageMeta.pageNumber);
+        setInsertionIndex(index + 1);
+        fileInputRef.current?.click();
+    }, [pagesMeta]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type === 'application/pdf') {
+          const newDoc = await onAddFile(file);
+          if (newDoc) {
+              setPendingImportDoc(newDoc);
+              setIsImporting(true);
+          }
+      } else if (file) {
+        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
+      }
+      if (e.target) {
+        e.target.value = '';
+      }
+    };
+    
+    const handleImportPages = (pagesToImport: number[]) => {
+      if (!pendingImportDoc) return;
+      
+      const newMetas = pagesToImport.map(pageNum => ({
+        docId: pendingImportDoc.id,
+        docName: pendingImportDoc.file.name,
+        pageNumber: pageNum,
+        rotation: 0,
+        name: `${pendingImportDoc.file.name} - Page ${pageNum}`,
+      }));
+
+      setPagesMeta(prev => {
+        const newArray = [...prev];
+        if (insertionIndex !== null) {
+          newArray.splice(insertionIndex, 0, ...newMetas);
+        } else {
+          // Fallback to appending at the end
+          newArray.push(...newMetas);
+        }
+        return newArray;
+      });
+      setInsertionIndex(null);
+    };
 
     const handleSelectPageForEdit = (docId: string, pageNum: number) => {
         onPageSelect(docId, pageNum); 
@@ -675,38 +739,6 @@ export function PdfPageSelectorDialog({
         });
         setSelectedPageKeys([]); // Deselect after download
     };
-    
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file && file.type === 'application/pdf') {
-          try {
-              const arrayBuffer = await file.arrayBuffer();
-              const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-              const doc = await loadingTask.promise;
-              setPendingImportDoc({
-                  id: file.name + '-' + Date.now(),
-                  file: file,
-                  doc: doc,
-                  numPages: doc.numPages,
-              });
-              setIsImporting(true);
-          } catch (error) {
-              toast({ title: "PDF Error", description: "Could not read the selected PDF file.", variant: "destructive"});
-          }
-      } else if (file) {
-        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
-      }
-      if (e.target) {
-        e.target.value = '';
-      }
-    };
-    
-    const handleImportPages = (pagesToImport: number[]) => {
-      if (pendingImportDoc) {
-        onAddFile(pendingImportDoc.file, pagesToImport);
-      }
-    };
-
 
     return (
         <>
@@ -728,7 +760,7 @@ export function PdfPageSelectorDialog({
                           <div className="flex-1">
                               <DialogTitle>Organize and Select Pages</DialogTitle>
                               <DialogDescription className="hidden sm:block">
-                                  Click a page to edit it in the main editor.
+                                  Click a page to edit it, or use the icons to manage pages.
                               </DialogDescription>
                           </div>
                            <input 
@@ -739,44 +771,39 @@ export function PdfPageSelectorDialog({
                               className="hidden"
                             />
                            {!isLoading && (
-                            <div className="flex items-center gap-2">
-                               <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-                                 <FileUp className="mr-2 h-4 w-4"/> Add File
-                               </Button>
-                               <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
-                                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
-                                      {searchMode === 'text' ? 
-                                          <Search className="h-4 w-4 text-muted-foreground" /> :
-                                          <List className="h-4 w-4 text-muted-foreground" />
-                                      }
-                                  </div>
-                                  <Input 
-                                      placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
-                                      value={searchValue}
-                                      onChange={(e) => setSearchValue(e.target.value)}
-                                      onKeyDown={handleSearchKeyDown}
-                                      className="pl-8 pr-10 h-9"
-                                  />
-                                  <TooltipProvider>
-                                      <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost" size="icon"
-                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                                onClick={() => {
-                                                    setSearchMode(prev => prev === 'text' ? 'range' : 'text');
-                                                    setSearchValue('');
-                                                }}
-                                            >
-                                              {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                              <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
-                                          </TooltipContent>
-                                      </Tooltip>
-                                  </TooltipProvider>
-                               </div>
+                            <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
+                                <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
+                                    {searchMode === 'text' ? 
+                                        <Search className="h-4 w-4 text-muted-foreground" /> :
+                                        <List className="h-4 w-4 text-muted-foreground" />
+                                    }
+                                </div>
+                                <Input 
+                                    placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
+                                    value={searchValue}
+                                    onChange={(e) => setSearchValue(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    className="pl-8 pr-10 h-9"
+                                />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                            onClick={() => {
+                                                setSearchMode(prev => prev === 'text' ? 'range' : 'text');
+                                                setSearchValue('');
+                                            }}
+                                        >
+                                            {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
+                                        </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Switch to {searchMode === 'text' ? 'Range Select' : 'Text Search'}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
                            )}
                       </div>
@@ -837,7 +864,7 @@ export function PdfPageSelectorDialog({
                     {isLoading || isPageSelecting ? (
                         <div className="flex-1 flex items-center justify-center">
                             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                            <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Processing pages...' : 'Loading PDF...'}</p>
+                            <p className="ml-4 text-muted-foreground">{isPageSelecting ? 'Processing page...' : 'Loading PDF...'}</p>
                         </div>
                     ) : (
                         <ScrollArea className="flex-1 -mx-6 px-6">
@@ -850,13 +877,14 @@ export function PdfPageSelectorDialog({
                                        key={generatePageKey(pageMeta.docId, pageMeta.pageNumber)}
                                        pdfDoc={sourceDoc.doc}
                                        pageMeta={pageMeta}
-                                       onSelect={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
+                                       onSelectForEdit={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
+                                       onSelectForImport={() => handleToggleSelection(pageMeta.docId, pageMeta.pageNumber)}
                                        isSelected={selectedPageKeys.includes(generatePageKey(pageMeta.docId, pageMeta.pageNumber))}
-                                       onToggleSelection={handleToggleSelection}
                                        onRotate={handlePageRotate}
                                        onDelete={() => confirmDelete([generatePageKey(pageMeta.docId, pageMeta.pageNumber)])}
                                        onNameChange={handleNameChange}
                                        onDownload={downloadPage}
+                                       onAddAfter={handleAddAfter}
                                    />
                                )})}
                             </div>

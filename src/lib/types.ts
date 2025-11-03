@@ -153,3 +153,11 @@ export interface PdfDocumentInfo {
   numPages: number;
   pagesToImport?: number[];
 }
+
+export interface PageMetadata {
+  docId: string;
+  docName: string;
+  pageNumber: number;
+  rotation: number;
+  name: string;
+}

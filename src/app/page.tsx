@@ -702,15 +702,12 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
     }
 }, [pdfDocs, loadPageAsImage, toast]);
 
-  const processPdfFile = async (file: File, password?: string, pagesToImport?: number[]) => {
-    const isMainUpload = !pagesToImport;
-
-    try {
+  const processPdfFile = useCallback(async (file: File, password?: string, pagesToImport?: number[]): Promise<PdfDocumentInfo | null> => {
+    return new Promise(async (resolve) => {
+      try {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
-        
         const doc = await loadingTask.promise;
-        
         setIsPasswordDialogOpen(false);
         setPasswordPdfFile(null);
         
@@ -719,38 +716,37 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
           file: file,
           doc: doc,
           numPages: doc.numPages,
+          pagesToImport: pagesToImport,
         };
 
         if (pagesToImport) {
-          const pages = isMainUpload ? Array.from({ length: doc.numPages }, (_, i) => i + 1) : pagesToImport;
-          const filteredDocInfo = { ...newDocInfo, numPages: pages.length, pagesToImport: pages };
-          setPdfDocs(prev => [...prev, filteredDocInfo]);
-        } else {
+          // This path is for adding pages to the organizer
           setPdfDocs(prev => [...prev, newDocInfo]);
         }
+        
+        resolve(newDocInfo);
 
-        if (!isPdfSelectorOpen) {
-          setIsPdfSelectorOpen(true);
-        }
-        setIsLoading(false);
-
-    } catch (error: any) {
+      } catch (error: any) {
         if (error.name === 'PasswordException') {
-            setIsLoading(false);
-            setPasswordPdfFile(file);
-            passwordRetryFunction.current = (pw) => processPdfFile(file, pw, pagesToImport);
-            setIsPasswordDialogOpen(true);
+          setPasswordPdfFile(file);
+          passwordRetryFunction.current = (pw) => {
+            processPdfFile(file, pw, pagesToImport).then(resolve);
+          };
+          setIsPasswordDialogOpen(true);
         } else {
-            console.error("Error processing PDF:", error);
-            toast({
-                title: "PDF Error",
-                description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
-                variant: "destructive",
-            });
-            setIsLoading(false);
+          console.error("Error processing PDF:", error);
+          toast({
+            title: "PDF Error",
+            description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
+            variant: "destructive",
+          });
         }
-    }
-  };
+        resolve(null);
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  }, [toast]);
 
 
   const handleImageUpload = async (file: File) => {
@@ -803,7 +799,11 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
         };
         reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-        await processPdfFile(file, undefined);
+        const newDoc = await processPdfFile(file, undefined);
+        if (newDoc) {
+            setPdfDocs([newDoc]);
+            setIsPdfSelectorOpen(true);
+        }
     } else {
         toast({
             title: "Invalid File",
@@ -822,7 +822,16 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
       };
       reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-       await processPdfFile(file, undefined);
+       const newDoc = await processPdfFile(file, undefined);
+       if (newDoc) {
+           setPdfDocs(prev => [...prev, newDoc]);
+           // You might want to open a selector here for the collage
+           // For now, let's assume it's handled elsewhere or the user will be notified
+           toast({ title: 'PDF Added', description: 'Go to the PDF Organizer to select pages to add.' });
+           if (!isPdfSelectorOpen) {
+               setIsPdfSelectorOpen(true);
+           }
+       }
     } else {
       toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
@@ -1045,7 +1054,7 @@ const updateProcessedSize = React.useCallback(async () => {
 
   const handleShare = React.useCallback(async () => {
     const fallbackShare = async () => {
-        const url = 'https://www.imgresizer.xyz/';
+        const url = 'https://imgresizer.xyz/';
         await navigator.clipboard.writeText(url);
         toast({
             title: "Link Copied!",
@@ -1071,7 +1080,7 @@ const updateProcessedSize = React.useCallback(async () => {
             const shareData: ShareData = {
                 title: 'ImgResizer: Free Online Image Editor',
                 text: 'Check out this image I edited with the free and private ImgResizer web app!',
-                url: 'https://www.imgresizer.xyz/',
+                url: 'https://imgresizer.xyz/',
                 files: [file]
             };
             
