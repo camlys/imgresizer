@@ -394,13 +394,14 @@ interface PdfPageSelectorDialogProps {
 export function PdfPageSelectorDialog({ 
   isOpen, 
   onOpenChange, 
-  pdfDocs, 
+  pdfDocs: initialPdfDocs, 
   onPageSelect,
   onAddFile,
   isPageSelecting,
 }: PdfPageSelectorDialogProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [pdfDocs, setPdfDocs] = useState<PdfDocumentInfo[]>(initialPdfDocs);
     const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
     const [deletedPageKeys, setDeletedPageKeys] = useState<Set<string>>(new Set());
     const [deletionHistory, setDeletionHistory] = useState<string[][]>([]);
@@ -432,10 +433,11 @@ export function PdfPageSelectorDialog({
     const visiblePageKeys = visiblePages.map(p => generatePageKey(p.docId, p.pageNumber));
 
     useEffect(() => {
-        if (pdfDocs.length > 0 && isOpen) {
+        if (initialPdfDocs.length > 0 && isOpen) {
+            setPdfDocs(initialPdfDocs);
             setIsLoading(true);
             const allMeta: PageMetadata[] = [];
-            pdfDocs.forEach(docInfo => {
+            initialPdfDocs.forEach(docInfo => {
                 const pageNumbers = docInfo.pagesToImport || Array.from({ length: docInfo.numPages }, (_, i) => i + 1);
                 pageNumbers.forEach(pageNum => {
                     allMeta.push({
@@ -455,7 +457,7 @@ export function PdfPageSelectorDialog({
             setSearchValue('');
             setSearchMode('text');
         }
-    }, [pdfDocs, isOpen]);
+    }, [initialPdfDocs, isOpen]);
     
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
         const index = pagesMeta.findIndex(p => p.docId === pageMeta.docId && p.pageNumber === pageMeta.pageNumber);
@@ -468,6 +470,7 @@ export function PdfPageSelectorDialog({
       if (file && file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
           if (newDoc) {
+              setPdfDocs(prev => [...prev, newDoc]);
               setPendingImportDoc(newDoc);
               setIsImporting(true);
           }
