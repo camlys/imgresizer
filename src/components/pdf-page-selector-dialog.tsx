@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -326,6 +325,15 @@ interface ImportDialogProps {
 function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogProps) {
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
 
+  useEffect(() => {
+    if (isOpen && pdfDoc) {
+      // Select all pages by default
+      setSelectedPages(Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1));
+    } else if (!isOpen) {
+      setSelectedPages([]);
+    }
+  }, [isOpen, pdfDoc]);
+
   const togglePageSelection = (pageNum: number) => {
     setSelectedPages(prev => 
       prev.includes(pageNum) 
@@ -333,18 +341,20 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
         : [...prev, pageNum]
     );
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPages(Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1));
+    } else {
+      setSelectedPages([]);
+    }
+  };
   
   const handleImport = () => {
-    onImport(selectedPages);
+    onImport(selectedPages.sort((a, b) => a - b));
     onOpenChange(false);
   };
   
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedPages([]);
-    }
-  }, [isOpen]);
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
@@ -365,17 +375,27 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
             ))}
           </div>
         </ScrollArea>
-        <DialogFooter className="flex-row justify-between sm:justify-between">
-            <div>
+        <div className="pt-4 border-t flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                  id="import-select-all"
+                  checked={selectedPages.length === pdfDoc?.numPages}
+                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+              />
+              <Label htmlFor="import-select-all" className="cursor-pointer text-sm">
+                  {selectedPages.length === pdfDoc?.numPages ? 'Deselect All' : 'Select All'}
+              </Label>
+            </div>
+            <div className="flex items-center gap-4 sm:justify-end">
               <p className="text-sm text-muted-foreground">{selectedPages.length} of {pdfDoc?.numPages} pages selected.</p>
+              <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                  <Button onClick={handleImport} disabled={selectedPages.length === 0}>
+                      Import ({selectedPages.length}) Pages
+                  </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleImport} disabled={selectedPages.length === 0}>
-                    Import ({selectedPages.length}) Pages
-                </Button>
-            </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -387,7 +407,7 @@ interface PdfPageSelectorDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
   onPageSelect: (docId: string, pageNum: number) => void;
-  onAddFile: (file: File, pagesToImport?: number[]) => Promise<PdfDocumentInfo | null>;
+  onAddFile: (file: File) => Promise<PdfDocumentInfo | null>;
   isPageSelecting: boolean;
 }
 
@@ -460,7 +480,7 @@ export function PdfPageSelectorDialog({
     }, [initialPdfDocs, isOpen]);
     
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
-        const index = pagesMeta.findIndex(p => p.docId === pageMeta.docId && p.pageNumber === pageMeta.pageNumber);
+        const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber) === generatePageKey(pageMeta.docId, pageMeta.pageNumber));
         setInsertionIndex(index + 1);
         fileInputRef.current?.click();
     }, [pagesMeta]);
@@ -531,20 +551,20 @@ export function PdfPageSelectorDialog({
         if (!searchValue) return;
         const newSelected = new Set(selectedPageKeys);
         
-        visiblePages.forEach(p => {
+        visiblePages.forEach((p, index) => {
           const ranges = searchValue.split(',');
           let shouldAdd = false;
           for (const range of ranges) {
             const trimmedRange = range.trim();
             if (trimmedRange.includes('-')) {
                 const [start, end] = trimmedRange.split('-').map(Number);
-                if (!isNaN(start) && !isNaN(end) && p.pageNumber >= Math.min(start, end) && p.pageNumber <= Math.max(start, end)) {
+                if (!isNaN(start) && !isNaN(end) && (index + 1) >= Math.min(start, end) && (index + 1) <= Math.max(start, end)) {
                     shouldAdd = true;
                     break;
                 }
             } else {
                 const num = Number(trimmedRange);
-                if (!isNaN(num) && p.pageNumber === num) {
+                if (!isNaN(num) && (index + 1) === num) {
                     shouldAdd = true;
                     break;
                 }
@@ -783,7 +803,7 @@ export function PdfPageSelectorDialog({
                                     }
                                 </div>
                                 <Input 
-                                    placeholder={searchMode === 'text' ? 'Search...' : 'e.g., 1-5, 8'}
+                                    placeholder={searchMode === 'text' ? 'Search by name...' : 'e.g., 1-5, 8'}
                                     value={searchValue}
                                     onChange={(e) => setSearchValue(e.target.value)}
                                     onKeyDown={handleSearchKeyDown}
