@@ -25,7 +25,7 @@ interface ControlPanelProps {
   setPendingCrop: (crop: CropSettings | null) => void;
   onApplyPerspectiveCrop: () => void;
   isFromMultiPagePdf: boolean;
-  onViewPages: (source: 'single' | 'collage') => void;
+  onViewPages: () => void;
   selectedTextId: string | null;
   setSelectedTextId: (id: string | null) => void;
   selectedSignatureId: string | null;
@@ -121,7 +121,7 @@ export function ControlPanel({
             originalImage={originalImage!} 
             processedSize={processedSize}
             isFromMultiPagePdf={isFromMultiPagePdf}
-            onViewPages={() => onViewPages('single')}
+            onViewPages={() => onViewPages()}
             onTargetSizeSubmit={onTargetSizeSubmit}
           />
         </TabsContent>
@@ -164,7 +164,7 @@ export function ControlPanel({
             selectedLayerIds={selectedLayerIds}
             setSelectedLayerIds={setSelectedLayerIds}
             isFromMultiPagePdf={isFromMultiPagePdf}
-            onViewPages={() => onViewPages('collage')}
+            onViewPages={() => onViewPages()}
             onAutoLayout={onAutoLayout}
             textTabContent={
                <TextTab 

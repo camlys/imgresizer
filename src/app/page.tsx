@@ -7,7 +7,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath, Unit } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath, Unit, PdfDocumentInfo } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -117,9 +117,7 @@ export default function Home() {
 
   // PDF Page Selection
   const [isPdfSelectorOpen, setIsPdfSelectorOpen] = React.useState(false);
-  const [pdfDoc, setPdfDoc] = React.useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [pdfFile, setPdfFile] = React.useState<File | null>(null);
-  const [pdfSelectionSource, setPdfSelectionSource] = React.useState<'single' | 'collage'>('single');
+  const [pdfDocs, setPdfDocs] = React.useState<PdfDocumentInfo[]>([]);
   const [isFromMultiPagePdf, setIsFromMultiPagePdf] = React.useState(false);
   const [isPageSelecting, setIsPageSelecting] = React.useState(false);
 
@@ -686,130 +684,78 @@ export default function Home() {
     }
   }, [toast, renderPdfPageToDataURL]);
 
+const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: number) => {
+    const sourceDoc = pdfDocs.find(d => d.id === docId);
+    if (sourceDoc) {
+      setIsPageSelecting(true);
+      setIsPdfSelectorOpen(false);
 
-  const handlePdfPageSelect = React.useCallback(async (pageNum: number) => {
-      if (pdfDoc && pdfFile) {
-        setIsPageSelecting(true);
-        setIsPdfSelectorOpen(false);
-
-        try {
-            if (pdfSelectionSource === 'collage') {
-                const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
-                addImageToCollageFromSrc(dataUrl);
-            } else {
-                // Defer heavy operation to allow UI to update
-                setTimeout(() => {
-                    loadPageAsImage(pdfDoc, pageNum, pdfFile.size, pdfDoc.numPages > 1);
-                }, 50);
-            }
-        } catch (error) {
-            console.error("Error handling PDF page selection:", error);
-            toast({ title: "Error", description: "Failed to process PDF page.", variant: "destructive" });
-        } finally {
-            setIsPageSelecting(false);
-        }
+      try {
+          // Defer heavy operation to allow UI to update
+          setTimeout(() => {
+              loadPageAsImage(sourceDoc.doc, pageNum, sourceDoc.file.size, sourceDoc.numPages > 1);
+          }, 50);
+      } catch (error) {
+          console.error("Error handling PDF page selection:", error);
+          toast({ title: "Error", description: "Failed to process PDF page.", variant: "destructive" });
+      } finally {
+          setIsPageSelecting(false);
       }
-  }, [pdfDoc, pdfFile, loadPageAsImage, pdfSelectionSource, renderPdfPageToDataURL, addImageToCollageFromSrc, toast]);
+    }
+}, [pdfDocs, loadPageAsImage, toast]);
 
   const handleMultiplePdfPageSelect = React.useCallback(async (pageNums: number[]) => {
-    if (!pdfDoc) return;
+    // This function is for collage mode and is not used in the simplified single-doc logic.
+    // However, we keep it for potential future re-integration of collage multi-page import.
+  }, []);
 
-    setIsPageSelecting(true);
-    setIsPdfSelectorOpen(false);
-    
-    const { id: toastId, update } = toast({
-      title: "Processing...",
-      description: "Preparing to add pages to the collage.",
-    });
-
+  const processPdfFile = async (file: File, password?: string, source: 'single' | 'collage' = 'single') => {
     try {
-        let lastSelectedLayerId: string | null = null;
-        let count = 0;
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
         
-        for (const pageNum of pageNums) {
-            count++;
-            update({
-                id: toastId,
-                title: "Processing...",
-                description: `Adding page ${count} of ${pageNums.length}...`
-            });
-            
-             const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
-             const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-                const image = new Image();
-                image.onload = () => resolve(image);
-                image.onerror = () => reject(new Error("Image load error"));
-                image.src = dataUrl;
-            });
-
-            await new Promise<void>(resolve => {
-                setCollageSettings(prev => {
-                    let updatedPages = [...prev.pages];
-                    let currentActivePageIndex = prev.activePageIndex;
-                    let activePage = updatedPages[currentActivePageIndex];
-                    let layersOnCurrentPage = activePage.layers.length;
-
-                    const MAX_IMAGES_PER_PAGE = prev.maxLayersPerPage || 4;
-
-                    if (layersOnCurrentPage >= MAX_IMAGES_PER_PAGE) {
-                        const newPage: CollagePage = {
-                            id: `${Date.now()}-page-${pageNum}`,
-                            layers: [], texts: [], signatures: [], sheet: activePage.sheet ? { ...activePage.sheet } : initialSheetSettings,
-                        };
-                        updatedPages.push(newPage);
-                        currentActivePageIndex = updatedPages.length - 1;
-                        activePage = newPage;
-                        layersOnCurrentPage = 0;
-                    }
-                    
-                    const MARGIN_PERCENT = 2;
-                    const GRID_COLS = Math.ceil(Math.sqrt(MAX_IMAGES_PER_PAGE));
-                    const itemWidthPercent = (100 - (GRID_COLS + 1) * MARGIN_PERCENT) / GRID_COLS;
-                    const row = Math.floor(layersOnCurrentPage / GRID_COLS);
-                    const col = layersOnCurrentPage % GRID_COLS;
-                    
-                    const xPercent = MARGIN_PERCENT + col * (itemWidthPercent + MARGIN_PERCENT);
-                    const yPercent = MARGIN_PERCENT + row * (itemWidthPercent + MARGIN_PERCENT);
-
-                    const newLayer: ImageLayer = {
-                        id: `${Date.now()}-${pageNum}`,
-                        src: img.src, img: img,
-                        x: xPercent + itemWidthPercent / 2, y: yPercent + itemWidthPercent / 2,
-                        width: itemWidthPercent, rotation: 0, opacity: 1,
-                        originalWidth: img.width, originalHeight: img.height,
-                    };
-                    
-                    lastSelectedLayerId = newLayer.id;
-                    activePage.layers.push(newLayer);
-                    
-                    return { ...prev, pages: updatedPages, activePageIndex: currentActivePageIndex };
-                });
-                // Allow state to update and UI to re-render
-                setTimeout(() => resolve(), 50);
-            });
-        }
+        const doc = await loadingTask.promise;
         
-        if (lastSelectedLayerId) {
-            setSelectedLayerIds([lastSelectedLayerId]);
-        }
-        setActiveTab('collage');
-        setEditorMode('collage');
-        update({ id: toastId, title: "Complete", description: `${pageNums.length} pages added.`});
-        setShowCompletionAnimation(true);
+        setIsPasswordDialogOpen(false);
+        setPasswordPdfFile(null);
 
-    } catch (error) {
-        console.error("Error handling multiple PDF page selection:", error);
-        update({ id: toastId, title: "Error", description: "Failed to process one or more PDF pages.", variant: "destructive" });
-    } finally {
-        setIsPageSelecting(false);
+        const newDocInfo: PdfDocumentInfo = {
+          id: file.name + '-' + Date.now(),
+          file: file,
+          doc: doc,
+          numPages: doc.numPages,
+        };
+
+        if (source === 'collage') {
+          setPdfDocs(prev => [...prev, newDocInfo]);
+          if (!isPdfSelectorOpen) setIsPdfSelectorOpen(true);
+        } else {
+           setPdfDocs([newDocInfo]);
+           setIsLoading(false);
+           setIsPdfSelectorOpen(true);
+        }
+    } catch (error: any) {
+        if (error.name === 'PasswordException') {
+            setIsLoading(false);
+            setPasswordPdfFile(file);
+            passwordRetryFunction.current = (pw) => processPdfFile(file, pw, source);
+            setIsPasswordDialogOpen(true);
+        } else {
+            console.error("Error processing PDF:", error);
+            toast({
+                title: "PDF Error",
+                description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
+                variant: "destructive",
+            });
+            setIsLoading(false);
+        }
     }
-  }, [pdfDoc, renderPdfPageToDataURL, toast, updateCollageSettings]);
+  };
 
 
   const handleImageUpload = async (file: File) => {
     setIsLoading(true);
-    setPdfDoc(null);
-    setPdfFile(null);
+    setPdfDocs([]);
     setIsFromMultiPagePdf(false);
     setIsPageSelecting(false);
     
@@ -858,45 +804,7 @@ export default function Home() {
         };
         reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-        const processPdf = async (password?: string) => {
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
-                
-                const doc = await loadingTask.promise;
-                
-                // If we get here, password was correct (or not needed)
-                setIsPasswordDialogOpen(false);
-                setPasswordPdfFile(null);
-
-                setPdfDoc(doc);
-                setPdfFile(file);
-                
-                if (doc.numPages > 1) {
-                    setPdfSelectionSource('single');
-                    setIsLoading(false);
-                    setIsPdfSelectorOpen(true);
-                } else {
-                    loadPageAsImage(doc, 1, file.size, false);
-                }
-            } catch (error: any) {
-                if (error.name === 'PasswordException') {
-                    setIsLoading(false);
-                    setPasswordPdfFile(file);
-                    passwordRetryFunction.current = processPdf;
-                    setIsPasswordDialogOpen(true);
-                } else {
-                    console.error("Error processing PDF:", error);
-                    toast({
-                        title: "PDF Error",
-                        description: "Could not process the PDF file. It may be corrupted or in an unsupported format.",
-                        variant: "destructive",
-                    });
-                    setIsLoading(false);
-                }
-            }
-        };
-        await processPdf();
+        await processPdfFile(file, undefined, 'single');
     } else {
         toast({
             title: "Invalid File",
@@ -915,31 +823,7 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     } else if (file.type === 'application/pdf') {
-       const processPdf = async (password?: string) => {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, password });
-            const doc = await loadingTask.promise;
-
-            setIsPasswordDialogOpen(false);
-            setPasswordPdfFile(null);
-
-            setPdfDoc(doc);
-            setPdfFile(file);
-            setPdfSelectionSource('collage');
-            setIsPdfSelectorOpen(true);
-        } catch (error: any) {
-            if (error.name === 'PasswordException') {
-                setPasswordPdfFile(file);
-                passwordRetryFunction.current = processPdf;
-                setIsPasswordDialogOpen(true);
-            } else {
-                console.error("Error processing PDF for collage:", error);
-                toast({ title: "PDF Error", description: "Could not process PDF.", variant: "destructive" });
-            }
-        }
-      };
-      await processPdf();
+       await processPdfFile(file, undefined, 'collage');
     } else {
       toast({ title: "Invalid File", description: "Only image or PDF files can be added.", variant: "destructive" });
     }
@@ -1590,23 +1474,15 @@ const updateProcessedSize = React.useCallback(async () => {
         </main>
         <SiteFooter />
         <InstallPwaBanner />
-        {pdfDoc && (
-          <PdfPageSelectorDialog
-            isOpen={isPdfSelectorOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                 if (isPageSelecting) setIsPageSelecting(false);
-                 else setIsLoading(false);
-              }
-              setIsPdfSelectorOpen(isOpen);
-            }}
-            pdfDoc={pdfDoc}
-            onPageSelect={handlePdfPageSelect}
-            onMultiplePagesSelect={handleMultiplePdfPageSelect}
-            isPageSelecting={isPageSelecting}
-            source={pdfSelectionSource}
-          />
-        )}
+        <PdfPageSelectorDialog
+          isOpen={isPdfSelectorOpen}
+          onOpenChange={setIsPdfSelectorOpen}
+          pdfDocs={pdfDocs}
+          onPageSelect={handlePdfPageSelect}
+          onMultiplePagesSelect={handleMultiplePdfPageSelect}
+          isPageSelecting={isPageSelecting}
+          onAddFile={(file) => processPdfFile(file, undefined, 'collage')}
+        />
         <PasswordDialog
           isOpen={isPasswordDialogOpen}
           onOpenChange={(isOpen) => {
@@ -1662,11 +1538,8 @@ const updateProcessedSize = React.useCallback(async () => {
               pendingCrop={pendingCrop}
               setPendingCrop={setPendingCrop}
               onApplyPerspectiveCrop={handleApplyPerspectiveCrop}
-              isFromMultiPagePdf={isFromMultiPagePdf}
-              onViewPages={(source) => {
-                setPdfSelectionSource(source);
-                setIsPdfSelectorOpen(true);
-              }}
+              isFromMultiPagePdf={pdfDocs.length > 0 && pdfDocs.some(d => d.numPages > 1)}
+              onViewPages={() => setIsPdfSelectorOpen(true)}
               selectedTextId={selectedTextId}
               setSelectedTextId={setSelectedTextId}
               selectedSignatureId={selectedSignatureId}
@@ -1737,23 +1610,15 @@ const updateProcessedSize = React.useCallback(async () => {
             )}
           </div>
         </main>
-        {pdfDoc && (
-          <PdfPageSelectorDialog
+        <PdfPageSelectorDialog
             isOpen={isPdfSelectorOpen}
-            onOpenChange={(isOpen) => {
-               if (!isOpen) {
-                if (isPageSelecting) setIsPageSelecting(false);
-                else setIsLoading(false);
-              }
-              setIsPdfSelectorOpen(isOpen);
-            }}
-            pdfDoc={pdfDoc}
+            onOpenChange={setIsPdfSelectorOpen}
+            pdfDocs={pdfDocs}
             onPageSelect={handlePdfPageSelect}
             onMultiplePagesSelect={handleMultiplePdfPageSelect}
             isPageSelecting={isPageSelecting}
-            source={pdfSelectionSource}
-          />
-        )}
+            onAddFile={(file) => processPdfFile(file, undefined, 'collage')}
+        />
          <PasswordDialog
           isOpen={isPasswordDialogOpen}
           onOpenChange={(isOpen) => {

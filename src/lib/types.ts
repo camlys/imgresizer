@@ -144,3 +144,10 @@ export type QuickActionPreset = {
   targetUnit: 'KB' | 'MB';
   autoCrop?: boolean;
 };
+
+export interface PdfDocumentInfo {
+  id: string;
+  file: File;
+  doc: any; // pdfjsLib.PDFDocumentProxy
+  numPages: number;
+}
