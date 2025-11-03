@@ -68,7 +68,7 @@ export default function ResultPage() {
                             </div>
                         ) : result ? (
                             <div className="grid md:grid-cols-2 gap-8 items-start">
-                                <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center aspect-video">
+                                <div className="relative rounded-lg shadow-lg overflow-hidden bg-muted flex justify-center items-center aspect-video p-4">
                                     <img src={result.dataUrl} alt="Optimized image" className="w-full h-full object-contain" />
                                 </div>
                                 <div className="space-y-6">
