@@ -713,23 +713,26 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
         
         setIsPasswordDialogOpen(false);
         setPasswordPdfFile(null);
-
+        
         const newDocInfo: PdfDocumentInfo = {
           id: file.name + '-' + Date.now(),
           file: file,
           doc: doc,
           numPages: doc.numPages,
-          pagesToImport: pagesToImport,
         };
 
-        if (isMainUpload) {
-           setPdfDocs([newDocInfo]);
-           setIsLoading(false);
-           setIsPdfSelectorOpen(true);
+        if (pagesToImport) {
+          const pages = isMainUpload ? Array.from({ length: doc.numPages }, (_, i) => i + 1) : pagesToImport;
+          const filteredDocInfo = { ...newDocInfo, numPages: pages.length, pagesToImport: pages };
+          setPdfDocs(prev => [...prev, filteredDocInfo]);
         } else {
-            setPdfDocs(prev => [...prev, newDocInfo]);
-            if (!isPdfSelectorOpen) setIsPdfSelectorOpen(true);
+          setPdfDocs(prev => [...prev, newDocInfo]);
         }
+
+        if (!isPdfSelectorOpen) {
+          setIsPdfSelectorOpen(true);
+        }
+        setIsLoading(false);
 
     } catch (error: any) {
         if (error.name === 'PasswordException') {
@@ -1636,3 +1639,5 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
+
+    
