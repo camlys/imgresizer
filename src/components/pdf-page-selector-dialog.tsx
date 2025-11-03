@@ -207,7 +207,7 @@ function PagePreview({
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="secondary" size="icon" className="h-8 w-8 shadow-md" onClick={() => onAddAfter(pageMeta)}>
+                                <Button size="icon" className="h-8 w-8 shadow-md bg-lime-500 hover:bg-lime-600 text-white" onClick={() => onAddAfter(pageMeta)}>
                                     <PlusSquare size={16} />
                                 </Button>
                             </TooltipTrigger>
