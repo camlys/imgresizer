@@ -368,8 +368,8 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
           <DialogDescription>Select pages from <span className="font-semibold text-primary">{pdfDoc?.file.name}</span> to add to the organizer.</DialogDescription>
         </DialogHeader>
         
-        <div className="pt-4 border-b -mx-6 px-6 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="py-2 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <Checkbox
                         id="import-select-all"
@@ -383,8 +383,8 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
                 <div className="flex items-center gap-4 sm:justify-end">
                     <p className="text-sm text-muted-foreground">{selectedPages.length} of {pdfDoc?.numPages} pages selected.</p>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button onClick={handleImport} disabled={selectedPages.length === 0}>
+                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button onClick={handleImport} disabled={selectedPages.length === 0} size="sm">
                             Import ({selectedPages.length}) Pages
                         </Button>
                     </div>
