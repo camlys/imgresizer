@@ -164,14 +164,6 @@ function PagePreview({
         >
              <div className="absolute top-3 right-3 z-10 flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onDownload(pageMeta)}>
-                                <Download size={14} />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Download this page</p></TooltipContent>
-                    </Tooltip>
                      <Tooltip>
                         <TooltipTrigger asChild>
                              <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => onDelete(pageMeta.docId, pageMeta.pageNumber)}>
@@ -203,8 +195,16 @@ function PagePreview({
                   ref={canvasRef} 
                   className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''} cursor-pointer`}
                 />
-                <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onDownload(pageMeta)}>
+                                    <Download size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Download page as PNG</p></TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button size="icon" className="h-8 w-8 shadow-md bg-lime-500 hover:bg-lime-600 text-white" onClick={() => onAddAfter(pageMeta)}>
