@@ -786,7 +786,7 @@ export function PdfPageSelectorDialog({
             }}>
                 <DialogContent
                   onOpenAutoFocus={(e) => e.preventDefault()}
-                  className="max-w-6xl h-[90vh] flex flex-col"
+                  className="max-w-6xl w-[95vw] h-[90vh] rounded-lg flex flex-col"
                 >
                     <DialogHeader>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
