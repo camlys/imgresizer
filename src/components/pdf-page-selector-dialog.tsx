@@ -362,7 +362,7 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col rounded-lg">
         <DialogHeader>
           <DialogTitle>Import Pages</DialogTitle>
           <DialogDescription>Select pages from <span className="font-semibold text-primary">{pdfDoc?.file.name}</span> to add to the organizer.</DialogDescription>
