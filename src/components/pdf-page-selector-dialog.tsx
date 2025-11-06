@@ -33,6 +33,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/t
 import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
 import { DialogFooter } from './ui/dialog';
 import { useRouter } from 'next/navigation';
+import { compressionCache } from '@/lib/compression-cache';
 
 
 interface PagePreviewProps {
@@ -919,7 +920,7 @@ export function PdfPageSelectorDialog({
                 quality: quality,
             };
 
-            sessionStorage.setItem('compressionResult', JSON.stringify(compressionResult));
+            compressionCache.set(compressionResult);
             router.push('/compress');
 
         } catch (e) {
