@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -362,7 +362,10 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col rounded-lg">
+      <DialogContent 
+        className="max-w-6xl w-[95vw] h-[90vh] flex flex-col rounded-lg"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Import Pages</DialogTitle>
           <DialogDescription>Select pages from <span className="font-semibold text-primary">{pdfDoc?.file.name}</span> to add to the organizer.</DialogDescription>
@@ -493,6 +496,11 @@ export function PdfPageSelectorDialog({
         setInsertionIndex(index + 1);
         fileInputRef.current?.click();
     }, [pagesMeta]);
+
+    const handleAddNewPages = () => {
+        setInsertionIndex(pagesMeta.length);
+        fileInputRef.current?.click();
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -920,6 +928,13 @@ export function PdfPageSelectorDialog({
                                        onAddAfter={handleAddAfter}
                                    />
                                )})}
+                               <div
+                                  className="flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-all cursor-pointer aspect-[8.5/11]"
+                                  onClick={handleAddNewPages}
+                                >
+                                    <Plus className="w-8 h-8" />
+                                    <p className="text-sm font-medium text-center">Add New Page</p>
+                                </div>
                             </div>
                              {filteredPages.length === 0 && (
                                 <div className="text-center py-16 text-muted-foreground">
