@@ -1429,11 +1429,35 @@ const updateProcessedSize = React.useCallback(async () => {
     const finalBlob = await new Promise<Blob|null>(res => finalCanvas.toBlob(res, finalSettings.format, finalSettings.quality));
 
     if (finalBlob) {
+        const imageExtension = finalSettings.format.split('/')[1];
+
+        const pdf = new jsPDF();
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = finalCanvas.width;
+        const imgHeight = finalCanvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        const newImgWidth = imgWidth * ratio;
+        const newImgHeight = imgHeight * ratio;
+        const imgX = (pdfWidth - newImgWidth) / 2;
+        const imgY = (pdfHeight - newImgHeight) / 2;
+
+        pdf.addImage(finalCanvas.toDataURL(finalSettings.format, finalSettings.quality), finalSettings.format.split('/')[1].toUpperCase(), imgX, imgY, newImgWidth, newImgHeight);
+        const pdfBlob = pdf.output('blob');
+
+
         const result = {
-            dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
-            size: finalBlob.size,
+            image: {
+                dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
+                size: finalBlob.size,
+                filename: `imgresizer-export.${imageExtension}`
+            },
+            pdf: {
+                dataUrl: URL.createObjectURL(pdfBlob),
+                size: pdfBlob.size,
+                filename: `imgresizer-export.pdf`
+            },
             originalSize: originalImage.size,
-            filename: `imgresizer-export.${finalSettings.format.split('/')[1]}`
         };
         sessionStorage.setItem('optimizedResult', JSON.stringify(result));
         router.push('/result');

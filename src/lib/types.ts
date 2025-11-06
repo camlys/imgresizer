@@ -161,3 +161,17 @@ export interface PageMetadata {
   rotation: number;
   name: string;
 }
+
+export interface OptimizedResult {
+    image: {
+        dataUrl: string;
+        size: number;
+        filename: string;
+    },
+    pdf: {
+        dataUrl: string;
+        size: number;
+        filename: string;
+    },
+    originalSize: number;
+}
