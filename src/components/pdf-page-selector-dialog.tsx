@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -32,6 +32,7 @@ import jsPDF from 'jspdf';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
 import { DialogFooter } from './ui/dialog';
+import { useRouter } from 'next/navigation';
 
 
 interface PagePreviewProps {
@@ -442,6 +443,7 @@ export function PdfPageSelectorDialog({
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('application/pdf');
     const [combineImages, setCombineImages] = useState(false);
+    const router = useRouter();
     
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<string[] | null>(null);
@@ -689,7 +691,7 @@ export function PdfPageSelectorDialog({
         const pagesToDownload = selectedPageKeys.map(key => {
           const [docId, pageNum] = key.split('__');
           return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum))!;
-        });
+        }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
         
         if (downloadFormat === 'application/pdf') {
             try {
@@ -835,6 +837,102 @@ export function PdfPageSelectorDialog({
         setSelectedPageKeys([]); // Deselect after download
     };
 
+    const handleCompressSelected = async (quality: 'less' | 'medium' | 'extreme') => {
+        if (selectedPageKeys.length === 0) {
+            toast({ title: 'No Pages Selected', description: 'Please select pages to compress.', variant: 'destructive' });
+            return;
+        }
+        
+        setIsDownloading(true);
+        toast({ title: 'Compressing...', description: `Combining ${selectedPageKeys.length} pages and compressing...` });
+
+        try {
+            const pagesToProcess = selectedPageKeys.map(key => {
+                const [docId, pageNum] = key.split('__');
+                return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum))!;
+            }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
+
+            // Create a single PDF from selected pages
+            const firstPageMeta = pagesToProcess[0];
+            const firstDoc = pdfDocs.find(d => d.id === firstPageMeta.docId)!.doc;
+            const firstPageForPdf = await firstDoc.getPage(firstPageMeta.pageNumber);
+            const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
+            const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
+            
+            const tempPdf = new jsPDF({
+                orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
+            });
+            tempPdf.deletePage(1);
+
+            for (const pageMeta of pagesToProcess) {
+                const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                const page = await doc.getPage(pageMeta.pageNumber);
+                const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High res
+
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+                await page.render({ canvasContext: context, viewport }).promise;
+                
+                const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                tempPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
+                tempPdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pageVp.width, pageVp.height);
+            }
+            
+            const originalPdfBlob = tempPdf.output('blob');
+
+            // --- Now compress this blob ---
+            const qualityMap = { less: 0.7, medium: 0.5, extreme: 0.25 };
+            const jpegQuality = qualityMap[quality];
+
+            const firstCanvas = document.createElement('canvas');
+            const firstPage = await pdfDocs.find(d => d.id === pagesToProcess[0].docId)!.doc.getPage(pagesToProcess[0].pageNumber);
+            const vp = firstPage.getViewport({ scale: 4.0, rotation: pagesToProcess[0].rotation });
+            firstCanvas.width = vp.width; firstCanvas.height = vp.height;
+            await firstPage.render({ canvasContext: firstCanvas.getContext('2d')!, viewport: vp }).promise;
+
+            const jpegDataUrl = firstCanvas.toDataURL('image/jpeg', jpegQuality);
+            const jpegBlob = await new Promise<Blob|null>(res => firstCanvas.toBlob(res, 'image/jpeg', jpegQuality));
+
+            const compressedPdf = new jsPDF({
+                orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
+            });
+            compressedPdf.deletePage(1);
+            for (const pageMeta of pagesToProcess) {
+                 const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                 const page = await doc.getPage(pageMeta.pageNumber);
+                 const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                 compressedPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
+                 compressedPdf.addImage(jpegDataUrl, 'JPEG', 0, 0, pageVp.width, pageVp.height);
+            }
+            const compressedPdfBlob = compressedPdf.output('blob');
+
+
+            const compressionResult = {
+                jpeg: {
+                    dataUrl: jpegDataUrl,
+                    size: jpegBlob?.size || 0,
+                },
+                pdf: {
+                    dataUrl: URL.createObjectURL(compressedPdfBlob),
+                    size: compressedPdfBlob.size,
+                },
+                originalSize: originalPdfBlob.size,
+                quality: quality,
+            };
+
+            sessionStorage.setItem('compressionResult', JSON.stringify(compressionResult));
+            router.push('/compress');
+
+        } catch (e) {
+            console.error("Compression failed:", e);
+            toast({ title: 'Error', description: 'Failed to compress document.', variant: 'destructive' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     return (
         <>
             <Dialog open={isOpen} onOpenChange={(open) => {
@@ -941,6 +1039,16 @@ export function PdfPageSelectorDialog({
                                         <SelectItem value="image/png">PNG</SelectItem>
                                         <SelectItem value="image/jpeg">JPEG</SelectItem>
                                         <SelectItem value="image/webp">WEBP</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                 <Select onValueChange={(v: 'less' | 'medium' | 'extreme') => handleCompressSelected(v)}>
+                                    <SelectTrigger className="w-[130px] h-9 text-sm">
+                                        <SelectValue placeholder="Compress..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="less">Less</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="extreme">Extreme</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <Button onClick={handleDownloadSelected} disabled={selectedPageKeys.length === 0 || isDownloading} size="sm" className="min-w-[150px]">
