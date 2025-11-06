@@ -440,7 +440,7 @@ export function PdfPageSelectorDialog({
     const [selectedPageKeys, setSelectedPageKeys] = useState<string[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
-    const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('image/png');
+    const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('application/pdf');
     
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<string[] | null>(null);
