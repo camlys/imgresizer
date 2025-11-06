@@ -28,6 +28,7 @@ import jsPDF from 'jspdf';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
+import { compressionCache } from '@/lib/compression-cache';
 
 interface AppHeaderProps {
   onUpload: (file: File) => void;
@@ -149,7 +150,7 @@ export function AppHeader({
         quality: quality,
       };
 
-      sessionStorage.setItem('compressionResult', JSON.stringify(compressionResult));
+      compressionCache.set(compressionResult);
   
       router.push('/compress');
   

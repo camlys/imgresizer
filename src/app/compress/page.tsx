@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Download, Loader2, ArrowLeft, Zap, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
+import { compressionCache } from '@/lib/compression-cache';
 
 interface CompressionFormatResult {
     dataUrl: string;
@@ -28,15 +29,12 @@ export default function CompressPage() {
 
     useEffect(() => {
         try {
-            const storedResult = sessionStorage.getItem('compressionResult');
+            const storedResult = compressionCache.get();
             if (storedResult) {
-                const parsedResult = JSON.parse(storedResult);
-                // The PDF data URL needs to be handled carefully as it's a blob URL
-                // We assume it's still valid from the previous page.
-                setResult(parsedResult);
+                setResult(storedResult);
             }
         } catch (error) {
-            console.error("Failed to parse compression result from sessionStorage", error);
+            console.error("Failed to parse compression result from cache", error);
         } finally {
             setIsLoading(false);
         }
