@@ -851,6 +851,15 @@ export function PdfPageSelectorDialog({
                 const [docId, pageNum] = key.split('__');
                 return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum))!;
             }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
+            
+            let totalOriginalSize = 0;
+            pagesToProcess.forEach(p => {
+                const doc = pdfDocs.find(d => d.id === p.docId);
+                if (doc) {
+                    totalOriginalSize += doc.file.size / doc.numPages;
+                }
+            });
+
 
             // Create a single PDF from selected pages
             const firstPageMeta = pagesToProcess[0];
@@ -859,54 +868,42 @@ export function PdfPageSelectorDialog({
             const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
             const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
             
-            const tempPdf = new jsPDF({
-                orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
-            });
-            tempPdf.deletePage(1);
-
-            for (const pageMeta of pagesToProcess) {
-                const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
-                const page = await doc.getPage(pageMeta.pageNumber);
-                const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High res
-
-                const canvas = document.createElement('canvas');
-                canvas.width = viewport.width; canvas.height = viewport.height;
-                const context = canvas.getContext('2d');
-                if (!context) continue;
-                await page.render({ canvasContext: context, viewport }).promise;
-                
-                const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
-                tempPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
-                tempPdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pageVp.width, pageVp.height);
-            }
-            
-            const originalPdfBlob = tempPdf.output('blob');
-
-            // --- Now compress this blob ---
-            const qualityMap = { less: 0.7, medium: 0.5, extreme: 0.25 };
+            const qualityMap = { less: 0.75, medium: 0.5, extreme: 0.25 };
             const jpegQuality = qualityMap[quality];
-
-            const firstCanvas = document.createElement('canvas');
-            const firstPage = await pdfDocs.find(d => d.id === pagesToProcess[0].docId)!.doc.getPage(pagesToProcess[0].pageNumber);
-            const vp = firstPage.getViewport({ scale: 4.0, rotation: pagesToProcess[0].rotation });
-            firstCanvas.width = vp.width; firstCanvas.height = vp.height;
-            await firstPage.render({ canvasContext: firstCanvas.getContext('2d')!, viewport: vp }).promise;
-
-            const jpegDataUrl = firstCanvas.toDataURL('image/jpeg', jpegQuality);
-            const jpegBlob = await new Promise<Blob|null>(res => firstCanvas.toBlob(res, 'image/jpeg', jpegQuality));
 
             const compressedPdf = new jsPDF({
                 orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
             });
             compressedPdf.deletePage(1);
+
+            let firstPageCanvas: HTMLCanvasElement | null = null;
+            
             for (const pageMeta of pagesToProcess) {
                  const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
                  const page = await doc.getPage(pageMeta.pageNumber);
                  const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                 
+                 const renderVp = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
+                 const canvas = document.createElement('canvas');
+                 canvas.width = renderVp.width; canvas.height = renderVp.height;
+                 const context = canvas.getContext('2d');
+                 if (!context) continue;
+                 await page.render({ canvasContext: context, viewport: renderVp }).promise;
+
+                 if (!firstPageCanvas) {
+                    firstPageCanvas = canvas;
+                 }
+                 
+                 const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
+
                  compressedPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
-                 compressedPdf.addImage(jpegDataUrl, 'JPEG', 0, 0, pageVp.width, pageVp.height);
+                 compressedPdf.addImage(imgData, 'JPEG', 0, 0, pageVp.width, pageVp.height);
             }
+            
             const compressedPdfBlob = compressedPdf.output('blob');
+
+            const jpegDataUrl = firstPageCanvas ? firstPageCanvas.toDataURL('image/jpeg', jpegQuality) : '';
+            const jpegBlob = await new Promise<Blob|null>(res => firstPageCanvas?.toBlob(res, 'image/jpeg', jpegQuality));
 
 
             const compressionResult = {
@@ -918,7 +915,7 @@ export function PdfPageSelectorDialog({
                     dataUrl: URL.createObjectURL(compressedPdfBlob),
                     size: compressedPdfBlob.size,
                 },
-                originalSize: originalPdfBlob.size,
+                originalSize: totalOriginalSize,
                 quality: quality,
             };
 
@@ -1150,3 +1147,5 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
+
+    
