@@ -197,7 +197,7 @@ function PagePreview({
                 />
                 <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
-                         <Tooltip>
+                        <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onDownload(pageMeta)}>
                                     <Download size={16} />
@@ -441,6 +441,7 @@ export function PdfPageSelectorDialog({
     const [isDownloading, setIsDownloading] = useState(false);
     const { toast } = useToast();
     const [downloadFormat, setDownloadFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'>('application/pdf');
+    const [combineImages, setCombineImages] = useState(false);
     
     const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
     const [pagesToDelete, setPagesToDelete] = useState<string[] | null>(null);
@@ -736,6 +737,59 @@ export function PdfPageSelectorDialog({
                 });
             }
 
+        } else if (combineImages) {
+             try {
+                let totalHeight = 0;
+                let maxWidth = 0;
+                const canvases: HTMLCanvasElement[] = [];
+
+                for (const pageMeta of pagesToDownload) {
+                    const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                    const page = await doc.getPage(pageMeta.pageNumber);
+                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const context = canvas.getContext('2d');
+                    if (!context) continue;
+                    
+                    await page.render({ canvasContext: context, viewport }).promise;
+                    
+                    canvases.push(canvas);
+                    totalHeight += canvas.height;
+                    if (canvas.width > maxWidth) {
+                        maxWidth = canvas.width;
+                    }
+                }
+
+                const combinedCanvas = document.createElement('canvas');
+                combinedCanvas.width = maxWidth;
+                combinedCanvas.height = totalHeight;
+                const combinedCtx = combinedCanvas.getContext('2d');
+                if (!combinedCtx) throw new Error("Could not create combined canvas context.");
+
+                combinedCtx.fillStyle = '#ffffff';
+                combinedCtx.fillRect(0, 0, maxWidth, totalHeight);
+
+                let currentY = 0;
+                for (const canvas of canvases) {
+                    combinedCtx.drawImage(canvas, 0, currentY);
+                    currentY += canvas.height;
+                }
+
+                const dataUrl = combinedCanvas.toDataURL(downloadFormat, 1.0);
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `imgresizer-combined.${downloadFormat.split('/')[1]}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            } catch (error) {
+                console.error("Failed to generate combined image:", error);
+                toast({ title: "Error", description: "Could not create combined image.", variant: "destructive" });
+            }
         } else {
             const extension = downloadFormat.split('/')[1];
             for (const pageMeta of pagesToDownload) {
@@ -776,7 +830,7 @@ export function PdfPageSelectorDialog({
         setIsDownloading(false);
         toast({
             title: "Download Complete",
-            description: `${selectedPageKeys.length} page(s) have been downloaded.`,
+            description: `${selectedPageKeys.length} page(s) have been processed.`,
         });
         setSelectedPageKeys([]); // Deselect after download
     };
@@ -899,6 +953,18 @@ export function PdfPageSelectorDialog({
                                 </Button>
                                 </div>
                             </div>
+                            {downloadFormat !== 'application/pdf' && (
+                                <div className="flex items-center gap-2 pt-2">
+                                    <Checkbox
+                                        id="combine-images"
+                                        checked={combineImages}
+                                        onCheckedChange={(checked) => setCombineImages(checked as boolean)}
+                                    />
+                                    <Label htmlFor="combine-images" className="text-sm cursor-pointer">
+                                        Combine into a single image
+                                    </Label>
+                                </div>
+                            )}
                          </div>
                     )}
                    
