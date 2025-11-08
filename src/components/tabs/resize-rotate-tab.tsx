@@ -363,7 +363,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button variant="outline" onClick={handleTargetSizeClick} disabled={isOptimizing || !targetSize} className="px-3">
-                                          {isOptimizing ? <Loader2 className="animate-spin"/> : <Zap className="h-5 w-5" />}
+                                          {isOptimizing ? <Loader2 className="animate-spin"/> : <Zap className="h-5 w-5 text-orange-500" />}
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
