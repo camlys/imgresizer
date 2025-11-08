@@ -441,6 +441,7 @@ export function PdfPageSelectorDialog({
   isPageSelecting,
 }: PdfPageSelectorDialogProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const quickAddFileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [pdfDocs, setPdfDocs] = useState<PdfDocumentInfo[]>(initialPdfDocs);
     const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
@@ -462,7 +463,6 @@ export function PdfPageSelectorDialog({
     const [isImporting, setIsImporting] = useState(false);
     const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
     const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
-    const [isQuickAdd, setIsQuickAdd] = useState(false);
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -484,16 +484,22 @@ export function PdfPageSelectorDialog({
             setPdfDocs(initialPdfDocs);
             setIsLoading(true);
             const allMeta: PageMetadata[] = [];
+            const existingKeys = new Set<string>();
+
             initialPdfDocs.forEach(docInfo => {
                 const pageNumbers = docInfo.pagesToImport || Array.from({ length: docInfo.numPages }, (_, i) => i + 1);
                 pageNumbers.forEach(pageNum => {
-                    allMeta.push({
-                        docId: docInfo.id,
-                        docName: docInfo.file.name,
-                        pageNumber: pageNum,
-                        rotation: 0,
-                        name: `${docInfo.file.name} - Page ${pageNum}`,
-                    });
+                    const key = generatePageKey(docInfo.id, pageNum);
+                    if (!existingKeys.has(key)) {
+                        allMeta.push({
+                            docId: docInfo.id,
+                            docName: docInfo.file.name,
+                            pageNumber: pageNum,
+                            rotation: 0,
+                            name: `${docInfo.file.name} - Page ${pageNum}`,
+                        });
+                        existingKeys.add(key);
+                    }
                 });
             });
             setPagesMeta(allMeta);
@@ -507,16 +513,26 @@ export function PdfPageSelectorDialog({
     }, [initialPdfDocs, isOpen]);
     
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
-        setIsQuickAdd(false);
         const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber) === generatePageKey(pageMeta.docId, pageMeta.pageNumber));
         setInsertionIndex(index + 1);
         fileInputRef.current?.click();
     }, [pagesMeta]);
 
-    const handleAddNewPages = () => {
-        setIsQuickAdd(true);
-        setInsertionIndex(pagesMeta.length);
-        fileInputRef.current?.click();
+    const handleQuickAddFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type === 'application/pdf') {
+          const newDoc = await onAddFile(file);
+          if (newDoc) {
+              setPdfDocs(prev => [...prev, newDoc]);
+              const allPagesToImport = Array.from({ length: newDoc.numPages }, (_, i) => i + 1);
+              handleImportPages(allPagesToImport, newDoc);
+          }
+      } else if (file) {
+        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
+      }
+      if (e.target) {
+        e.target.value = ''; // Reset file input
+      }
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,13 +541,8 @@ export function PdfPageSelectorDialog({
           const newDoc = await onAddFile(file);
           if (newDoc) {
               setPdfDocs(prev => [...prev, newDoc]);
-              if (isQuickAdd) {
-                  const allPages = Array.from({ length: newDoc.numPages }, (_, i) => i + 1);
-                  handleImportPages(allPages);
-              } else {
-                  setPendingImportDoc(newDoc);
-                  setIsImporting(true);
-              }
+              setPendingImportDoc(newDoc);
+              setIsImporting(true);
           }
       } else if (file) {
         toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
@@ -539,11 +550,10 @@ export function PdfPageSelectorDialog({
       if (e.target) {
         e.target.value = '';
       }
-      setIsQuickAdd(false);
     };
     
-    const handleImportPages = (pagesToImport: number[]) => {
-      const docToImport = pendingImportDoc || pdfDocs[pdfDocs.length - 1];
+    const handleImportPages = (pagesToImport: number[], doc?: PdfDocumentInfo) => {
+      const docToImport = doc || pendingImportDoc || pdfDocs[pdfDocs.length - 1];
       if (!docToImport) return;
       
       const newMetas = pagesToImport.map(pageNum => ({
@@ -556,12 +566,20 @@ export function PdfPageSelectorDialog({
 
       setPagesMeta(prev => {
         const newArray = [...prev];
-        if (insertionIndex !== null) {
-          newArray.splice(insertionIndex, 0, ...newMetas);
-        } else {
-          newArray.push(...newMetas);
+        const insertionPoint = insertionIndex !== null ? insertionIndex : prev.length;
+        newArray.splice(insertionPoint, 0, ...newMetas);
+        
+        // Ensure uniqueness
+        const uniqueMetas: PageMetadata[] = [];
+        const seenKeys = new Set<string>();
+        for (const meta of newArray) {
+            const key = generatePageKey(meta.docId, meta.pageNumber);
+            if (!seenKeys.has(key)) {
+                uniqueMetas.push(meta);
+                seenKeys.add(key);
+            }
         }
-        return newArray;
+        return uniqueMetas;
       });
       setInsertionIndex(null);
       setPendingImportDoc(null);
@@ -1024,6 +1042,13 @@ export function PdfPageSelectorDialog({
                               accept="application/pdf"
                               className="hidden"
                             />
+                            <input 
+                              type="file"
+                              ref={quickAddFileInputRef}
+                              onChange={handleQuickAddFileChange}
+                              accept="application/pdf"
+                              className="hidden"
+                            />
                            {!isLoading && (
                             <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
@@ -1174,7 +1199,7 @@ export function PdfPageSelectorDialog({
                                )})}
                                <div
                                   className="flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-all cursor-pointer aspect-[8.5/11]"
-                                  onClick={handleAddNewPages}
+                                  onClick={() => quickAddFileInputRef.current?.click()}
                                 >
                                     <Plus className="w-8 h-8" />
                                     <p className="text-sm font-medium text-center">Add New Page</p>
@@ -1220,3 +1245,6 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
+
+
+    
