@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -143,7 +143,7 @@ function PagePreview({
     };
 
     const handleContainerClick = (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest('button, input, label')) {
+      if ((e.target as HTMLElement).closest('button, input, label, [data-drag-handle]')) {
         return;
       }
       onSelectForEdit();
@@ -216,6 +216,13 @@ function PagePreview({
                             <TooltipContent><p>Insert pages after this</p></TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+                </div>
+                <div 
+                    data-drag-handle
+                    className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing" 
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <GripVertical size={24} className="text-muted-foreground bg-background/50 rounded-sm" />
                 </div>
             </div>
             <div className="flex items-center gap-1 w-full justify-center">
@@ -455,6 +462,9 @@ export function PdfPageSelectorDialog({
     const [isImporting, setIsImporting] = useState(false);
     const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
     const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
+
+    const dragItem = useRef<string | null>(null);
+    const dragOverItem = useRef<string | null>(null);
 
     const generatePageKey = (docId: string, pageNumber: number) => `${docId}__${pageNumber}`;
 
@@ -861,51 +871,74 @@ export function PdfPageSelectorDialog({
                 }
             });
 
+            const qualityMap = { less: 0.75, medium: 0.5, extreme: 0.25 };
+            const jpegQuality = qualityMap[quality];
 
-            // Create a single PDF from selected pages
+            // --- Generate combined PDF ---
             const firstPageMeta = pagesToProcess[0];
             const firstDoc = pdfDocs.find(d => d.id === firstPageMeta.docId)!.doc;
             const firstPageForPdf = await firstDoc.getPage(firstPageMeta.pageNumber);
             const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
             const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
             
-            const qualityMap = { less: 0.75, medium: 0.5, extreme: 0.25 };
-            const jpegQuality = qualityMap[quality];
-
             const compressedPdf = new jsPDF({
                 orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
             });
             compressedPdf.deletePage(1);
-
-            let firstPageCanvas: HTMLCanvasElement | null = null;
             
             for (const pageMeta of pagesToProcess) {
                  const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
                  const page = await doc.getPage(pageMeta.pageNumber);
                  const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
-                 
                  const renderVp = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
                  const canvas = document.createElement('canvas');
                  canvas.width = renderVp.width; canvas.height = renderVp.height;
                  const context = canvas.getContext('2d');
                  if (!context) continue;
                  await page.render({ canvasContext: context, viewport: renderVp }).promise;
-
-                 if (!firstPageCanvas) {
-                    firstPageCanvas = canvas;
-                 }
-                 
                  const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
-
                  compressedPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
                  compressedPdf.addImage(imgData, 'JPEG', 0, 0, pageVp.width, pageVp.height);
             }
             
             const compressedPdfBlob = compressedPdf.output('blob');
 
-            const jpegDataUrl = firstPageCanvas ? firstPageCanvas.toDataURL('image/jpeg', jpegQuality) : '';
-            const jpegBlob = await new Promise<Blob|null>(res => firstPageCanvas?.toBlob(res, 'image/jpeg', jpegQuality));
+            // --- Generate combined image ---
+            let totalHeight = 0;
+            let maxWidth = 0;
+            const canvases: HTMLCanvasElement[] = [];
 
+            for (const pageMeta of pagesToProcess) {
+                const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                const page = await doc.getPage(pageMeta.pageNumber);
+                const viewport = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+                await page.render({ canvasContext: context, viewport }).promise;
+                canvases.push(canvas);
+                totalHeight += canvas.height;
+                if (canvas.width > maxWidth) maxWidth = canvas.width;
+            }
+
+            const combinedCanvas = document.createElement('canvas');
+            combinedCanvas.width = maxWidth;
+            combinedCanvas.height = totalHeight;
+            const combinedCtx = combinedCanvas.getContext('2d');
+            if (!combinedCtx) throw new Error("Could not create combined canvas context.");
+
+            combinedCtx.fillStyle = '#ffffff';
+            combinedCtx.fillRect(0, 0, maxWidth, totalHeight);
+
+            let currentY = 0;
+            for (const canvas of canvases) {
+                combinedCtx.drawImage(canvas, (maxWidth - canvas.width) / 2, currentY);
+                currentY += canvas.height;
+            }
+
+            const jpegDataUrl = combinedCanvas.toDataURL('image/jpeg', jpegQuality);
+            const jpegBlob = await new Promise<Blob|null>(res => combinedCanvas.toBlob(res, 'image/jpeg', jpegQuality));
 
             const compressionResult = {
                 jpeg: {
@@ -930,6 +963,26 @@ export function PdfPageSelectorDialog({
             setIsDownloading(false);
         }
     };
+    
+    const handleDragEnd = () => {
+        if (dragItem.current && dragOverItem.current && dragItem.current !== dragOverItem.current) {
+            setPagesMeta(prev => {
+                const newPages = [...prev];
+                const dragItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber) === dragItem.current);
+                const dragOverItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber) === dragOverItem.current);
+
+                if (dragItemIndex === -1 || dragOverItemIndex === -1) return prev;
+                
+                const [reorderedItem] = newPages.splice(dragItemIndex, 1);
+                newPages.splice(dragOverItemIndex, 0, reorderedItem);
+
+                return newPages;
+            });
+        }
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+
 
     return (
         <>
@@ -951,7 +1004,7 @@ export function PdfPageSelectorDialog({
                           <div className="flex-1">
                               <DialogTitle>Organize and Select Pages</DialogTitle>
                               <DialogDescription className="hidden sm:block">
-                                  Click a page to edit it, or use the icons to manage pages.
+                                  Drag to reorder pages, click a page to edit it, or use the icons to manage pages.
                               </DialogDescription>
                           </div>
                            <input 
@@ -1085,20 +1138,29 @@ export function PdfPageSelectorDialog({
                                {filteredPages.map(pageMeta => {
                                 const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
                                 if (!sourceDoc) return null;
+                                const pageKey = generatePageKey(pageMeta.docId, pageMeta.pageNumber);
                                 return (
+                                  <div 
+                                    key={pageKey}
+                                    draggable
+                                    onDragStart={() => (dragItem.current = pageKey)}
+                                    onDragEnter={() => (dragOverItem.current = pageKey)}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={(e) => e.preventDefault()}
+                                  >
                                    <PagePreview
-                                       key={generatePageKey(pageMeta.docId, pageMeta.pageNumber)}
                                        pdfDoc={sourceDoc.doc}
                                        pageMeta={pageMeta}
                                        onSelectForEdit={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
                                        onSelectForImport={() => handleToggleSelection(pageMeta.docId, pageMeta.pageNumber)}
-                                       isSelected={selectedPageKeys.includes(generatePageKey(pageMeta.docId, pageMeta.pageNumber))}
+                                       isSelected={selectedPageKeys.includes(pageKey)}
                                        onRotate={handlePageRotate}
-                                       onDelete={() => confirmDelete([generatePageKey(pageMeta.docId, pageMeta.pageNumber)])}
+                                       onDelete={() => confirmDelete([pageKey])}
                                        onNameChange={handleNameChange}
                                        onDownload={downloadPage}
                                        onAddAfter={handleAddAfter}
                                    />
+                                   </div>
                                )})}
                                <div
                                   className="flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-all cursor-pointer aspect-[8.5/11]"
