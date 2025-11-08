@@ -247,88 +247,6 @@ function PagePreview({
     );
 }
 
-interface ImportPagePreviewProps {
-  pdfDoc: pdfjsLib.PDFDocumentProxy;
-  pageNumber: number;
-  onSelect: () => void;
-  isSelected: boolean;
-}
-
-function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportPagePreviewProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isVisible, setIsVisible] = useState(false);
-    
-    const renderPage = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const page = await pdfDoc.getPage(pageNumber);
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const desiredWidth = 300;
-            const viewport = page.getViewport({ scale: 1 });
-            const scale = desiredWidth / viewport.width;
-            const scaledViewport = page.getViewport({ scale });
-            
-            const context = canvas.getContext('2d');
-            if (!context) return;
-            
-            canvas.height = scaledViewport.height;
-            canvas.width = scaledViewport.width;
-            
-            const task = page.render({ canvasContext: context, viewport: scaledViewport });
-            await task.promise;
-        } catch (error) {
-            console.error(`Failed to render page ${pageNumber}`, error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [pdfDoc, pageNumber]);
-    
-     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: "200px" } 
-        );
-
-        if (containerRef.current) observer.observe(containerRef.current);
-        return () => {
-          if (containerRef.current) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            observer.unobserve(containerRef.current);
-          }
-        };
-    }, []);
-
-    useEffect(() => {
-        if (isVisible) renderPage();
-    }, [isVisible, renderPage]);
-
-    return (
-        <div 
-            ref={containerRef}
-            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer"
-            onClick={onSelect}
-        >
-             <div className="absolute top-3 right-3 z-10">
-                <Checkbox checked={isSelected} className="h-7 w-7 bg-background" />
-             </div>
-             <div className={`relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden ${isSelected ? 'border-primary border-2' : 'border-transparent border-2 hover:border-primary/50'}`}>
-                {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
-                <canvas ref={canvasRef} className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`} />
-             </div>
-             <p className="text-sm font-medium">Page {pageNumber}</p>
-        </div>
-    );
-}
-
 interface ImportDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -422,6 +340,88 @@ function ImportDialog({ isOpen, onOpenChange, pdfDoc, onImport }: ImportDialogPr
   );
 }
 
+interface ImportPagePreviewProps {
+  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pageNumber: number;
+  onSelect: () => void;
+  isSelected: boolean;
+}
+
+function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportPagePreviewProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
+    
+    const renderPage = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const page = await pdfDoc.getPage(pageNumber);
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const desiredWidth = 300;
+            const viewport = page.getViewport({ scale: 1 });
+            const scale = desiredWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale });
+            
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            
+            canvas.height = scaledViewport.height;
+            canvas.width = scaledViewport.width;
+            
+            const task = page.render({ canvasContext: context, viewport: scaledViewport });
+            await task.promise;
+        } catch (error) {
+            console.error(`Failed to render page ${pageNumber}`, error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [pdfDoc, pageNumber]);
+    
+     useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: "200px" } 
+        );
+
+        if (containerRef.current) observer.observe(containerRef.current);
+        return () => {
+          if (containerRef.current) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            observer.unobserve(containerRef.current);
+          }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isVisible) renderPage();
+    }, [isVisible, renderPage]);
+
+    return (
+        <div 
+            ref={containerRef}
+            className="relative group flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer"
+            onClick={onSelect}
+        >
+             <div className="absolute top-3 right-3 z-10">
+                <Checkbox checked={isSelected} className="h-7 w-7 bg-background" />
+             </div>
+             <div className={`relative w-full aspect-[8.5/11] bg-muted rounded-md flex items-center justify-center overflow-hidden ${isSelected ? 'border-primary border-2' : 'border-transparent border-2 hover:border-primary/50'}`}>
+                {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
+                <canvas ref={canvasRef} className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''}`} />
+             </div>
+             <p className="text-sm font-medium">Page {pageNumber}</p>
+        </div>
+    );
+}
+
 
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
@@ -462,6 +462,7 @@ export function PdfPageSelectorDialog({
     const [isImporting, setIsImporting] = useState(false);
     const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
     const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
+    const [isQuickAdd, setIsQuickAdd] = useState(false);
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -506,12 +507,14 @@ export function PdfPageSelectorDialog({
     }, [initialPdfDocs, isOpen]);
     
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
+        setIsQuickAdd(false);
         const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber) === generatePageKey(pageMeta.docId, pageMeta.pageNumber));
         setInsertionIndex(index + 1);
         fileInputRef.current?.click();
     }, [pagesMeta]);
 
     const handleAddNewPages = () => {
+        setIsQuickAdd(true);
         setInsertionIndex(pagesMeta.length);
         fileInputRef.current?.click();
     };
@@ -522,8 +525,13 @@ export function PdfPageSelectorDialog({
           const newDoc = await onAddFile(file);
           if (newDoc) {
               setPdfDocs(prev => [...prev, newDoc]);
-              setPendingImportDoc(newDoc);
-              setIsImporting(true);
+              if (isQuickAdd) {
+                  const allPages = Array.from({ length: newDoc.numPages }, (_, i) => i + 1);
+                  handleImportPages(allPages);
+              } else {
+                  setPendingImportDoc(newDoc);
+                  setIsImporting(true);
+              }
           }
       } else if (file) {
         toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
@@ -531,17 +539,19 @@ export function PdfPageSelectorDialog({
       if (e.target) {
         e.target.value = '';
       }
+      setIsQuickAdd(false);
     };
     
     const handleImportPages = (pagesToImport: number[]) => {
-      if (!pendingImportDoc) return;
+      const docToImport = pendingImportDoc || pdfDocs[pdfDocs.length - 1];
+      if (!docToImport) return;
       
       const newMetas = pagesToImport.map(pageNum => ({
-        docId: pendingImportDoc.id,
-        docName: pendingImportDoc.file.name,
+        docId: docToImport.id,
+        docName: docToImport.file.name,
         pageNumber: pageNum,
         rotation: 0,
-        name: `${pendingImportDoc.file.name} - Page ${pageNum}`,
+        name: `${docToImport.file.name} - Page ${pageNum}`,
       }));
 
       setPagesMeta(prev => {
@@ -549,12 +559,12 @@ export function PdfPageSelectorDialog({
         if (insertionIndex !== null) {
           newArray.splice(insertionIndex, 0, ...newMetas);
         } else {
-          // Fallback to appending at the end
           newArray.push(...newMetas);
         }
         return newArray;
       });
       setInsertionIndex(null);
+      setPendingImportDoc(null);
     };
 
     const handleSelectPageForEdit = (docId: string, pageNum: number) => {
@@ -1210,5 +1220,3 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
-
-    
