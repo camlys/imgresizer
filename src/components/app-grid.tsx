@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { apps as hubApps } from "./app-hub-card";
 
-const featuredAppIds = ['bgbye', 'calput', 'qrick', 'pdfpro', 'favic'];
+const featuredAppIds = ['bgbye', 'calput', 'qrick', 'favic'];
 const featuredAppsData = hubApps.filter(app => featuredAppIds.includes(app.id));
 
 const appNameOverrides: { [key: string]: { name: string, description: string } } = {
