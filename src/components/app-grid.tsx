@@ -28,7 +28,7 @@ export function AppGrid() {
     return (
         <section className="container mx-auto py-12 px-4">
             <h2 className="text-2xl font-bold font-headline mb-8 text-center">Explore Our Other Tools</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredApps.map((app) => {
                     return (
                         <Link href={`/hub?app=${app.id}`} key={app.id} className="group">
