@@ -225,8 +225,13 @@ function PagePreview({
                 {(isLoading || !isVisible) && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
                 <canvas 
                   ref={canvasRef} 
-                  className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''} cursor-pointer`}
+                  className={`rounded-md shadow-sm max-w-full max-h-full object-contain ${isLoading ? 'hidden' : ''} cursor-pointer group-hover:opacity-50 transition-opacity`}
                 />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <div className="p-3 bg-background/80 rounded-full border">
+                        <Edit className="w-6 h-6 text-primary" />
+                    </div>
+                </div>
                 <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
                         <Tooltip>
@@ -1445,4 +1450,5 @@ export function PdfPageSelectorDialog({
 
 
     
+
 
