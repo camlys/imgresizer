@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useCallback, useRef } from 'react';
@@ -638,10 +639,12 @@ export default function Home() {
     }, [activePage, toast, collageSettings.width, collageSettings.height, collageSettings.activePageIndex, collageSettings.pages, collageSettings.maxLayersPerPage, updateCollageSettings]);
 
 
-    const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number, originalFileSize: number) => {
+    const loadPageAsImage = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy | null, pageNum: number, originalFileSize: number, src?: string) => {
     setIsLoading(true);
     try {
-      const dataUrl = await renderPdfPageToDataURL(pdfDoc, pageNum);
+      const dataUrl = src || (pdfDoc ? await renderPdfPageToDataURL(pdfDoc, pageNum) : '');
+      if (!dataUrl) throw new Error("No data URL available for image.");
+
       const img = new Image();
       img.onload = () => {
         const inset = Math.min(INSET_PX, img.width / 4, img.height / 4);
@@ -671,31 +674,31 @@ export default function Home() {
         setIsLoading(false);
       };
       img.onerror = () => {
-        toast({ title: "Error", description: "Could not load PDF page as image.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not load page as image.", variant: "destructive" });
         setIsLoading(false);
       }
       img.src = dataUrl;
     } catch (error) {
-        console.error("Error processing PDF page:", error);
-        toast({ title: "PDF Error", description: "Could not process the selected PDF page.", variant: "destructive" });
+        console.error("Error processing page:", error);
+        toast({ title: "Error", description: "Could not process the selected page.", variant: "destructive" });
         setIsLoading(false);
     }
   }, [toast, renderPdfPageToDataURL]);
 
-const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: number) => {
+const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: number, src?: string) => {
     const sourceDoc = pdfDocs.find(d => d.id === docId);
-    if (sourceDoc) {
+    if (sourceDoc || src) {
       setIsPageSelecting(true);
       setIsPdfSelectorOpen(false);
 
       try {
           // Defer heavy operation to allow UI to update
           setTimeout(() => {
-              loadPageAsImage(sourceDoc.doc, pageNum, sourceDoc.file.size);
+              loadPageAsImage(sourceDoc?.doc || null, pageNum, sourceDoc?.file.size || 0, src);
           }, 50);
       } catch (error) {
-          console.error("Error handling PDF page selection:", error);
-          toast({ title: "Error", description: "Failed to process PDF page.", variant: "destructive" });
+          console.error("Error handling page selection:", error);
+          toast({ title: "Error", description: "Failed to process page.", variant: "destructive" });
       } finally {
           setIsPageSelecting(false);
       }
@@ -1674,3 +1677,4 @@ const updateProcessedSize = React.useCallback(async () => {
 }
 
     
+

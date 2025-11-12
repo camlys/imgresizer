@@ -162,6 +162,7 @@ export interface PageMetadata {
   rotation: number;
   name: string;
   copyIndex: number;
+  src?: string; // For direct images
 }
 
 export interface OptimizedResult {

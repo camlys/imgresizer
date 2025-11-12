@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -38,7 +38,7 @@ import { compressionCache } from '@/lib/compression-cache';
 
 
 interface PagePreviewProps {
-  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   pageMeta: PageMetadata;
   onSelectForEdit: () => void;
   onSelectForImport: () => void;
@@ -78,6 +78,33 @@ function PagePreview({
             renderTaskRef.current.cancel();
         }
         setIsLoading(true);
+
+        if (pageMeta.src) { // Handle direct images
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            
+            const img = new Image();
+            img.onload = () => {
+                const desiredWidth = 300;
+                const scale = desiredWidth / img.width;
+                const scaledHeight = img.height * scale;
+
+                canvas.width = desiredWidth;
+                canvas.height = scaledHeight;
+                context.drawImage(img, 0, 0, desiredWidth, scaledHeight);
+                setIsLoading(false);
+            };
+            img.src = pageMeta.src;
+            return;
+        }
+
+        if (!pdfDoc) {
+             setIsLoading(false);
+             return;
+        }
+        
         try {
             const page = await pdfDoc.getPage(pageMeta.pageNumber);
             const canvas = canvasRef.current;
@@ -105,7 +132,7 @@ function PagePreview({
         } finally {
             setIsLoading(false);
         }
-    }, [pdfDoc, pageMeta.pageNumber]);
+    }, [pdfDoc, pageMeta]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -443,12 +470,43 @@ function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportP
     );
 }
 
+interface UploadTypeDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onSelectType: (type: 'image' | 'pdf') => void;
+}
+
+function AddFileDialog({ isOpen, onOpenChange, onSelectType }: UploadTypeDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[90vw] w-full sm:max-w-[425px] rounded-lg">
+        <DialogHeader>
+          <DialogTitle>Add to Organizer</DialogTitle>
+          <DialogDescription>
+            What would you like to add to the organizer?
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 pt-4">
+          <Button variant="outline" className="flex flex-col h-28 items-center justify-center gap-2" onClick={() => onSelectType('image')}>
+            <ImageIcon className="w-8 h-8" />
+            <span className="text-base">Image</span>
+          </Button>
+          <Button variant="outline" className="flex flex-col h-28 items-center justify-center gap-2" onClick={() => onSelectType('pdf')}>
+            <FileText className="w-8 h-8" />
+            <span className="text-base">PDF</span>
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   pdfDocs: PdfDocumentInfo[];
-  onPageSelect: (docId: string, pageNum: number) => void;
+  onPageSelect: (docId: string, pageNum: number, src?: string) => void;
   onAddFile: (file: File, pagesToImport?: number[]) => Promise<PdfDocumentInfo | null>;
   isPageSelecting: boolean;
 }
@@ -484,6 +542,8 @@ export function PdfPageSelectorDialog({
     const [isImporting, setIsImporting] = useState(false);
     const [pendingImportDoc, setPendingImportDoc] = useState<PdfDocumentInfo | null>(null);
     const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
+    
+    const [isAddFileDialogOpen, setIsAddFileDialogOpen] = useState(false);
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -537,20 +597,58 @@ export function PdfPageSelectorDialog({
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
         const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex) === generatePageKey(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex));
         setInsertionIndex(index + 1);
-        fileInputRef.current?.click();
+        setIsAddFileDialogOpen(true);
     }, [pagesMeta]);
+    
+    const handleAddFile = (type: 'image' | 'pdf') => {
+        const inputRef = insertionIndex !== null ? fileInputRef : quickAddFileInputRef;
+        if (inputRef.current) {
+            inputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+            inputRef.current.click();
+        }
+        setIsAddFileDialogOpen(false);
+    };
+    
+    const handleImageFile = useCallback((file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const src = e.target?.result as string;
+            const newImageMeta: PageMetadata = {
+                docId: file.name + '-' + Date.now(),
+                docName: file.name,
+                pageNumber: -1, // Indicates it's an image not from a PDF
+                rotation: 0,
+                name: file.name,
+                copyIndex: 0,
+                src: src,
+            };
+
+             setPagesMeta(prev => {
+                const newArray = [...prev];
+                const insertionPoint = insertionIndex !== null ? insertionIndex : prev.length;
+                newArray.splice(insertionPoint, 0, newImageMeta);
+                return newArray;
+            });
+            setInsertionIndex(null);
+        };
+        reader.readAsDataURL(file);
+    }, [insertionIndex]);
 
     const handleQuickAddFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file && file.type === 'application/pdf') {
+      if (!file) return;
+
+      if (file.type.startsWith('image/')) {
+        handleImageFile(file);
+      } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
           if (newDoc) {
               setPdfDocs(prev => [...prev, newDoc]);
               const allPagesToImport = Array.from({ length: newDoc.numPages }, (_, i) => i + 1);
               handleImportPages(allPagesToImport, newDoc);
           }
-      } else if (file) {
-        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
+      } else {
+        toast({ title: "Invalid File", description: "Please select an image or PDF file.", variant: "destructive" });
       }
       if (e.target) {
         e.target.value = ''; // Reset file input
@@ -559,15 +657,19 @@ export function PdfPageSelectorDialog({
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file && file.type === 'application/pdf') {
+      if (!file) return;
+      
+      if (file.type.startsWith('image/')) {
+        handleImageFile(file);
+      } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
           if (newDoc) {
               setPdfDocs(prev => [...prev, newDoc]);
               setPendingImportDoc(newDoc);
               setIsImporting(true);
           }
-      } else if (file) {
-        toast({ title: "Invalid File", description: "Please select a PDF file to import pages.", variant: "destructive" });
+      } else {
+        toast({ title: "Invalid File", description: "Please select an image or PDF file.", variant: "destructive" });
       }
       if (e.target) {
         e.target.value = '';
@@ -608,8 +710,8 @@ export function PdfPageSelectorDialog({
       setPendingImportDoc(null);
     };
 
-    const handleSelectPageForEdit = (docId: string, pageNum: number) => {
-        onPageSelect(docId, pageNum); 
+    const handleSelectPageForEdit = (docId: string, pageNum: number, src?: string) => {
+        onPageSelect(docId, pageNum, src); 
     };
     
     const handleToggleSelection = (docId: string, pageNumber: number, copyIndex: number) => {
@@ -723,6 +825,16 @@ export function PdfPageSelectorDialog({
     };
 
     const downloadPage = useCallback(async (pageMeta: PageMetadata) => {
+        if (pageMeta.src) { // Handle direct image download
+            const link = document.createElement('a');
+            link.href = pageMeta.src;
+            link.download = pageMeta.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+        }
+
          const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
          if (!sourceDoc) return;
 
@@ -774,9 +886,21 @@ export function PdfPageSelectorDialog({
         if (downloadFormat === 'application/pdf') {
             try {
                 const firstPageMeta = pagesToDownload[0];
-                const firstDoc = pdfDocs.find(d => d.id === firstPageMeta.docId)!.doc;
-                const firstPageForPdf = await firstDoc.getPage(firstPageMeta.pageNumber);
-                const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
+                const firstDoc = pdfDocs.find(d => d.id === firstPageMeta.docId)?.doc;
+                
+                let firstPageForPdf, viewportForPdf;
+                if (firstPageMeta.src) { // Image
+                    const img = new Image();
+                    img.src = firstPageMeta.src;
+                    await new Promise(res => img.onload=res);
+                    viewportForPdf = { width: img.width, height: img.height };
+                } else if(firstDoc) { // PDF
+                    firstPageForPdf = await firstDoc.getPage(firstPageMeta.pageNumber);
+                    viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
+                } else {
+                    throw new Error("Could not get first page for PDF");
+                }
+
                 const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
                 
                 const pdf = new jsPDF({
@@ -788,24 +912,35 @@ export function PdfPageSelectorDialog({
 
                 for (let i = 0; i < pagesToDownload.length; i++) {
                     const pageMeta = pagesToDownload[i];
-                    const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
-                    const page = await doc.getPage(pageMeta.pageNumber);
-                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High res
-
+                    
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     if (!context) continue;
 
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    await page.render({ canvasContext: context, viewport }).promise;
+                    let pageVp, imgData;
 
-                    
-                    const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                    if (pageMeta.src) { // It's an image
+                        const img = new Image();
+                        img.src = pageMeta.src;
+                        await new Promise(res => img.onload = res);
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                        imgData = canvas.toDataURL('image/jpeg', 0.9);
+                        pageVp = { width: img.width, height: img.height };
+                    } else { // It's a PDF page
+                        const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                        const page = await doc.getPage(pageMeta.pageNumber);
+                        const renderVp = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
+                        canvas.width = renderVp.width;
+                        canvas.height = renderVp.height;
+                        await page.render({ canvasContext: context, viewport: renderVp }).promise;
+                        imgData = canvas.toDataURL('image/jpeg', 0.9);
+                        pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
+                    }
+
                     pdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
-                    
-                    const imgData = canvas.toDataURL('image/png');
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
                 }
                 pdf.save('imgresizer-pages.pdf');
             } catch (error) {
@@ -824,17 +959,25 @@ export function PdfPageSelectorDialog({
                 const canvases: HTMLCanvasElement[] = [];
 
                 for (const pageMeta of pagesToDownload) {
-                    const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
-                    const page = await doc.getPage(pageMeta.pageNumber);
-                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
-                    
                     const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
                     const context = canvas.getContext('2d');
                     if (!context) continue;
-                    
-                    await page.render({ canvasContext: context, viewport }).promise;
+
+                    if (pageMeta.src) {
+                        const img = new Image();
+                        img.src = pageMeta.src;
+                        await new Promise(res => img.onload = res);
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                    } else {
+                        const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                        const page = await doc.getPage(pageMeta.pageNumber);
+                        const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        await page.render({ canvasContext: context, viewport }).promise;
+                    }
                     
                     canvases.push(canvas);
                     totalHeight += canvas.height;
@@ -854,7 +997,7 @@ export function PdfPageSelectorDialog({
 
                 let currentY = 0;
                 for (const canvas of canvases) {
-                    combinedCtx.drawImage(canvas, 0, currentY);
+                    combinedCtx.drawImage(canvas, (maxWidth - canvas.width) / 2, currentY);
                     currentY += canvas.height;
                 }
 
@@ -874,6 +1017,17 @@ export function PdfPageSelectorDialog({
             const extension = downloadFormat.split('/')[1];
             for (const pageMeta of pagesToDownload) {
                 try {
+                     if (pageMeta.src) {
+                        const link = document.createElement('a');
+                        link.href = pageMeta.src;
+                        link.download = `${pageMeta.name}`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        continue;
+                    }
+
                     const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
                     const page = await doc.getPage(pageMeta.pageNumber);
                     const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation }); // High resolution
@@ -932,62 +1086,61 @@ export function PdfPageSelectorDialog({
             
             let totalOriginalSize = 0;
             pagesToProcess.forEach(p => {
-                const doc = pdfDocs.find(d => d.id === p.docId);
-                if (doc) {
-                    totalOriginalSize += doc.file.size / doc.numPages;
+                if (p.src) {
+                    totalOriginalSize += (p.src.length * 3/4); // rough approximation
+                } else {
+                    const doc = pdfDocs.find(d => d.id === p.docId);
+                    if (doc) {
+                        totalOriginalSize += doc.file.size / doc.numPages;
+                    }
                 }
             });
 
             const qualityMap = { less: 0.75, medium: 0.5, extreme: 0.25 };
             const jpegQuality = qualityMap[quality];
 
+            const processPageToCanvas = async (pageMeta: PageMetadata) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error("Canvas context failed");
+                 if (pageMeta.src) {
+                    const img = new Image();
+                    img.src = pageMeta.src;
+                    await new Promise(res => img.onload = res);
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                } else {
+                    const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                    const page = await doc.getPage(pageMeta.pageNumber);
+                    const viewport = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
+                    canvas.width = viewport.width; canvas.height = viewport.height;
+                    await page.render({ canvasContext: context, viewport }).promise;
+                }
+                return canvas;
+            };
+
             // --- Generate combined PDF ---
-            const firstPageMeta = pagesToProcess[0];
-            const firstDoc = pdfDocs.find(d => d.id === firstPageMeta.docId)!.doc;
-            const firstPageForPdf = await firstDoc.getPage(firstPageMeta.pageNumber);
-            const viewportForPdf = firstPageForPdf.getViewport({ scale: 1, rotation: firstPageMeta.rotation });
-            const orientation = viewportForPdf.width > viewportForPdf.height ? 'l' : 'p';
-            
+            const firstPageCanvas = await processPageToCanvas(pagesToProcess[0]);
+            const orientation = firstPageCanvas.width > firstPageCanvas.height ? 'l' : 'p';
             const compressedPdf = new jsPDF({
-                orientation, unit: 'pt', format: [viewportForPdf.width, viewportForPdf.height]
+                orientation, unit: 'pt', format: [firstPageCanvas.width, firstPageCanvas.height]
             });
             compressedPdf.deletePage(1);
             
             for (const pageMeta of pagesToProcess) {
-                 const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
-                 const page = await doc.getPage(pageMeta.pageNumber);
-                 const pageVp = page.getViewport({scale: 1, rotation: pageMeta.rotation});
-                 const renderVp = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
-                 const canvas = document.createElement('canvas');
-                 canvas.width = renderVp.width; canvas.height = renderVp.height;
-                 const context = canvas.getContext('2d');
-                 if (!context) continue;
-                 await page.render({ canvasContext: context, viewport: renderVp }).promise;
+                 const canvas = await processPageToCanvas(pageMeta);
                  const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
-                 compressedPdf.addPage([pageVp.width, pageVp.height], pageVp.width > pageVp.height ? 'l' : 'p');
-                 compressedPdf.addImage(imgData, 'JPEG', 0, 0, pageVp.width, pageVp.height);
+                 compressedPdf.addPage([canvas.width, canvas.height], canvas.width > canvas.height ? 'l' : 'p');
+                 compressedPdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
             }
             
             const compressedPdfBlob = compressedPdf.output('blob');
 
             // --- Generate combined image ---
-            let totalHeight = 0;
-            let maxWidth = 0;
-            const canvases: HTMLCanvasElement[] = [];
-
-            for (const pageMeta of pagesToProcess) {
-                const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
-                const page = await doc.getPage(pageMeta.pageNumber);
-                const viewport = page.getViewport({ scale: 2.0, rotation: pageMeta.rotation });
-                const canvas = document.createElement('canvas');
-                canvas.width = viewport.width; canvas.height = viewport.height;
-                const context = canvas.getContext('2d');
-                if (!context) continue;
-                await page.render({ canvasContext: context, viewport }).promise;
-                canvases.push(canvas);
-                totalHeight += canvas.height;
-                if (canvas.width > maxWidth) maxWidth = canvas.width;
-            }
+            const canvases = await Promise.all(pagesToProcess.map(processPageToCanvas));
+            let totalHeight = canvases.reduce((sum, c) => sum + c.height, 0);
+            let maxWidth = Math.max(...canvases.map(c => c.width));
 
             const combinedCanvas = document.createElement('canvas');
             combinedCanvas.width = maxWidth;
@@ -1078,14 +1231,12 @@ export function PdfPageSelectorDialog({
                               type="file"
                               ref={fileInputRef}
                               onChange={handleFileChange}
-                              accept="application/pdf"
                               className="hidden"
                             />
                             <input 
                               type="file"
                               ref={quickAddFileInputRef}
                               onChange={handleQuickAddFileChange}
-                              accept="application/pdf"
                               className="hidden"
                             />
                            {!isLoading && (
@@ -1210,8 +1361,8 @@ export function PdfPageSelectorDialog({
                         <ScrollArea className="flex-1 -mx-6 px-6">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
                                {filteredPages.map(pageMeta => {
-                                const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
-                                if (!sourceDoc) return null;
+                                const sourceDoc = pageMeta.src ? null : pdfDocs.find(d => d.id === pageMeta.docId);
+                                if (!sourceDoc && !pageMeta.src) return null;
                                 const pageKey = generatePageKey(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex);
                                 return (
                                   <div 
@@ -1223,9 +1374,9 @@ export function PdfPageSelectorDialog({
                                     onDragOver={(e) => e.preventDefault()}
                                   >
                                    <PagePreview
-                                       pdfDoc={sourceDoc.doc}
+                                       pdfDoc={sourceDoc?.doc}
                                        pageMeta={pageMeta}
-                                       onSelectForEdit={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
+                                       onSelectForEdit={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber, pageMeta.src)}
                                        onSelectForImport={() => handleToggleSelection(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex)}
                                        isSelected={selectedPageKeys.includes(pageKey)}
                                        onRotate={handlePageRotate}
@@ -1239,7 +1390,7 @@ export function PdfPageSelectorDialog({
                                )})}
                                <div
                                   className="flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-all cursor-pointer aspect-[8.5/11]"
-                                  onClick={() => quickAddFileInputRef.current?.click()}
+                                  onClick={() => setIsAddFileDialogOpen(true)}
                                 >
                                     <Plus className="w-8 h-8" />
                                     <p className="text-sm font-medium text-center">Add New Page</p>
@@ -1268,6 +1419,12 @@ export function PdfPageSelectorDialog({
                     </AlertDialog>
                 </DialogContent>
             </Dialog>
+
+            <AddFileDialog
+                isOpen={isAddFileDialogOpen}
+                onOpenChange={setIsAddFileDialogOpen}
+                onSelectType={handleAddFile}
+            />
             
             {pendingImportDoc && (
                 <ImportDialog
@@ -1288,3 +1445,4 @@ export function PdfPageSelectorDialog({
 
 
     
+
