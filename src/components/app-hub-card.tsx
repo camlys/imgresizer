@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Sparkles, QrCode, FileEdit, Wand2 } from "lucide-react";
+import { Calculator, Sparkles, QrCode, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { InstallPwaButton } from "./install-pwa-button";
@@ -46,7 +46,7 @@ export function AppHubCard({ onAppSelect }: AppHubCardProps) {
                                 <div className="p-2 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                                     {app.icon}
                                 </div>
-                                <h5 className="font-semibold text-sm">{app.name}</h5>
+                                <h5 className="font-semibold text-sm truncate" title={app.name}>{app.name}</h5>
                             </div>
                             <p className="text-xs text-muted-foreground pl-1">{app.description}</p>
                         </div>
