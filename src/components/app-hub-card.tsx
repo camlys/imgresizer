@@ -10,9 +10,9 @@ import { InstallPwaButton } from "./install-pwa-button";
 export const apps = [
     { name: 'Camly', id: 'camly', url: '/', icon: <img src="/camly.png" alt="Camly" className="w-8 h-8 rounded-sm" />, description: 'Image Editor & Resizer' },
     { name: 'Background Remover', id: 'bgbye', url: 'https://bgbye.fyrean.com/', icon: <Wand2 size={24} />, description: 'AI Background Remover' },
-    { name: 'Calput', id: 'calput', url: 'https://calput.vercel.app/', icon: <Calculator size={24} />, description: 'Calculator with history' },
-    { name: 'Favic', id: 'favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={24} />, description: 'Generate favicons' },
-    { name: 'Qrick', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'QR & Barcode generator' },
+    { name: 'Calculator', id: 'calput', url: 'https://calput.vercel.app/', icon: <Calculator size={24} />, description: 'with history' },
+    { name: 'Favicon Generator', id: 'favic', url: 'https://favic.vercel.app/', icon: <Sparkles size={24} />, description: 'Generate favicons' },
+    { name: 'QR & Barcode Generator', id: 'qrick', url: 'https://qrick.vercel.app/', icon: <QrCode size={24} />, description: 'Create QR/Barcodes' },
 ];
 
 interface AppHubCardProps {
