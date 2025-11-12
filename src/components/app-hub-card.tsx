@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +47,9 @@ export function AppHubCard({ onAppSelect }: AppHubCardProps) {
                                 <div className="p-2 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                                     {app.icon}
                                 </div>
-                                <h5 className="font-semibold text-sm truncate" title={app.name}>{app.name}</h5>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-semibold text-sm truncate" title={app.name}>{app.name}</h5>
+                                </div>
                             </div>
                             <p className="text-xs text-muted-foreground pl-1">{app.description}</p>
                         </div>
