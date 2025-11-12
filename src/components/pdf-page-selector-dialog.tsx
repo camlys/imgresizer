@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -20,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -47,6 +48,7 @@ interface PagePreviewProps {
   onNameChange: (docId: string, pageNumber: number, newName: string) => void;
   onDownload: (pageMeta: PageMetadata) => void;
   onAddAfter: (pageMeta: PageMetadata) => void;
+  onDuplicate: (pageMeta: PageMetadata) => void;
 }
 
 
@@ -60,7 +62,8 @@ function PagePreview({
     onDelete, 
     onNameChange, 
     onDownload,
-    onAddAfter
+    onAddAfter,
+    onDuplicate
 }: PagePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +212,14 @@ function PagePreview({
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onDuplicate(pageMeta)}>
+                                    <Copy size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Duplicate page</p></TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
                                 <Button size="icon" className="h-8 w-8 shadow-md bg-lime-500 hover:bg-lime-600 text-white" onClick={() => onAddAfter(pageMeta)}>
                                     <PlusSquare size={16} />
                                 </Button>
@@ -352,8 +363,12 @@ function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportP
     const containerRef = useRef<HTMLDivElement>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
+    const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
     
     const renderPage = useCallback(async () => {
+        if (renderTaskRef.current) {
+            renderTaskRef.current.cancel();
+        }
         setIsLoading(true);
         try {
             const page = await pdfDoc.getPage(pageNumber);
@@ -372,9 +387,12 @@ function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportP
             canvas.width = scaledViewport.width;
             
             const task = page.render({ canvasContext: context, viewport: scaledViewport });
+            renderTaskRef.current = task;
             await task.promise;
         } catch (error) {
-            console.error(`Failed to render page ${pageNumber}`, error);
+             if (error instanceof Error && error.name !== 'RenderingCancelledException') {
+              console.error(`Failed to render page ${pageNumber}`, error);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -396,6 +414,9 @@ function ImportPagePreview({ pdfDoc, pageNumber, onSelect, isSelected }: ImportP
           if (containerRef.current) {
             // eslint-disable-next-line react-hooks/exhaustive-deps
             observer.unobserve(containerRef.current);
+          }
+          if (renderTaskRef.current) {
+              renderTaskRef.current.cancel();
           }
         };
     }, []);
@@ -467,9 +488,9 @@ export function PdfPageSelectorDialog({
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
 
-    const generatePageKey = (docId: string, pageNumber: number) => `${docId}__${pageNumber}`;
+    const generatePageKey = (docId: string, pageNumber: number, copyIndex: number = 0) => `${docId}__${pageNumber}__${copyIndex}`;
 
-    const visiblePages = pagesMeta.filter(p => !deletedPageKeys.has(generatePageKey(p.docId, p.pageNumber)));
+    const visiblePages = pagesMeta.filter(p => !deletedPageKeys.has(generatePageKey(p.docId, p.pageNumber, p.copyIndex)));
     
     const filteredPages = searchMode === 'text'
       ? visiblePages.filter(p =>
@@ -477,7 +498,7 @@ export function PdfPageSelectorDialog({
         )
       : visiblePages;
     
-    const visiblePageKeys = visiblePages.map(p => generatePageKey(p.docId, p.pageNumber));
+    const visiblePageKeys = visiblePages.map(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex));
 
     useEffect(() => {
         if (initialPdfDocs.length > 0 && isOpen) {
@@ -497,6 +518,7 @@ export function PdfPageSelectorDialog({
                             pageNumber: pageNum,
                             rotation: 0,
                             name: `${docInfo.file.name} - Page ${pageNum}`,
+                            copyIndex: 0,
                         });
                         existingKeys.add(key);
                     }
@@ -513,7 +535,7 @@ export function PdfPageSelectorDialog({
     }, [initialPdfDocs, isOpen]);
     
     const handleAddAfter = useCallback((pageMeta: PageMetadata) => {
-        const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber) === generatePageKey(pageMeta.docId, pageMeta.pageNumber));
+        const index = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex) === generatePageKey(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex));
         setInsertionIndex(index + 1);
         fileInputRef.current?.click();
     }, [pagesMeta]);
@@ -562,6 +584,7 @@ export function PdfPageSelectorDialog({
         pageNumber: pageNum,
         rotation: 0,
         name: `${docToImport.file.name} - Page ${pageNum}`,
+        copyIndex: 0
       }));
 
       setPagesMeta(prev => {
@@ -573,7 +596,7 @@ export function PdfPageSelectorDialog({
         const uniqueMetas: PageMetadata[] = [];
         const seenKeys = new Set<string>();
         for (const meta of newArray) {
-            const key = generatePageKey(meta.docId, meta.pageNumber);
+            const key = generatePageKey(meta.docId, meta.pageNumber, meta.copyIndex);
             if (!seenKeys.has(key)) {
                 uniqueMetas.push(meta);
                 seenKeys.add(key);
@@ -589,8 +612,8 @@ export function PdfPageSelectorDialog({
         onPageSelect(docId, pageNum); 
     };
     
-    const handleToggleSelection = (docId: string, pageNumber: number) => {
-        const key = generatePageKey(docId, pageNumber);
+    const handleToggleSelection = (docId: string, pageNumber: number, copyIndex: number) => {
+        const key = generatePageKey(docId, pageNumber, copyIndex);
         setSelectedPageKeys(prev => 
             prev.includes(key) 
                 ? prev.filter(pKey => pKey !== key) 
@@ -630,7 +653,7 @@ export function PdfPageSelectorDialog({
             }
           }
           if (shouldAdd) {
-            newSelected.add(generatePageKey(p.docId, p.pageNumber));
+            newSelected.add(generatePageKey(p.docId, p.pageNumber, p.copyIndex));
           }
         });
         
@@ -651,6 +674,22 @@ export function PdfPageSelectorDialog({
                 ? { ...p, rotation: (p.rotation + degree + 360) % 360 }
                 : p
         ));
+    };
+
+    const handleDuplicatePage = (pageToDuplicate: PageMetadata) => {
+        const newCopyIndex = (Math.max(...pagesMeta.filter(p => p.docId === pageToDuplicate.docId && p.pageNumber === pageToDuplicate.pageNumber).map(p => p.copyIndex)) || 0) + 1;
+        const newPage: PageMetadata = {
+            ...pageToDuplicate,
+            copyIndex: newCopyIndex,
+            name: `${pageToDuplicate.name} (copy ${newCopyIndex})`
+        };
+        const originalIndex = pagesMeta.findIndex(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex) === generatePageKey(pageToDuplicate.docId, pageToDuplicate.pageNumber, pageToDuplicate.copyIndex));
+        
+        const newPagesMeta = [...pagesMeta];
+        newPagesMeta.splice(originalIndex + 1, 0, newPage);
+        setPagesMeta(newPagesMeta);
+        
+        toast({ title: "Page Duplicated", description: `A copy of ${pageToDuplicate.name} has been added.`});
     };
 
     const confirmDelete = (keys: string[]) => {
@@ -728,8 +767,8 @@ export function PdfPageSelectorDialog({
         });
 
         const pagesToDownload = selectedPageKeys.map(key => {
-          const [docId, pageNum] = key.split('__');
-          return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum))!;
+          const [docId, pageNum, copyIndex] = key.split('__');
+          return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum) && p.copyIndex === parseInt(copyIndex))!;
         }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
         
         if (downloadFormat === 'application/pdf') {
@@ -887,8 +926,8 @@ export function PdfPageSelectorDialog({
 
         try {
             const pagesToProcess = selectedPageKeys.map(key => {
-                const [docId, pageNum] = key.split('__');
-                return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum))!;
+                const [docId, pageNum, copyIndex] = key.split('__');
+                return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum) && p.copyIndex === parseInt(copyIndex))!;
             }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
             
             let totalOriginalSize = 0;
@@ -996,8 +1035,8 @@ export function PdfPageSelectorDialog({
         if (dragItem.current && dragOverItem.current && dragItem.current !== dragOverItem.current) {
             setPagesMeta(prev => {
                 const newPages = [...prev];
-                const dragItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber) === dragItem.current);
-                const dragOverItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber) === dragOverItem.current);
+                const dragItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex) === dragItem.current);
+                const dragOverItemIndex = newPages.findIndex(p => generatePageKey(p.docId, p.pageNumber, p.copyIndex) === dragOverItem.current);
 
                 if (dragItemIndex === -1 || dragOverItemIndex === -1) return prev;
                 
@@ -1173,7 +1212,7 @@ export function PdfPageSelectorDialog({
                                {filteredPages.map(pageMeta => {
                                 const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
                                 if (!sourceDoc) return null;
-                                const pageKey = generatePageKey(pageMeta.docId, pageMeta.pageNumber);
+                                const pageKey = generatePageKey(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex);
                                 return (
                                   <div 
                                     key={pageKey}
@@ -1187,13 +1226,14 @@ export function PdfPageSelectorDialog({
                                        pdfDoc={sourceDoc.doc}
                                        pageMeta={pageMeta}
                                        onSelectForEdit={() => handleSelectPageForEdit(pageMeta.docId, pageMeta.pageNumber)}
-                                       onSelectForImport={() => handleToggleSelection(pageMeta.docId, pageMeta.pageNumber)}
+                                       onSelectForImport={() => handleToggleSelection(pageMeta.docId, pageMeta.pageNumber, pageMeta.copyIndex)}
                                        isSelected={selectedPageKeys.includes(pageKey)}
                                        onRotate={handlePageRotate}
                                        onDelete={() => confirmDelete([pageKey])}
                                        onNameChange={handleNameChange}
                                        onDownload={downloadPage}
                                        onAddAfter={handleAddAfter}
+                                       onDuplicate={handleDuplicatePage}
                                    />
                                    </div>
                                )})}

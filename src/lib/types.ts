@@ -1,4 +1,5 @@
 
+
 export type Unit = 'px' | 'cm' | 'mm' | 'inch';
 
 export type DrawingPath = {
@@ -160,6 +161,7 @@ export interface PageMetadata {
   pageNumber: number;
   rotation: number;
   name: string;
+  copyIndex: number;
 }
 
 export interface OptimizedResult {
