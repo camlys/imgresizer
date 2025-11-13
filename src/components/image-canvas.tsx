@@ -488,9 +488,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 if (isPrimarySelection && isCollageCropMode) {
                     ctx.save();
                     const { center, unrotatedBoundingBox } = handles;
-                    const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
-                    
-                    const scaleX = unrotatedBoundingBox.width / crop.width;
                     
                     const cropRect = {
                         x: -unrotatedBoundingBox.width / 2,
@@ -502,11 +499,15 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     ctx.translate(center.x, center.y);
                     ctx.rotate(layer.rotation * Math.PI / 180);
                     
+                    const scale = canvas.getBoundingClientRect().width / canvas.width;
+                    ctx.lineWidth = 2 / scale;
+                    ctx.setLineDash([5 / scale, 5 / scale]);
                     ctx.strokeStyle = 'rgba(255, 165, 0, 0.9)';
-                    ctx.lineWidth = 2;
                     ctx.strokeRect(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
+                    ctx.setLineDash([]);
 
-                    const handleSize = 8;
+
+                    const handleSize = 8 / scale;
                     ctx.fillStyle = 'rgba(255, 165, 0, 1)';
                     const cropHandles = getCropHandleRects(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
                     Object.values(cropHandles).forEach((rect: any) => {
@@ -598,14 +599,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
           ctx.save();
           const scale = canvas.getBoundingClientRect().width / canvas.width;
-          const lineWidth = 1 / scale;
-          ctx.lineWidth = lineWidth;
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+          
+          // Make line thick and dashed
+          ctx.lineWidth = 2 / scale;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.setLineDash([5 / scale, 5 / scale]);
           ctx.strokeRect(sx, sy, sWidth, sHeight);
           
+          // Draw grid lines inside
           if (sWidth > 30 && sHeight > 30) {
+              ctx.setLineDash([]);
+              ctx.lineWidth = 1 / scale;
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
               ctx.beginPath();
-              ctx.lineWidth = 0.5 / scale;
               ctx.moveTo(sx + sWidth / 3, sy); ctx.lineTo(sx + sWidth / 3, sy + sHeight);
               ctx.moveTo(sx + 2 * sWidth / 3, sy); ctx.lineTo(sx + 2 * sWidth / 3, sy + sHeight);
               ctx.moveTo(sx, sy + sHeight / 3); ctx.lineTo(sx + sWidth, sy + sHeight / 3);
@@ -930,8 +936,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const { corners, rotationHandle, center, unrotatedBoundingBox } = getLayerHandlePositions(layer, canvas);
             const isSelected = selectedLayerIds.includes(layer.id);
             const isPrimarySelection = isSelected && selectedLayerIds[selectedLayerIds.length - 1] === layer.id;
-
-            // Check for move interaction first
+            
             const translatedX = pos.x - center.x;
             const translatedY = pos.y - center.y;
             const angleRad = -layer.rotation * Math.PI / 180;
@@ -940,12 +945,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const rotatedX = translatedX * cosVal - translatedY * sinVal;
             const rotatedY = translatedX * sinVal + translatedY * cosVal;
 
-            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
-              return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
-            }
-
-            if (isPrimarySelection) {
-              if (isCollageCropMode) {
+            if (isPrimarySelection && isCollageCropMode) {
                   const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
                   const scaleToLayer = unrotatedBoundingBox.width / crop.width;
                   const cropRect = {
@@ -964,8 +964,14 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                   if (rotatedX >= cropRect.x && rotatedX <= cropRect.x + cropRect.width && rotatedY >= cropRect.y && rotatedY <= cropRect.y + cropRect.height) {
                       return { type: 'layer-crop-move', layerId: layer.id, cursor: 'move' };
                   }
-              }
+            }
 
+
+            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+              return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
+            }
+
+            if (isPrimarySelection) {
               for (const [key, corner] of Object.entries(corners)) {
                 if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
                   const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
