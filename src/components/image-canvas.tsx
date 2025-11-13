@@ -931,15 +931,20 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const isSelected = selectedLayerIds.includes(layer.id);
             const isPrimarySelection = isSelected && selectedLayerIds[selectedLayerIds.length - 1] === layer.id;
 
-            if (isPrimarySelection) {
-              const translatedX = pos.x - center.x;
-              const translatedY = pos.y - center.y;
-              const angleRad = -layer.rotation * Math.PI / 180;
-              const cosVal = Math.cos(angleRad);
-              const sinVal = Math.sin(angleRad);
-              const rotatedX = translatedX * cosVal - translatedY * sinVal;
-              const rotatedY = translatedX * sinVal + translatedY * cosVal;
+            // Check for move interaction first
+            const translatedX = pos.x - center.x;
+            const translatedY = pos.y - center.y;
+            const angleRad = -layer.rotation * Math.PI / 180;
+            const cosVal = Math.cos(angleRad);
+            const sinVal = Math.sin(angleRad);
+            const rotatedX = translatedX * cosVal - translatedY * sinVal;
+            const rotatedY = translatedX * sinVal + translatedY * cosVal;
 
+            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
+              return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
+            }
+
+            if (isPrimarySelection) {
               if (isCollageCropMode) {
                   const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
                   const scaleToLayer = unrotatedBoundingBox.width / crop.width;
@@ -961,7 +966,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                   }
               }
 
-
               for (const [key, corner] of Object.entries(corners)) {
                 if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
                   const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
@@ -971,18 +975,6 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               if (Math.sqrt(Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)) < LAYER_HANDLE_HIT_AREA / 2) {
                 return { type: 'layer-rotate', layerId: layer.id, cursor: 'crosshair' };
               }
-            }
-            
-            const translatedX = pos.x - center.x;
-            const translatedY = pos.y - center.y;
-            const angleRad = -layer.rotation * Math.PI / 180;
-            const cosVal = Math.cos(angleRad);
-            const sinVal = Math.sin(angleRad);
-            const rotatedX = translatedX * cosVal - translatedY * sinVal;
-            const rotatedY = translatedX * sinVal + translatedY * cosVal;
-
-            if (Math.abs(rotatedX) <= unrotatedBoundingBox.width / 2 && Math.abs(rotatedY) <= unrotatedBoundingBox.height / 2) {
-              return { type: 'layer-move', layerId: layer.id, cursor: 'move' };
             }
           }
       }
