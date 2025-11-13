@@ -375,7 +375,9 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
         for (const layer of layers) {
             const layerWidthPx = (layer.width / 100) * width;
-            const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
+            const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+            const layerHeightPx = layerWidthPx * (crop.height / crop.width);
+            
             const layerX = (layer.x / 100) * width;
             const layerY = (layer.y / 100) * height;
 
@@ -383,7 +385,18 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.translate(layerX, layerY);
             ctx.rotate(layer.rotation * Math.PI / 180);
             ctx.globalAlpha = layer.opacity;
-            ctx.drawImage(layer.img, -layerWidthPx / 2, -layerHeightPx / 2, layerWidthPx, layerHeightPx);
+
+            ctx.drawImage(
+              layer.img,
+              crop.x,
+              crop.y,
+              crop.width,
+              crop.height,
+              -layerWidthPx / 2,
+              -layerHeightPx / 2,
+              layerWidthPx,
+              layerHeightPx
+            );
             ctx.restore();
         }
 
@@ -1304,7 +1317,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     y: Math.max(0, Math.min(100, startSignature.y + dy_percent)),
                 });
             } else if (type === 'signature-rotate' && interactionState.signatureCenter) {
-                const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.y);
+                const startAngle = Math.atan2(startPos.y - interactionState.signatureCenter.y, startPos.x - interactionState.signatureCenter.x);
                 const currentAngle = Math.atan2(pos.y - interactionState.signatureCenter.y, pos.x - interactionState.signatureCenter.x);
                 const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
                 const newRotation = startSignature.rotation + angleDiff;

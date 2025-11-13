@@ -234,8 +234,8 @@ export default function Home() {
           }
 
           for (const layer of layers) {
-              const layerWidth = (layer.width / 100) * width;
-              const layerHeight = layerWidth / (layer.originalWidth / layer.originalHeight);
+              const layerWidthPx = (layer.width / 100) * width;
+              const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
               const layerX = (layer.x / 100) * width;
               const layerY = (layer.y / 100) * height;
 
@@ -243,7 +243,20 @@ export default function Home() {
               finalCtx.translate(layerX, layerY);
               finalCtx.rotate(layer.rotation * Math.PI / 180);
               finalCtx.globalAlpha = layer.opacity;
-              finalCtx.drawImage(layer.img, -layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
+
+              const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+              
+              finalCtx.drawImage(
+                layer.img,
+                crop.x,
+                crop.y,
+                crop.width,
+                crop.height,
+                -layerWidthPx / 2,
+                -layerHeightPx / 2,
+                layerWidthPx,
+                layerHeightPx
+              );
               finalCtx.restore();
           }
           
@@ -505,6 +518,7 @@ export default function Home() {
               opacity: 1,
               originalWidth: editedImage.width,
               originalHeight: editedImage.height,
+              crop: null,
           };
           const newPages = [...collageSettings.pages];
           newPages[collageSettings.activePageIndex] = { ...activePage, layers: [newLayer] };
@@ -599,6 +613,7 @@ export default function Home() {
                     opacity: 1,
                     originalWidth: img.width,
                     originalHeight: img.height,
+                    crop: null,
                 };
                 setCollageSettings(prev => {
                   const newPages = [...prev.pages];
@@ -620,6 +635,7 @@ export default function Home() {
                     opacity: 1,
                     originalWidth: img.width,
                     originalHeight: img.height,
+                    crop: null,
                 };
                  setCollageSettings(prev => {
                   const newPages = [...prev.pages];
@@ -1323,6 +1339,7 @@ const updateProcessedSize = React.useCallback(async () => {
                 opacity: 1,
                 originalWidth: composedImg.width,
                 originalHeight: composedImg.height,
+                crop: null,
             };
             newLayers.push(newLayer);
           }
@@ -1675,6 +1692,3 @@ const updateProcessedSize = React.useCallback(async () => {
     </div>
   );
 }
-
-    
-

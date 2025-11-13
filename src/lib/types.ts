@@ -115,6 +115,7 @@ export type ImageLayer = {
   opacity: number;
   originalWidth: number;
   originalHeight: number;
+  crop: CropSettings | null;
 };
 
 export type CollagePage = {
