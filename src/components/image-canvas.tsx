@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
@@ -28,6 +29,7 @@ interface ImageCanvasProps {
   showCompletionAnimation: boolean;
   setShowCompletionAnimation: (show: boolean) => void;
   onDoubleClick: () => void;
+  isCollageCropMode: boolean;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -145,7 +147,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   setSelectedLayerIds,
   showCompletionAnimation,
   setShowCompletionAnimation,
-  onDoubleClick
+  onDoubleClick,
+  isCollageCropMode,
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -391,8 +394,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.translate(layerX, layerY);
             ctx.rotate(layer.rotation * Math.PI / 180);
             
-            // Draw full image with reduced opacity if selected
-            if (isSelected) {
+            // Draw full image with reduced opacity if selected in crop mode
+            if (isSelected && isCollageCropMode) {
                 const fullImgHeight = layerWidthPx * (layer.originalHeight / layer.originalWidth);
                 ctx.globalAlpha = layer.opacity * 0.3;
                 ctx.drawImage(
@@ -481,19 +484,19 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 if (!layer) return;
                 handles = getLayerHandlePositions(layer, canvas);
 
-                // Draw crop handles if primary selection
-                if (isPrimarySelection) {
+                // Draw crop handles if primary selection and in crop mode
+                if (isPrimarySelection && isCollageCropMode) {
                     ctx.save();
                     const { center, unrotatedBoundingBox } = handles;
                     const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
                     
-                    const scaleX = unrotatedBoundingBox.width / layer.originalWidth;
+                    const scaleX = unrotatedBoundingBox.width / crop.width;
                     
                     const cropRect = {
-                        x: crop.x * scaleX - unrotatedBoundingBox.width / 2,
-                        y: crop.y * scaleX - unrotatedBoundingBox.height / 2,
-                        width: crop.width * scaleX,
-                        height: crop.height * scaleX,
+                        x: -unrotatedBoundingBox.width / 2,
+                        y: -unrotatedBoundingBox.height / 2,
+                        width: unrotatedBoundingBox.width,
+                        height: unrotatedBoundingBox.height,
                     };
                     
                     ctx.translate(center.x, center.y);
@@ -511,6 +514,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     });
                     
                     ctx.restore();
+                    ctx.restore(); // for main save
+                    return; // Don't draw resize handles in crop mode
                 }
 
             } else if (type === 'text') {
@@ -879,7 +884,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             }
         }
     }
-  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
+  }, [settings, imageElement, activeTab, getCanvasAndContext, pendingCrop, processedImageCache, getTextHandlePositions, selectedTextId, getSignatureHandlePositions, selectedSignatureId, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions, isCollageCropMode]);
 
   const getInteractionPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const { canvas } = getCanvasAndContext();
@@ -935,23 +940,25 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               const rotatedX = translatedX * cosVal - translatedY * sinVal;
               const rotatedY = translatedX * sinVal + translatedY * cosVal;
 
-              const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
-              const scaleToLayer = unrotatedBoundingBox.width / layer.originalWidth;
-              const cropRect = {
-                  x: crop.x * scaleToLayer - unrotatedBoundingBox.width / 2,
-                  y: crop.y * scaleToLayer - unrotatedBoundingBox.height / 2,
-                  width: crop.width * scaleToLayer,
-                  height: crop.height * scaleToLayer,
-              };
-              
-              const cropHandles = getCropHandleRects(cropRect.x, cropRect.y, cropRect.width, cropRect.height, true);
-              for (const [key, rect] of Object.entries(cropHandles)) {
-                  if (rotatedX >= rect.x && rotatedX <= rect.x + rect.w && rotatedY >= rect.y && rotatedY <= rect.y + rect.h) {
-                      return { type: `layer-crop-${key}` as InteractionType, layerId: layer.id, cursor: rect.cursor };
+              if (isCollageCropMode) {
+                  const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+                  const scaleToLayer = unrotatedBoundingBox.width / crop.width;
+                  const cropRect = {
+                      x: -unrotatedBoundingBox.width / 2,
+                      y: -unrotatedBoundingBox.height / 2,
+                      width: unrotatedBoundingBox.width,
+                      height: unrotatedBoundingBox.height,
+                  };
+
+                  const cropHandles = getCropHandleRects(cropRect.x, cropRect.y, cropRect.width, cropRect.height, true);
+                  for (const [key, rect] of Object.entries(cropHandles)) {
+                      if (rotatedX >= rect.x && rotatedX <= rect.x + rect.w && rotatedY >= rect.y && rotatedY <= rect.y + rect.h) {
+                          return { type: `layer-crop-${key}` as InteractionType, layerId: layer.id, cursor: rect.cursor };
+                      }
                   }
-              }
-              if (rotatedX >= cropRect.x && rotatedX <= cropRect.x + cropRect.width && rotatedY >= cropRect.y && rotatedY <= cropRect.y + cropRect.height) {
-                  return { type: 'layer-crop-move', layerId: layer.id, cursor: 'move' };
+                  if (rotatedX >= cropRect.x && rotatedX <= cropRect.x + cropRect.width && rotatedY >= cropRect.y && rotatedY <= cropRect.y + cropRect.height) {
+                      return { type: 'layer-crop-move', layerId: layer.id, cursor: 'move' };
+                  }
               }
 
 
@@ -1080,7 +1087,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
       }
 
       return null;
-  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
+  }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions, isCollageCropMode]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('button' in e && e.button === 2) return;
@@ -1380,8 +1387,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 let newCrop = { ...startCrop };
                 
                 if (type === 'layer-crop-move') {
-                    newCrop.x = startCrop.x + dx_original;
-                    newCrop.y = startCrop.y + dy_original;
+                    newCrop.x = startCrop.x - dx_original;
+                    newCrop.y = startCrop.y - dy_original;
                 } else {
                      if (type.includes('l')) { newCrop.x = startCrop.x + dx_original; newCrop.width = startCrop.width - dx_original; }
                      if (type.includes('r')) { newCrop.width = startCrop.width + dx_original; }
@@ -1540,7 +1547,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           setCursor(interaction ? interaction.cursor : 'default');
         }
     }
-  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings, editorMode, selectedLayerIds]);
+  }, [interactionState, getInteractionPos, getCanvasAndContext, imageElement, setPendingCrop, settings, updateSettings, activeTab, getInteractionType, collageSettings, updateCollageSettings, editorMode, selectedLayerIds, isCollageCropMode]);
 
   const handleInteractionEnd = useCallback(() => {
     if (interactionState) {

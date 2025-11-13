@@ -137,6 +137,7 @@ export default function Home() {
   // Collage State
   const [selectedLayerIds, setSelectedLayerIds] = React.useState<string[]>([]);
   const [showCompletionAnimation, setShowCompletionAnimation] = React.useState(false);
+  const [isCollageCropMode, setIsCollageCropMode] = React.useState(false);
   
   const controlPanelTabListRef = useRef<HTMLDivElement>(null);
 
@@ -1612,6 +1613,8 @@ const updateProcessedSize = React.useCallback(async () => {
               onGeneratePassportPhotos={handleGeneratePassportPhotos}
               onClearPassport={handleClearPassport}
               onTargetSizeSubmit={handleTargetSize}
+              isCollageCropMode={isCollageCropMode}
+              setIsCollageCropMode={setIsCollageCropMode}
             />
           </div>
           <div className="flex-1 flex items-center justify-center p-4 bg-card rounded-lg border shadow-sm relative min-h-[50vh] md:min-h-0">
@@ -1637,6 +1640,7 @@ const updateProcessedSize = React.useCallback(async () => {
               showCompletionAnimation={showCompletionAnimation}
               setShowCompletionAnimation={setShowCompletionAnimation}
               onDoubleClick={handleCanvasDoubleClick}
+              isCollageCropMode={isCollageCropMode}
             />
             {editingTextObj && canvasRef.current && (
               <TextEditor

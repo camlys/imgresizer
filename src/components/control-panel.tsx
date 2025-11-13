@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,6 +43,8 @@ interface ControlPanelProps {
   onGeneratePassportPhotos: (image: File, count: number, backgroundColor: string) => void;
   onClearPassport: () => void;
   onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB') => Promise<void>;
+  isCollageCropMode: boolean;
+  setIsCollageCropMode: (isCropping: boolean) => void;
 }
 
 export function ControlPanel({ 
@@ -71,7 +74,9 @@ export function ControlPanel({
   tabListRef,
   onGeneratePassportPhotos,
   onClearPassport,
-  onTargetSizeSubmit
+  onTargetSizeSubmit,
+  isCollageCropMode,
+  setIsCollageCropMode,
 }: ControlPanelProps) {
 
   const allTabs = [
@@ -176,6 +181,8 @@ export function ControlPanel({
                 setSelectedSignatureId={setSelectedSignatureId}
               />
             }
+            isCollageCropMode={isCollageCropMode}
+            setIsCollageCropMode={setIsCollageCropMode}
           />
         </TabsContent>
          <TabsContent value="passport" className="mt-0">

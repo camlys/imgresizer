@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type, Ban } from 'lucide-react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type, Ban, Crop } from 'lucide-react';
 import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
 import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
@@ -25,6 +26,8 @@ interface CollageTabProps {
   onViewPages: () => void;
   onAutoLayout: (count: 2 | 3 | 4 | 5 | 6) => void;
   textTabContent: React.ReactNode;
+  isCollageCropMode: boolean;
+  setIsCollageCropMode: (isCropping: boolean) => void;
 }
 
 const canvasSizes = [
@@ -53,7 +56,7 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout, textTabContent }: CollageTabProps) {
+export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout, textTabContent, isCollageCropMode, setIsCollageCropMode }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
@@ -500,9 +503,9 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between">
                 <CardTitle className="text-base font-medium">Image Layers</CardTitle>
-                <div className='flex items-center'>
+                <div className='flex items-center gap-1'>
                     {isFromMultiPagePdf && (
-                        <div className="ml-auto pr-2" onClick={(e) => e.stopPropagation()}>
+                        <div onClick={(e) => e.stopPropagation()}>
                         <TooltipProvider>
                             <Tooltip>
                             <TooltipTrigger asChild>
@@ -517,6 +520,18 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                         </TooltipProvider>
                         </div>
                     )}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={() => setIsCollageCropMode(!isCollageCropMode)} className={`h-8 w-8 ${isCollageCropMode ? 'bg-primary/20' : ''}`}>
+                                    <Crop size={16}/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Toggle Crop Mode</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8">
                         <Plus size={16} className="mr-2"/> Add
                     </Button>
@@ -657,5 +672,3 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
-
-    
