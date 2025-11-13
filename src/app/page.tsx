@@ -498,7 +498,7 @@ export default function Home() {
     const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
     if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
-      const editedCanvas = await generateFinalCanvas();
+      const editedCanvas = await generateFinalCanvas(undefined, settings);
       const editedImageSrc = editedCanvas.toDataURL();
       const editedImage = new Image();
       editedImage.onload = () => {
@@ -565,7 +565,7 @@ export default function Home() {
             }
         }
     }, 100);
-  }, [activeTab, collageSettings.activePageIndex, collageSettings.pages, editorMode, imageElement, originalImage, pendingCrop, settings.drawing, updateSettings, generateFinalCanvas, updateCollageSettings]);
+  }, [activeTab, collageSettings.activePageIndex, collageSettings.pages, editorMode, imageElement, originalImage, pendingCrop, settings, updateSettings, generateFinalCanvas, updateCollageSettings]);
   
     const renderPdfPageToDataURL = React.useCallback(async (pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> => {
         const page = await pdfDoc.getPage(pageNum);
