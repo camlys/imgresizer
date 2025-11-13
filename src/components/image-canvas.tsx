@@ -55,6 +55,7 @@ type InteractionType =
   | 'signature-move' | 'signature-rotate' | 'signature-resize-tl' | 'signature-resize-tr' | 'signature-resize-bl' | 'signature-resize-br'
   | 'perspective-tl' | 'perspective-tr' | 'perspective-bl' | 'perspective-br'
   | 'layer-move' | 'layer-rotate' | 'layer-resize-tl' | 'layer-resize-tr' | 'layer-resize-bl' | 'layer-resize-br'
+  | 'layer-crop-move' | 'layer-crop-tl' | 'layer-crop-t' | 'layer-crop-tr' | 'layer-crop-l' | 'layer-crop-r' | 'layer-crop-bl' | 'layer-crop-b' | 'layer-crop-br'
   | 'draw' | 'draw-move';
 
 type InteractionState = {
@@ -257,7 +258,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
   const getLayerHandlePositions = useCallback((layer: ImageLayer, canvas: HTMLCanvasElement) => {
     const layerWidthPx = (layer.width / 100) * canvas.width;
-    const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
+    const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+    const layerHeightPx = layerWidthPx * (crop.height / crop.width);
     const center = { x: (layer.x / 100) * canvas.width, y: (layer.y / 100) * canvas.height };
 
     const getRotatedPoint = (x: number, y: number, angleDeg: number) => {
@@ -374,6 +376,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         }
 
         for (const layer of layers) {
+            const isSelected = selectedLayerIds.includes(layer.id);
+            
             const layerWidthPx = (layer.width / 100) * width;
             const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
             const layerHeightPx = layerWidthPx * (crop.height / crop.width);
@@ -384,8 +388,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             ctx.save();
             ctx.translate(layerX, layerY);
             ctx.rotate(layer.rotation * Math.PI / 180);
+            
+            // Draw full image with reduced opacity if selected
+            if (isSelected) {
+                const fullImgHeight = layerWidthPx * (layer.originalHeight / layer.originalWidth);
+                ctx.globalAlpha = layer.opacity * 0.3;
+                ctx.drawImage(
+                    layer.img,
+                    -layerWidthPx / 2,
+                    -fullImgHeight / 2,
+                    layerWidthPx,
+                    fullImgHeight
+                );
+            }
+            
+            // Draw cropped portion
             ctx.globalAlpha = layer.opacity;
-
             ctx.drawImage(
               layer.img,
               crop.x,
@@ -397,6 +415,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               layerWidthPx,
               layerHeightPx
             );
+            
             ctx.restore();
         }
 
@@ -451,13 +470,47 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 
             ctx.save();
             ctx.strokeStyle = `hsl(var(--primary))`;
-            ctx.lineWidth = 4;
-            
+            ctx.lineWidth = isPrimarySelection ? 2 : 1;
+            ctx.setLineDash(isPrimarySelection ? [] : [4, 4]);
+
             let handles: any;
             if (type === 'layer') {
                 const layer = layers.find(l => l.id === id);
                 if (!layer) return;
                 handles = getLayerHandlePositions(layer, canvas);
+
+                // Draw crop handles if primary selection
+                if (isPrimarySelection) {
+                    ctx.save();
+                    const { center, unrotatedBoundingBox } = handles;
+                    const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+                    
+                    const scaleX = unrotatedBoundingBox.width / layer.originalWidth;
+                    
+                    const cropRect = {
+                        x: crop.x * scaleX - unrotatedBoundingBox.width / 2,
+                        y: crop.y * scaleX - unrotatedBoundingBox.height / 2,
+                        width: crop.width * scaleX,
+                        height: crop.height * scaleX,
+                    };
+                    
+                    ctx.translate(center.x, center.y);
+                    ctx.rotate(layer.rotation * Math.PI / 180);
+                    
+                    ctx.strokeStyle = 'rgba(255, 165, 0, 0.9)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
+
+                    const handleSize = 8;
+                    ctx.fillStyle = 'rgba(255, 165, 0, 1)';
+                    const cropHandles = getCropHandleRects(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
+                    Object.values(cropHandles).forEach((rect: any) => {
+                         ctx.fillRect(rect.x, rect.y, handleSize, handleSize);
+                    });
+                    
+                    ctx.restore();
+                }
+
             } else if (type === 'text') {
                 const text = texts.find(t => t.id === id);
                 if (!text) return;
@@ -872,6 +925,34 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
             const isPrimarySelection = isSelected && selectedLayerIds[selectedLayerIds.length - 1] === layer.id;
 
             if (isPrimarySelection) {
+              const translatedX = pos.x - center.x;
+              const translatedY = pos.y - center.y;
+              const angleRad = -layer.rotation * Math.PI / 180;
+              const cosVal = Math.cos(angleRad);
+              const sinVal = Math.sin(angleRad);
+              const rotatedX = translatedX * cosVal - translatedY * sinVal;
+              const rotatedY = translatedX * sinVal + translatedY * cosVal;
+
+              const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+              const scaleToLayer = unrotatedBoundingBox.width / layer.originalWidth;
+              const cropRect = {
+                  x: crop.x * scaleToLayer - unrotatedBoundingBox.width / 2,
+                  y: crop.y * scaleToLayer - unrotatedBoundingBox.height / 2,
+                  width: crop.width * scaleToLayer,
+                  height: crop.height * scaleToLayer,
+              };
+              
+              const cropHandles = getCropHandleRects(cropRect.x, cropRect.y, cropRect.width, cropRect.height, true);
+              for (const [key, rect] of Object.entries(cropHandles)) {
+                  if (rotatedX >= rect.x && rotatedX <= rect.x + rect.w && rotatedY >= rect.y && rotatedY <= rect.y + rect.h) {
+                      return { type: `layer-crop-${key}` as InteractionType, layerId: layer.id, cursor: rect.cursor };
+                  }
+              }
+              if (rotatedX >= cropRect.x && rotatedX <= cropRect.x + cropRect.width && rotatedY >= cropRect.y && rotatedY <= cropRect.y + cropRect.height) {
+                  return { type: 'layer-crop-move', layerId: layer.id, cursor: 'move' };
+              }
+
+
               for (const [key, corner] of Object.entries(corners)) {
                 if (Math.abs(pos.x - corner.x) < LAYER_HANDLE_HIT_AREA / 2 && Math.abs(pos.y - corner.y) < LAYER_HANDLE_HIT_AREA / 2) {
                   const cursorMap = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize' };
@@ -882,7 +963,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                 return { type: 'layer-rotate', layerId: layer.id, cursor: 'crosshair' };
               }
             }
-
+            
             const translatedX = pos.x - center.x;
             const translatedY = pos.y - center.y;
             const angleRad = -layer.rotation * Math.PI / 180;
@@ -1071,6 +1152,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
               layerId: layerId,
               startLayer: clickedLayer,
               layerCenter: getLayerHandlePositions(clickedLayer, canvas).center,
+              startCrop: clickedLayer.crop || { x: 0, y: 0, width: clickedLayer.originalWidth, height: clickedLayer.originalHeight },
             });
         }
         lastClickTime.current = currentTime;
@@ -1262,6 +1344,57 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     const newWidth = Math.max(1, Math.min(200, newWidthPercent));
                     updateLayer({ width: newWidth });
                 }
+            } else if (type.startsWith('layer-crop-') && interactionState.layerCenter) {
+                const { center, unrotatedBoundingBox } = getLayerHandlePositions(startLayer, canvas);
+                const translatedX = pos.x - center.x;
+                const translatedY = pos.y - center.y;
+                const angleRad = -startLayer.rotation * Math.PI / 180;
+                const cosVal = Math.cos(angleRad);
+                const sinVal = Math.sin(angleRad);
+                const rotatedX = translatedX * cosVal - translatedY * sinVal + unrotatedBoundingBox.width / 2;
+                const rotatedY = translatedX * sinVal + translatedY * cosVal + unrotatedBoundingBox.height / 2;
+
+                const scaleToOriginal = startLayer.originalWidth / unrotatedBoundingBox.width;
+                const mouseX = rotatedX * scaleToOriginal;
+                const mouseY = rotatedY * scaleToOriginal;
+                
+                const startCrop = interactionState.startCrop!;
+                let newCrop = { ...startCrop };
+                
+                if (type === 'layer-crop-move') {
+                    const startMouseX = (startPos.x - center.x) * cosVal - (startPos.y - center.y) * sinVal + unrotatedBoundingBox.width/2;
+                    const startMouseY = (startPos.x - center.x) * sinVal + (startPos.y - center.y) * cosVal + unrotatedBoundingBox.height/2;
+
+                    const dx = (rotatedX - startMouseX) * scaleToOriginal;
+                    const dy = (rotatedY - startMouseY) * scaleToOriginal;
+                    
+                    newCrop.x = Math.max(0, Math.min(startCrop.x + dx, startLayer.originalWidth - newCrop.width));
+                    newCrop.y = Math.max(0, Math.min(startCrop.y + dy, startLayer.originalHeight - newCrop.height));
+
+                } else {
+                    const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
+                    const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
+
+                    let newX1 = type.includes('l') ? mouseX : anchorX;
+                    let newY1 = type.includes('t') ? mouseY : anchorY;
+                    let newX2 = type.includes('r') ? mouseX : anchorX;
+                    let newY2 = type.includes('b') ? mouseY : anchorY;
+                    
+                    if (!type.includes('l') && !type.includes('r')) { newX1 = startCrop.x; newX2 = startCrop.x + startCrop.width; }
+                    if (!type.includes('t') && !type.includes('b')) { newY1 = startCrop.y; newY2 = startCrop.y + startCrop.height; }
+
+                    newCrop.x = Math.min(newX1, newX2);
+                    newCrop.y = Math.min(newY1, newY2);
+                    newCrop.width = Math.abs(newX1 - newX2);
+                    newCrop.height = Math.abs(newY1 - newY2);
+                }
+                
+                newCrop.x = Math.max(0, Math.min(newCrop.x, startLayer.originalWidth));
+                newCrop.y = Math.max(0, Math.min(newCrop.y, startLayer.originalHeight));
+                newCrop.width = Math.max(MIN_CROP_SIZE_PX, Math.min(newCrop.width, startLayer.originalWidth - newCrop.x));
+                newCrop.height = Math.max(MIN_CROP_SIZE_PX, Math.min(newCrop.height, startLayer.originalHeight - newCrop.y));
+                
+                updateLayer({ crop: newCrop });
             }
         } else if (type.startsWith('text-') && startText) {
             const updateTextInState = (updatedText: TextOverlay) => {
@@ -1485,3 +1618,5 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
+
+    

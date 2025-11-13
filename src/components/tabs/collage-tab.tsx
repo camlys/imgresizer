@@ -6,16 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type, Ban, Crop } from 'lucide-react';
-import type { CollageSettings, ImageLayer, SheetSettings, CollagePage, CropSettings } from '@/lib/types';
-import React, { useRef, useState } from 'react';
+import { Layers, Plus, Trash2, RotateCcw, RotateCw, ImageUp, GripVertical, Ruler, Rows, Columns, Copy, Book, FilePlus, BookOpen, Palmtree, LayoutGrid, Type, Ban } from 'lucide-react';
+import type { CollageSettings, ImageLayer, SheetSettings, CollagePage } from '@/lib/types';
+import React, { useRef } from 'react';
 import { Slider } from '../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
-import { ImageCanvas } from '../image-canvas';
 
 interface CollageTabProps {
   settings: CollageSettings;
@@ -55,100 +53,12 @@ const initialSheetSettings: SheetSettings = {
   marginLeft: 20,
 };
 
-function LayerCropDialog({
-  isOpen,
-  onOpenChange,
-  layer,
-  onSave,
-}: {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  layer: ImageLayer | null;
-  onSave: (crop: CropSettings) => void;
-}) {
-  const [pendingCrop, setPendingCrop] = useState<CropSettings | null>(null);
-
-  React.useEffect(() => {
-    if (layer) {
-      setPendingCrop(layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight });
-    }
-  }, [layer]);
-  
-  if (!layer) return null;
-
-  const dummySettings = {
-    ...{
-      width: layer.originalWidth,
-      height: layer.originalHeight,
-      unit: 'px',
-      dpi: 96,
-      keepAspectRatio: true,
-      rotation: 0,
-      flipHorizontal: false,
-      flipVertical: false,
-      texts: [],
-      signatures: [],
-      drawing: { paths: [], history: [[]], historyIndex: 0, brushColor: '#000', brushSize: 5, isErasing: false, isMoving: false, x: 0, y: 0 },
-      adjustments: { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, invert: 0 },
-      backgroundColor: 'transparent',
-      format: 'image/png',
-      quality: 1,
-      cropMode: 'rect',
-      perspectivePoints: null,
-    },
-    crop: pendingCrop,
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] h-[90vh] w-full flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Crop Layer</DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 relative bg-muted rounded-lg">
-          <ImageCanvas
-            originalImage={{ src: layer.src, width: layer.originalWidth, height: layer.originalHeight, size: 0 }}
-            imageElement={layer.img}
-            settings={dummySettings as any}
-            updateSettings={() => {}}
-            activeTab="crop"
-            pendingCrop={pendingCrop}
-            setPendingCrop={setPendingCrop}
-            selectedTextId={null}
-            setSelectedTextId={() => {}}
-            setEditingTextId={() => {}}
-            selectedSignatureId={null}
-            setSelectedSignatureId={() => {}}
-            editorMode="single"
-            collageSettings={{} as any}
-            updateCollageSettings={() => {}}
-            selectedLayerIds={[]}
-            setSelectedLayerIds={() => {}}
-            showCompletionAnimation={false}
-            setShowCompletionAnimation={() => {}}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => {
-            if (pendingCrop) onSave(pendingCrop);
-            onOpenChange(false);
-          }}>
-            Apply Crop
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function CollageTab({ settings, updateSettings, onAddImage, selectedLayerIds, setSelectedLayerIds, isFromMultiPagePdf, onViewPages, onAutoLayout, textTabContent }: CollageTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
   const dragPageItem = useRef<string | null>(null);
   const dragOverPageItem = useRef<string | null>(null);
-  const [croppingLayer, setCroppingLayer] = useState<ImageLayer | null>(null);
 
   const activePage = settings.pages[settings.activePageIndex];
   if (!activePage) return null; // Should not happen
@@ -647,7 +557,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                                 </div>
                                             </AccordionTrigger>
                                             <AccordionContent className="space-y-4 pt-2">
-                                                <div className="text-xs text-muted-foreground">Drag on canvas to reposition. Use handles to resize and rotate.</div>
+                                                <div className="text-xs text-muted-foreground">Drag on canvas to reposition, resize, rotate, and crop.</div>
                                                 <div className="grid gap-1.5">
                                                     <Label htmlFor={`layer-opacity-${layer.id}`}>Opacity</Label>
                                                     <Slider id={`layer-opacity-${layer.id}`} value={[layer.opacity]} onValueChange={([val]) => handleLayerUpdate(layer.id, { opacity: val })} min={0} max={1} step={0.05} />
@@ -670,8 +580,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
                                                         step={1}
                                                     />
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => setCroppingLayer(layer)}><Crop size={16} className="mr-2"/> Crop Image</Button>
+                                                <div className="grid">
                                                     <Button variant="destructive" size="sm" onClick={() => removeLayer(layer.id)}><Trash2 size={16} className="mr-2"/> Remove</Button>
                                                 </div>
                                             </AccordionContent>
@@ -745,16 +654,8 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
             {textTabContent}
         </TabsContent>
       </Tabs>
-      <LayerCropDialog
-        isOpen={!!croppingLayer}
-        onOpenChange={(isOpen) => !isOpen && setCroppingLayer(null)}
-        layer={croppingLayer}
-        onSave={(crop) => {
-            if (croppingLayer) {
-                handleLayerUpdate(croppingLayer.id, { crop });
-            }
-        }}
-      />
     </div>
   );
 }
+
+    
