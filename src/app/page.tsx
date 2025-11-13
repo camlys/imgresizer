@@ -1483,6 +1483,12 @@ const updateProcessedSize = React.useCallback(async () => {
         router.push('/result');
     }
   };
+  
+  const handleCanvasDoubleClick = () => {
+    if (editorMode === 'single') {
+        handleTabChange('crop');
+    }
+  };
 
   const editingTextObj = editorMode === 'single' 
     ? settings.texts.find(t => t.id === editingTextId)
@@ -1630,6 +1636,7 @@ const updateProcessedSize = React.useCallback(async () => {
               setSelectedLayerIds={setSelectedLayerIds}
               showCompletionAnimation={showCompletionAnimation}
               setShowCompletionAnimation={setShowCompletionAnimation}
+              onDoubleClick={handleCanvasDoubleClick}
             />
             {editingTextObj && canvasRef.current && (
               <TextEditor

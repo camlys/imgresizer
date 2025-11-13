@@ -27,6 +27,7 @@ interface ImageCanvasProps {
   setSelectedLayerIds: (ids: string[]) => void;
   showCompletionAnimation: boolean;
   setShowCompletionAnimation: (show: boolean) => void;
+  onDoubleClick: () => void;
 }
 
 const CROP_HANDLE_SIZE = 12;
@@ -143,7 +144,8 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   selectedLayerIds,
   setSelectedLayerIds,
   showCompletionAnimation,
-  setShowCompletionAnimation
+  setShowCompletionAnimation,
+  onDoubleClick
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1081,12 +1083,22 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
   }, [getCanvasAndContext, imageElement, settings, activeTab, pendingCrop, selectedTextId, getTextHandlePositions, selectedSignatureId, getSignatureHandlePositions, editorMode, collageSettings, selectedLayerIds, getLayerHandlePositions]);
 
   const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('touches' in e) e.preventDefault();
     if ('button' in e && e.button === 2) return;
 
     const pos = getInteractionPos(e);
     const { canvas, ctx } = getCanvasAndContext();
     if (!canvas || !ctx) return;
+    
+    if ('touches' in e) { // Handle touch events
+      e.preventDefault();
+      const currentTime = new Date().getTime();
+      if (currentTime - lastClickTime.current < 300) {
+        onDoubleClick();
+        lastClickTime.current = 0; // Reset after double tap
+        return;
+      }
+      lastClickTime.current = currentTime;
+    }
 
     const interaction = getInteractionType(pos);
     const currentTime = new Date().getTime();
@@ -1235,7 +1247,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
         setSelectedLayerIds([]);
         lastClickTarget.current = null;
     }
-  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode]);
+  }, [getInteractionPos, getCanvasAndContext, imageElement, activeTab, pendingCrop, setPendingCrop, settings, selectedTextId, setSelectedTextId, setEditingTextId, getTextHandlePositions, getInteractionType, collageSettings, selectedLayerIds, setSelectedLayerIds, getLayerHandlePositions, selectedSignatureId, setSelectedSignatureId, getSignatureHandlePositions, editorMode, onDoubleClick]);
 
   const handleInteractionMove = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const pos = getInteractionPos(e);
@@ -1345,7 +1357,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     updateLayer({ width: newWidth });
                 }
             } else if (type.startsWith('layer-crop-') && interactionState.layerCenter) {
-                 const { center, unrotatedBoundingBox } = getLayerHandlePositions(startLayer, canvas);
+                const { unrotatedBoundingBox } = getLayerHandlePositions(startLayer, canvas);
                 const angleRad = -startLayer.rotation * Math.PI / 180;
                 const cos = Math.cos(angleRad);
                 const sin = Math.sin(angleRad);
@@ -1601,6 +1613,7 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
           onTouchMove={handleInteractionMove}
           onTouchEnd={handleInteractionEnd}
           onTouchCancel={handleInteractionEnd}
+          onDoubleClick={onDoubleClick}
           onContextMenu={(e) => e.preventDefault()}
         />
         <AnimatePresence>
