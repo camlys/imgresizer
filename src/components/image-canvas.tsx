@@ -1345,55 +1345,52 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
                     updateLayer({ width: newWidth });
                 }
             } else if (type.startsWith('layer-crop-') && interactionState.layerCenter) {
-                const { center, unrotatedBoundingBox } = getLayerHandlePositions(startLayer, canvas);
-                const translatedX = pos.x - center.x;
-                const translatedY = pos.y - center.y;
+                 const { center, unrotatedBoundingBox } = getLayerHandlePositions(startLayer, canvas);
                 const angleRad = -startLayer.rotation * Math.PI / 180;
-                const cosVal = Math.cos(angleRad);
-                const sinVal = Math.sin(angleRad);
-                const rotatedX = translatedX * cosVal - translatedY * sinVal + unrotatedBoundingBox.width / 2;
-                const rotatedY = translatedX * sinVal + translatedY * cosVal + unrotatedBoundingBox.height / 2;
-
-                const scaleToOriginal = startLayer.originalWidth / unrotatedBoundingBox.width;
-                const mouseX = rotatedX * scaleToOriginal;
-                const mouseY = rotatedY * scaleToOriginal;
+                const cos = Math.cos(angleRad);
+                const sin = Math.sin(angleRad);
                 
+                const getRotatedDelta = (start: {x: number, y: number}, current: {x: number, y: number}) => {
+                    const dx = current.x - start.x;
+                    const dy = current.y - start.y;
+                    return {
+                        x: dx * cos - dy * sin,
+                        y: dx * sin + dy * cos
+                    };
+                };
+
+                const rotatedDelta = getRotatedDelta(startPos, pos);
+                const scaleToOriginal = startLayer.originalWidth / unrotatedBoundingBox.width;
+                const dx_original = rotatedDelta.x * scaleToOriginal;
+                const dy_original = rotatedDelta.y * scaleToOriginal;
+
                 const startCrop = interactionState.startCrop!;
                 let newCrop = { ...startCrop };
                 
                 if (type === 'layer-crop-move') {
-                    const startMouseX = (startPos.x - center.x) * cosVal - (startPos.y - center.y) * sinVal + unrotatedBoundingBox.width/2;
-                    const startMouseY = (startPos.x - center.x) * sinVal + (startPos.y - center.y) * cosVal + unrotatedBoundingBox.height/2;
-
-                    const dx = (rotatedX - startMouseX) * scaleToOriginal;
-                    const dy = (rotatedY - startMouseY) * scaleToOriginal;
-                    
-                    newCrop.x = Math.max(0, Math.min(startCrop.x + dx, startLayer.originalWidth - newCrop.width));
-                    newCrop.y = Math.max(0, Math.min(startCrop.y + dy, startLayer.originalHeight - newCrop.height));
-
+                    newCrop.x = startCrop.x + dx_original;
+                    newCrop.y = startCrop.y + dy_original;
                 } else {
-                    const anchorX = type.includes('l') ? startCrop.x + startCrop.width : startCrop.x;
-                    const anchorY = type.includes('t') ? startCrop.y + startCrop.height : startCrop.y;
-
-                    let newX1 = type.includes('l') ? mouseX : anchorX;
-                    let newY1 = type.includes('t') ? mouseY : anchorY;
-                    let newX2 = type.includes('r') ? mouseX : anchorX;
-                    let newY2 = type.includes('b') ? mouseY : anchorY;
-                    
-                    if (!type.includes('l') && !type.includes('r')) { newX1 = startCrop.x; newX2 = startCrop.x + startCrop.width; }
-                    if (!type.includes('t') && !type.includes('b')) { newY1 = startCrop.y; newY2 = startCrop.y + startCrop.height; }
-
-                    newCrop.x = Math.min(newX1, newX2);
-                    newCrop.y = Math.min(newY1, newY2);
-                    newCrop.width = Math.abs(newX1 - newX2);
-                    newCrop.height = Math.abs(newY1 - newY2);
+                     if (type.includes('l')) { newCrop.x = startCrop.x + dx_original; newCrop.width = startCrop.width - dx_original; }
+                     if (type.includes('r')) { newCrop.width = startCrop.width + dx_original; }
+                     if (type.includes('t')) { newCrop.y = startCrop.y + dy_original; newCrop.height = startCrop.height - dy_original; }
+                     if (type.includes('b')) { newCrop.height = startCrop.height + dy_original; }
                 }
-                
-                newCrop.x = Math.max(0, Math.min(newCrop.x, startLayer.originalWidth));
-                newCrop.y = Math.max(0, Math.min(newCrop.y, startLayer.originalHeight));
-                newCrop.width = Math.max(MIN_CROP_SIZE_PX, Math.min(newCrop.width, startLayer.originalWidth - newCrop.x));
-                newCrop.height = Math.max(MIN_CROP_SIZE_PX, Math.min(newCrop.height, startLayer.originalHeight - newCrop.y));
-                
+
+                if (newCrop.width < MIN_CROP_SIZE_PX) {
+                    if (type.includes('l')) newCrop.x = newCrop.x + newCrop.width - MIN_CROP_SIZE_PX;
+                    newCrop.width = MIN_CROP_SIZE_PX;
+                }
+                if (newCrop.height < MIN_CROP_SIZE_PX) {
+                     if (type.includes('t')) newCrop.y = newCrop.y + newCrop.height - MIN_CROP_SIZE_PX;
+                     newCrop.height = MIN_CROP_SIZE_PX;
+                }
+
+                newCrop.x = Math.max(0, Math.min(newCrop.x, startLayer.originalWidth - newCrop.width));
+                newCrop.y = Math.max(0, Math.min(newCrop.y, startLayer.originalHeight - newCrop.height));
+                newCrop.width = Math.min(newCrop.width, startLayer.originalWidth - newCrop.x);
+                newCrop.height = Math.min(newCrop.height, startLayer.originalHeight - newCrop.y);
+
                 updateLayer({ crop: newCrop });
             }
         } else if (type.startsWith('text-') && startText) {
@@ -1618,5 +1615,3 @@ const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
 ImageCanvas.displayName = 'ImageCanvas';
 
 export { ImageCanvas };
-
-    
