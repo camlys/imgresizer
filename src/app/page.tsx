@@ -177,6 +177,9 @@ export default function Home() {
             overlays.texts.forEach(text => {
                 const textX = (text.x / 100) * canvasWidth;
                 const textY = (text.y / 100) * canvasHeight;
+                ctx.save();
+                ctx.translate(textX, textY);
+                ctx.rotate(text.rotation * Math.PI / 180);
                 ctx.font = `${text.size}px ${text.font}`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -185,13 +188,14 @@ export default function Home() {
                     const metrics = ctx.measureText(text.text);
                     const rectWidth = metrics.width + padding * 2;
                     const rectHeight = text.size + padding * 2;
-                    const rectX = textX - rectWidth / 2;
-                    const rectY = textY - rectHeight / 2;
+                    const rectX = -rectWidth / 2;
+                    const rectY = -rectHeight / 2;
                     ctx.fillStyle = text.backgroundColor;
                     ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
                 }
                 ctx.fillStyle = text.color;
-                ctx.fillText(text.text, textX, textY);
+                ctx.fillText(text.text, 0, 0);
+                ctx.restore();
             });
         };
 
@@ -236,7 +240,8 @@ export default function Home() {
 
           for (const layer of layers) {
               const layerWidthPx = (layer.width / 100) * width;
-              const layerHeightPx = layerWidthPx / (layer.originalWidth / layer.originalHeight);
+              const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
+              const layerHeightPx = layerWidthPx * (crop.height / crop.width);
               const layerX = (layer.x / 100) * width;
               const layerY = (layer.y / 100) * height;
 
@@ -244,8 +249,6 @@ export default function Home() {
               finalCtx.translate(layerX, layerY);
               finalCtx.rotate(layer.rotation * Math.PI / 180);
               finalCtx.globalAlpha = layer.opacity;
-
-              const crop = layer.crop || { x: 0, y: 0, width: layer.originalWidth, height: layer.originalHeight };
               
               finalCtx.drawImage(
                 layer.img,
@@ -498,7 +501,7 @@ export default function Home() {
     const activePage = collageSettings.pages[collageSettings.activePageIndex];
 
     if (newEditorMode === 'collage' && editorMode === 'single' && originalImage && imageElement && activePage?.layers.length === 0) {
-      const editedCanvas = await generateFinalCanvas(undefined, settings);
+      const editedCanvas = await generateFinalCanvas(undefined, settings, imageElement);
       const editedImageSrc = editedCanvas.toDataURL();
       const editedImage = new Image();
       editedImage.onload = () => {
@@ -1486,8 +1489,8 @@ const updateProcessedSize = React.useCallback(async () => {
   };
   
   const handleCanvasDoubleClick = () => {
-    if (editorMode === 'single') {
-        handleTabChange('crop');
+    if (editorMode === 'collage' && selectedLayerIds.length > 0) {
+        setIsCollageCropMode(!isCollageCropMode);
     }
   };
 
