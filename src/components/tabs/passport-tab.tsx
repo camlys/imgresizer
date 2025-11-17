@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Upload, Contact, Eraser } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import heic2any from 'heic2any';
 
 interface PassportTabProps {
   onGenerate: (image: File, count: number, backgroundColor: string) => void;
@@ -29,6 +28,7 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
     let processedFile = file;
     if (file.type === 'image/heic' || file.type === 'image/heif') {
       try {
+        const heic2any = (await import('heic2any')).default;
         const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
         processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
       } catch (error) {

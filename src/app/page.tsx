@@ -24,7 +24,6 @@ import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
 import { useRouter } from 'next/navigation';
-import heic2any from 'heic2any';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -787,6 +786,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
     let processedFile = file;
     if (file.type === 'image/heic' || file.type === 'image/heif') {
       try {
+        const heic2any = (await import('heic2any')).default;
         const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
         processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
       } catch (error) {
@@ -854,6 +854,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
     let processedFile = file;
     if (file.type === 'image/heic' || file.type === 'image/heif') {
       try {
+        const heic2any = (await import('heic2any')).default;
         const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
         processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
       } catch (error) {
@@ -1296,6 +1297,7 @@ const updateProcessedSize = React.useCallback(async () => {
     let processedFile = file;
     if (file.type === 'image/heic' || file.type === 'image/heif') {
       try {
+        const heic2any = (await import('heic2any')).default;
         const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
         processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
       } catch (error) {
@@ -1645,7 +1647,7 @@ const updateProcessedSize = React.useCallback(async () => {
               onAddImageToCollage={addImageToCollage}
               selectedLayerIds={selectedLayerIds}
               setSelectedLayerIds={setSelectedLayerIds}
-              onAutoLayout={handleAutoLayout}
+              onAutoLayout={onAutoLayout}
               onAutoDetectBorder={handleAutoDetectBorder}
               onGeneratePassportPhotos={handleGeneratePassportPhotos}
               onClearPassport={handleClearPassport}

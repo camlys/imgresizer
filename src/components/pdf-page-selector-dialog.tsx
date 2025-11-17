@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText, Printer } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -34,7 +34,6 @@ import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
 import { DialogFooter } from './ui/dialog';
 import { useRouter } from 'next/navigation';
 import { compressionCache } from '@/lib/compression-cache';
-import heic2any from 'heic2any';
 
 
 interface PagePreviewProps {
@@ -49,6 +48,7 @@ interface PagePreviewProps {
   onDownload: (pageMeta: PageMetadata) => void;
   onAddAfter: (pageMeta: PageMetadata) => void;
   onDuplicate: (pageMeta: PageMetadata) => void;
+  onPrint: (pageMeta: PageMetadata) => void;
 }
 
 
@@ -63,7 +63,8 @@ function PagePreview({
     onNameChange, 
     onDownload,
     onAddAfter,
-    onDuplicate
+    onDuplicate,
+    onPrint,
 }: PagePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -234,6 +235,14 @@ function PagePreview({
                 </div>
                 <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onPrint(pageMeta)}>
+                                    <Printer size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Print page</p></TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onDownload(pageMeta)}>
@@ -618,6 +627,7 @@ export function PdfPageSelectorDialog({
         let processedFile = file;
         if (file.type === 'image/heic' || file.type === 'image/heif') {
           try {
+            const heic2any = (await import('heic2any')).default;
             const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
             processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
           } catch (error) {
@@ -882,6 +892,52 @@ export function PdfPageSelectorDialog({
                  variant: "destructive"
              });
          }
+    }, [pdfDocs, toast]);
+
+    const handlePrintPage = useCallback(async (pageMeta: PageMetadata) => {
+        toast({ title: `Preparing ${pageMeta.name} for print...`});
+        try {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error("Could not create canvas context");
+
+            if (pageMeta.src) {
+                const img = new Image();
+                img.src = pageMeta.src;
+                await new Promise((resolve) => { img.onload = resolve; });
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+            } else {
+                const sourceDoc = pdfDocs.find(d => d.id === pageMeta.docId);
+                if (!sourceDoc) return;
+                const page = await sourceDoc.doc.getPage(pageMeta.pageNumber);
+                const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: context, viewport }).promise;
+            }
+
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(`
+                    <html>
+                        <head><title>Print</title></head>
+                        <body style="margin:0;">
+                            <img src="${dataUrl}" style="max-width:100%;" onload="window.print(); window.close();" />
+                        </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            } else {
+                toast({ title: "Print Error", description: "Could not open print window. Please disable your pop-up blocker.", variant: "destructive" });
+            }
+        } catch (error) {
+            console.error(`Failed to print page ${pageMeta.pageNumber}`, error);
+            toast({ title: "Print Error", description: `Could not prepare ${pageMeta.name} for printing.`, variant: "destructive" });
+        }
     }, [pdfDocs, toast]);
     
     const handleDownloadSelected = async () => {
@@ -1401,6 +1457,7 @@ export function PdfPageSelectorDialog({
                                        onDownload={downloadPage}
                                        onAddAfter={handleAddAfter}
                                        onDuplicate={handleDuplicatePage}
+                                       onPrint={handlePrintPage}
                                    />
                                    </div>
                                )})}
