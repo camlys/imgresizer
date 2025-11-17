@@ -24,6 +24,7 @@ import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
 import { useRouter } from 'next/navigation';
+import heic2any from 'heic2any';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -783,7 +784,19 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
     setSelectedLayerIds([]);
     if (activeTab === 'collage' || activeTab === 'passport') setActiveTab('resize');
 
-    if (file.type.startsWith('image/')) {
+    let processedFile = file;
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      try {
+        const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
+        processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (error) {
+        toast({ title: 'HEIC Conversion Failed', description: 'Could not convert the HEIC file.', variant: 'destructive'});
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (processedFile.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -794,7 +807,7 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
                     src: img.src,
                     width: img.width,
                     height: img.height,
-                    size: file.size,
+                    size: processedFile.size,
                 });
                 setSettings({
                     ...initialSettings,
@@ -820,9 +833,9 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
             }
             img.src = e.target?.result as string;
         };
-        reader.readAsDataURL(file);
-    } else if (file.type === 'application/pdf') {
-        const newDoc = await processPdfFile(file, undefined);
+        reader.readAsDataURL(processedFile);
+    } else if (processedFile.type === 'application/pdf') {
+        const newDoc = await processPdfFile(processedFile, undefined);
         if (newDoc) {
             setPdfDocs([newDoc]);
             setIsPdfSelectorOpen(true);
@@ -838,14 +851,25 @@ const handlePdfPageSelect = React.useCallback(async (docId: string, pageNum: num
   };
 
    const addImageToCollage = async (file: File) => {
-    if (file.type.startsWith('image/')) {
+    let processedFile = file;
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      try {
+        const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
+        processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (error) {
+        toast({ title: 'HEIC Conversion Failed', description: 'Could not convert the HEIC file.', variant: 'destructive'});
+        return;
+      }
+    }
+
+    if (processedFile.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
         addImageToCollageFromSrc(e.target?.result as string);
       };
-      reader.readAsDataURL(file);
-    } else if (file.type === 'application/pdf') {
-       const newDoc = await processPdfFile(file, undefined);
+      reader.readAsDataURL(processedFile);
+    } else if (processedFile.type === 'application/pdf') {
+       const newDoc = await processPdfFile(processedFile, undefined);
        if (newDoc) {
            setPdfDocs(prev => [...prev, newDoc]);
            // You might want to open a selector here for the collage
@@ -1268,7 +1292,17 @@ const updateProcessedSize = React.useCallback(async () => {
     updateCollageSettings({ pages: newPages, layout: count });
   }, [activePage, collageSettings.pages, updateCollageSettings]);
 
-  const handleGeneratePassportPhotos = useCallback((file: File, count: number, backgroundColor: string) => {
+  const handleGeneratePassportPhotos = useCallback(async (file: File, count: number, backgroundColor: string) => {
+    let processedFile = file;
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      try {
+        const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
+        processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (error) {
+        toast({ title: 'HEIC Conversion Failed', description: 'Could not convert the HEIC file.', variant: 'destructive'});
+        return;
+      }
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -1368,8 +1402,8 @@ const updateProcessedSize = React.useCallback(async () => {
       };
       img.src = e.target?.result as string;
     };
-    reader.readAsDataURL(file);
-  }, [updateCollageSettings]);
+    reader.readAsDataURL(processedFile);
+  }, [updateCollageSettings, toast]);
 
   const handleClearPassport = useCallback(() => {
     updateCollageSettings({

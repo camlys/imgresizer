@@ -34,6 +34,7 @@ import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
 import { DialogFooter } from './ui/dialog';
 import { useRouter } from 'next/navigation';
 import { compressionCache } from '@/lib/compression-cache';
+import heic2any from 'heic2any';
 
 
 interface PagePreviewProps {
@@ -613,16 +614,26 @@ export function PdfPageSelectorDialog({
         setIsAddFileDialogOpen(false);
     };
     
-    const handleImageFile = useCallback((file: File) => {
+    const handleImageFile = useCallback(async (file: File) => {
+        let processedFile = file;
+        if (file.type === 'image/heic' || file.type === 'image/heif') {
+          try {
+            const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
+            processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
+          } catch (error) {
+            toast({ title: 'HEIC Conversion Failed', description: 'Could not convert the HEIC file.', variant: 'destructive'});
+            return;
+          }
+        }
         const reader = new FileReader();
         reader.onload = (e) => {
             const src = e.target?.result as string;
             const newImageMeta: PageMetadata = {
-                docId: file.name + '-' + Date.now(),
-                docName: file.name,
+                docId: processedFile.name + '-' + Date.now(),
+                docName: processedFile.name,
                 pageNumber: -1, // Indicates it's an image not from a PDF
                 rotation: 0,
-                name: file.name,
+                name: processedFile.name,
                 copyIndex: 0,
                 src: src,
             };
@@ -635,8 +646,8 @@ export function PdfPageSelectorDialog({
             });
             setInsertionIndex(null);
         };
-        reader.readAsDataURL(file);
-    }, [insertionIndex]);
+        reader.readAsDataURL(processedFile);
+    }, [insertionIndex, toast]);
 
     const handleQuickAddFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -1447,8 +1458,3 @@ export function PdfPageSelectorDialog({
         </>
     );
 }
-
-
-    
-
-    

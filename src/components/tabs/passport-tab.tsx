@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, Contact, Eraser } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import heic2any from 'heic2any';
 
 interface PassportTabProps {
   onGenerate: (image: File, count: number, backgroundColor: string) => void;
@@ -21,10 +22,23 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif')) {
-      setImageFile(file);
+    if (!file) return;
+
+    let processedFile = file;
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      try {
+        const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
+        processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (error) {
+        toast({ title: 'HEIC Conversion Failed', description: 'Could not convert the HEIC file.', variant: 'destructive'});
+        return;
+      }
+    }
+
+    if (processedFile.type.startsWith('image/')) {
+      setImageFile(processedFile);
     } else {
       toast({
         title: "Invalid File Type",
@@ -159,5 +173,3 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
     </div>
   );
 }
-
-    
