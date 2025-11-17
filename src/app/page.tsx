@@ -8,7 +8,7 @@ import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
 import { UploadPlaceholder } from '@/components/upload-placeholder';
-import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath, Unit, PdfDocumentInfo } from '@/lib/types';
+import type { ImageSettings, OriginalImage, CropSettings, TextOverlay, SignatureOverlay, CollageSettings, ImageLayer, SheetSettings, CollagePage, CornerPoints, DrawingPath, Unit, PdfDocumentInfo, OptimizedResult } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast"
 import { SiteFooter } from '@/components/site-footer';
 import { Loader2 } from 'lucide-react';
@@ -1291,7 +1291,7 @@ const updateProcessedSize = React.useCallback(async () => {
     const newPages = [...collageSettings.pages];
     newPages[settings.activePageIndex] = { ...page, layers: finalLayers };
     updateCollageSettings({ pages: newPages, layout: count });
-  }, [activePage, collageSettings.pages, updateCollageSettings]);
+  }, [activePage, collageSettings.pages, updateCollageSettings, settings.activePageIndex]);
 
   const handleGeneratePassportPhotos = useCallback(async (file: File, count: number, backgroundColor: string) => {
     let processedFile = file;
@@ -1456,7 +1456,7 @@ const updateProcessedSize = React.useCallback(async () => {
     });
   }, [generateFinalCanvas, editorMode, settings, collageSettings]);
 
-  const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB', generatePdf: boolean) => {
+  const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB', outputOption: 'image' | 'pdf' | 'both') => {
     const numericSize = targetSize;
     if (!numericSize || numericSize <= 0 || !originalImage) return;
 
@@ -1486,43 +1486,47 @@ const updateProcessedSize = React.useCallback(async () => {
     const finalSettings = { ...settings, quality };
 
     const finalCanvas = await generateFinalCanvas(undefined, finalSettings);
-    const finalBlob = await new Promise<Blob|null>(res => finalCanvas.toBlob(res, finalSettings.format, finalSettings.quality));
+    
+    const result: OptimizedResult = {
+        originalSize: originalImage.size,
+    };
 
-    if (finalBlob) {
+    if (outputOption === 'image' || outputOption === 'both') {
+      const finalBlob = await new Promise<Blob|null>(res => finalCanvas.toBlob(res, finalSettings.format, finalSettings.quality));
+      if (finalBlob) {
         const imageExtension = finalSettings.format.split('/')[1];
-
-        const result: any = {
-            image: {
-                dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
-                size: finalBlob.size,
-                filename: `imgresizer-export.${imageExtension}`
-            },
-            originalSize: originalImage.size,
+        result.image = {
+          dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
+          size: finalBlob.size,
+          filename: `imgresizer-export.${imageExtension}`
         };
+      }
+    }
+    
+    if (outputOption === 'pdf' || outputOption === 'both') {
+        const pdf = new jsPDF();
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = finalCanvas.width;
+        const imgHeight = finalCanvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        const newImgWidth = imgWidth * ratio;
+        const newImgHeight = imgHeight * ratio;
+        const imgX = (pdfWidth - newImgWidth) / 2;
+        const imgY = (pdfHeight - newImgHeight) / 2;
 
-        if (generatePdf) {
-            const pdf = new jsPDF();
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = finalCanvas.width;
-            const imgHeight = finalCanvas.height;
-            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-            const newImgWidth = imgWidth * ratio;
-            const newImgHeight = imgHeight * ratio;
-            const imgX = (pdfWidth - newImgWidth) / 2;
-            const imgY = (pdfHeight - newImgHeight) / 2;
+        pdf.addImage(finalCanvas.toDataURL(finalSettings.format, finalSettings.quality), finalSettings.format.split('/')[1].toUpperCase(), imgX, imgY, newImgWidth, newImgHeight);
+        const pdfBlob = pdf.output('blob');
+        result.pdf = {
+            dataUrl: URL.createObjectURL(pdfBlob),
+            size: pdfBlob.size,
+            filename: `imgresizer-export.pdf`
+        };
+    }
 
-            pdf.addImage(finalCanvas.toDataURL(finalSettings.format, finalSettings.quality), finalSettings.format.split('/')[1].toUpperCase(), imgX, imgY, newImgWidth, newImgHeight);
-            const pdfBlob = pdf.output('blob');
-            result.pdf = {
-                dataUrl: URL.createObjectURL(pdfBlob),
-                size: pdfBlob.size,
-                filename: `imgresizer-export.pdf`
-            };
-        }
-
-        sessionStorage.setItem('optimizedResult', JSON.stringify(result));
-        router.push('/result');
+    if (result.image || result.pdf) {
+      sessionStorage.setItem('optimizedResult', JSON.stringify(result));
+      router.push('/result');
     }
   };
   

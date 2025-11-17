@@ -14,7 +14,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '../ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const CM_TO_INCH = 0.393701;
 
@@ -58,7 +58,7 @@ interface ResizeRotateTabProps {
     processedSize: number | null;
     isFromMultiPagePdf: boolean;
     onViewPages: () => void;
-    onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB', generatePdf: boolean) => Promise<void>;
+    onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB', outputOption: 'image' | 'pdf' | 'both') => Promise<void>;
 }
 
 export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize, isFromMultiPagePdf, onViewPages, onTargetSizeSubmit }: ResizeRotateTabProps) {
@@ -79,7 +79,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     // Target size state
     const [targetSize, setTargetSize] = useState('');
     const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
-    const [generatePdf, setGeneratePdf] = useState(true);
+    const [outputOption, setOutputOption] = useState<'image' | 'pdf' | 'both'>('image');
     const [isOptimizing, setIsOptimizing] = useState(false);
 
     useEffect(() => {
@@ -208,7 +208,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         }
 
         setIsOptimizing(true);
-        await onTargetSizeSubmit(size, targetUnit, generatePdf);
+        await onTargetSizeSubmit(size, targetUnit, outputOption);
         setIsOptimizing(false);
     };
 
@@ -375,10 +375,20 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                   </Tooltip>
                                 </TooltipProvider>
                                 </div>
-                                <div className="flex items-center gap-2 pt-1">
-                                    <Checkbox id="generate-pdf" checked={generatePdf} onCheckedChange={c => setGeneratePdf(c as boolean)} />
-                                    <Label htmlFor="generate-pdf" className="text-xs text-muted-foreground cursor-pointer">Also generate PDF</Label>
-                                </div>
+                                <RadioGroup value={outputOption} onValueChange={(v: any) => setOutputOption(v)} className="flex items-center gap-4 pt-1">
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="image" id="r-image" />
+                                        <Label htmlFor="r-image" className="text-xs font-normal cursor-pointer">Image Only</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="pdf" id="r-pdf" />
+                                        <Label htmlFor="r-pdf" className="text-xs font-normal cursor-pointer">PDF Only</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="both" id="r-both" />
+                                        <Label htmlFor="r-both" className="text-xs font-normal cursor-pointer">Both</Label>
+                                    </div>
+                                </RadioGroup>
                                 <p className="text-xs text-muted-foreground">Sets quality to meet size for JPEG/WEBP.</p>
                             </div>
                         </CardContent>

@@ -167,15 +167,15 @@ export interface PageMetadata {
 }
 
 export interface OptimizedResult {
-    image: {
+    image?: {
         dataUrl: string;
         size: number;
         filename: string;
-    },
+    };
     pdf?: {
         dataUrl: string;
         size: number;
         filename: string;
-    },
+    };
     originalSize: number;
 }

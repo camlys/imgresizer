@@ -32,10 +32,10 @@ export default function ResultPage() {
     const handleDownload = (type: 'image' | 'pdf') => {
         if (!result) return;
         const link = document.createElement('a');
-        if (type === 'image') {
+        if (type === 'image' && result.image) {
             link.href = result.image.dataUrl;
             link.download = result.image.filename;
-        } else if (result.pdf) {
+        } else if (type === 'pdf' && result.pdf) {
             link.href = result.pdf.dataUrl;
             link.download = result.pdf.filename;
         } else {
@@ -49,7 +49,7 @@ export default function ResultPage() {
         }
     };
 
-    const imageReduction = result ? Math.round(((result.originalSize - result.image.size) / result.originalSize) * 100) : 0;
+    const imageReduction = result && result.image ? Math.round(((result.originalSize - result.image.size) / result.originalSize) * 100) : 0;
     const pdfReduction = result && result.pdf ? Math.round(((result.originalSize - result.pdf.size) / result.originalSize) * 100) : 0;
 
 
@@ -64,7 +64,7 @@ export default function ResultPage() {
                             Optimization Result
                         </CardTitle>
                         <CardDescription>
-                            Your image has been optimized to your target file size. Review and download your file(s).
+                            Your file has been optimized to your target file size. Review and download your file(s).
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -74,8 +74,9 @@ export default function ResultPage() {
                                 <p>Loading result...</p>
                             </div>
                         ) : result ? (
-                            <div className={`grid ${result.pdf ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8 items-start`}>
+                            <div className={`grid ${result.image && result.pdf ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8 items-start`}>
                                 {/* Image Result */}
+                                {result.image && (
                                 <Card className={!result.pdf ? 'max-w-md mx-auto w-full' : ''}>
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
@@ -107,6 +108,7 @@ export default function ResultPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                )}
 
                                 {/* PDF Result */}
                                 {result.pdf && (
