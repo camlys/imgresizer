@@ -23,7 +23,7 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif')) {
       setImageFile(file);
     } else {
       toast({
@@ -78,7 +78,7 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept="image/*"
+        accept="image/*,image/heic,image/heif"
       />
       <Card>
         <CardHeader className="pb-2">
@@ -159,3 +159,5 @@ export function PassportTab({ onGenerate, onClear }: PassportTabProps) {
     </div>
   );
 }
+
+    

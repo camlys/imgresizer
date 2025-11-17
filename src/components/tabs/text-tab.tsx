@@ -160,7 +160,7 @@ export function TextTab({
         ref={fileInputRef}
         onChange={handleSignatureUpload}
         className="hidden"
-        accept="image/*"
+        accept="image/*,image/heic,image/heif"
       />
       
       <Tabs defaultValue="text" className="w-full">
@@ -379,5 +379,7 @@ export function TextTab({
     </div>
   );
 }
+
+    
 
     

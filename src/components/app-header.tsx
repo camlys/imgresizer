@@ -285,7 +285,7 @@ export function AppHeader({
 
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
-      uploadInputRef.current.accept = type === 'image' ? 'image/*,image/webp' : 'application/pdf';
+      uploadInputRef.current.accept = type === 'image' ? 'image/*,image/heic,image/heif' : 'application/pdf';
       uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
@@ -474,5 +474,7 @@ export function AppHeader({
     </header>
   );
 }
+
+    
 
     

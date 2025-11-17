@@ -18,7 +18,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
 
   const handleSelectUploadType = (type: 'image' | 'pdf') => {
     if (uploadInputRef.current) {
-      uploadInputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+      uploadInputRef.current.accept = type === 'image' ? 'image/*,image/heic,image/heif' : 'application/pdf';
       uploadInputRef.current.click();
     }
     setIsUploadTypeDialogOpen(false);
@@ -58,7 +58,7 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
         <div className="relative container mx-auto px-6 py-24 md:py-32 text-center">
             <div className="bg-background/80 backdrop-blur-md rounded-xl p-8 inline-block shadow-2xl">
                 <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-foreground to-primary">
-                    Image Resizer, Free Online Image & PDF Resizer, Editor & Background Remover - ImgResizer.xyz
+                    Image Resizer, Free Online Image & PDF Resizer, Editor & Background Remover - ImgResizer
                 </h1>
                 <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
                     ImgResizer provides a powerful, free, and intuitive online editor to resize, crop, and enhance your photos and PDFs. No downloads, no sign-ups—just seamless editing right in your browser.
@@ -92,3 +92,5 @@ export function HeroSection({ onUpload, onLearnMoreClick }: HeroSectionProps) {
     </>
   );
 }
+
+    

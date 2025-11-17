@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -608,7 +607,7 @@ export function PdfPageSelectorDialog({
     const handleAddFile = (type: 'image' | 'pdf') => {
         const inputRef = insertionIndex !== null ? fileInputRef : quickAddFileInputRef;
         if (inputRef.current) {
-            inputRef.current.accept = type === 'image' ? 'image/*' : 'application/pdf';
+            inputRef.current.accept = type === 'image' ? 'image/*,image/heic,image/heif' : 'application/pdf';
             inputRef.current.click();
         }
         setIsAddFileDialogOpen(false);
@@ -643,7 +642,7 @@ export function PdfPageSelectorDialog({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif') {
         handleImageFile(file);
       } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
@@ -664,7 +663,7 @@ export function PdfPageSelectorDialog({
       const file = e.target.files?.[0];
       if (!file) return;
       
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif') {
         handleImageFile(file);
       } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
@@ -1243,6 +1242,7 @@ export function PdfPageSelectorDialog({
                               ref={quickAddFileInputRef}
                               onChange={handleQuickAddFileChange}
                               className="hidden"
+                              multiple={false}
                             />
                            {!isLoading && (
                             <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
@@ -1451,4 +1451,4 @@ export function PdfPageSelectorDialog({
 
     
 
-
+    

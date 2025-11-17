@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -237,7 +236,7 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept="image/*,application/pdf"
+        accept="image/*,image/heic,image/heif,application/pdf"
       />
       
       <Tabs defaultValue="layers" className="w-full">
@@ -672,3 +671,5 @@ export function CollageTab({ settings, updateSettings, onAddImage, selectedLayer
     </div>
   );
 }
+
+    
