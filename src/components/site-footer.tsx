@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Github, Twitter, Facebook, Download } from 'lucide-react';
+import { Github, Twitter, Facebook, Download, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Define the event type for beforeinstallprompt
@@ -19,14 +19,17 @@ interface BeforeInstallPromptEvent extends Event {
 export function SiteFooter() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const { toast } = useToast();
+  const [notificationPermission, setNotificationPermission] = useState('default');
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the default mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
+
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -45,18 +48,54 @@ export function SiteFooter() {
             } else {
                 console.log('User dismissed the install prompt');
             }
-            // We can't reuse the install prompt, so we null it out.
-            // If the user uninstalls, the `beforeinstallprompt` event will fire again.
             setInstallPrompt(null);
         });
     } else {
-        // Fallback for browsers that don't support the prompt or if it was already used/dismissed
         toast({
             title: "How to Install",
             description: "To install, use your browser's menu. In Chrome, look for 'Install ImgResizer...'. In Safari, use 'File > Add to Dock'.",
         });
     }
   }, [installPrompt, toast]);
+
+  const handleNotificationClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        toast({ title: 'Error', description: 'Push notifications are not supported in this browser.', variant: 'destructive'});
+        return;
+    }
+
+    if (notificationPermission === 'granted') {
+        toast({ title: 'Already Subscribed', description: 'You are already subscribed to notifications.' });
+        return;
+    }
+
+    if (notificationPermission === 'denied') {
+        toast({ title: 'Permission Denied', description: 'Please enable notifications in your browser settings.', variant: 'destructive' });
+        return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    if (permission === 'granted') {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY // You need to generate and add this key
+            });
+
+            console.log('Push Subscription:', subscription);
+            // TODO: Send this subscription object to your backend server
+            toast({ title: 'Subscribed!', description: 'You will now receive notifications.' });
+
+        } catch (error) {
+            console.error('Failed to subscribe to push notifications:', error);
+            toast({ title: 'Subscription Failed', description: 'Could not subscribe to notifications.', variant: 'destructive' });
+        }
+    }
+  };
   
   return (
     <footer className="bg-card border-t">
@@ -101,6 +140,15 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2 text-sm">
                 <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
                 <li><Link href="/data-related" className="text-muted-foreground hover:text-foreground">Data Related</Link></li>
+                <li>
+                  <a
+                    href="#"
+                    onClick={handleNotificationClick}
+                    className="flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    Notifications <Bell size={14} className={`ml-2 ${notificationPermission === 'granted' ? 'text-primary' : ''}`} />
+                  </a>
+                </li>
               </ul>
             </div>
              <div>

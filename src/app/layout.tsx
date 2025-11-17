@@ -119,6 +119,12 @@ export default function RootLayout({
     document.addEventListener('cut', handleCopy);
 
 
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function(error) {
+        console.error('Service Worker registration failed:', error);
+      });
+    }
+
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
