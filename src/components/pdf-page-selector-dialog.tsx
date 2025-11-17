@@ -627,6 +627,7 @@ export function PdfPageSelectorDialog({
         let processedFile = file;
         if (file.type === 'image/heic' || file.type === 'image/heif') {
           try {
+            toast({ title: 'Converting HEIC...', description: 'Please wait a moment.'});
             const heic2any = (await import('heic2any')).default;
             const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg' });
             processedFile = new File([conversionResult as Blob], file.name.replace(/\.heic/i, '.jpg'), { type: 'image/jpeg' });
@@ -664,7 +665,7 @@ export function PdfPageSelectorDialog({
       if (!file) return;
 
       if (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif') {
-        handleImageFile(file);
+        await handleImageFile(file);
       } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
           if (newDoc) {
@@ -685,7 +686,7 @@ export function PdfPageSelectorDialog({
       if (!file) return;
       
       if (file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif') {
-        handleImageFile(file);
+        await handleImageFile(file);
       } else if (file.type === 'application/pdf') {
           const newDoc = await onAddFile(file);
           if (newDoc) {
@@ -1273,6 +1274,91 @@ export function PdfPageSelectorDialog({
         dragItem.current = null;
         dragOverItem.current = null;
     };
+    
+    const handlePrintSelected = async () => {
+        if (selectedPageKeys.length === 0) return;
+
+        setIsDownloading(true); // Re-use the downloading state to disable buttons
+        toast({
+            title: "Preparing for Print",
+            description: `Generating print preview for ${selectedPageKeys.length} page(s)...`
+        });
+
+        try {
+            const pagesToPrint = selectedPageKeys.map(key => {
+                const [docId, pageNum, copyIndex] = key.split('__');
+                return pagesMeta.find(p => p.docId === docId && p.pageNumber === parseInt(pageNum) && p.copyIndex === parseInt(copyIndex))!;
+            }).sort((a,b) => pagesMeta.indexOf(a) - pagesMeta.indexOf(b));
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                toast({ title: "Error", description: "Could not open print window. Please check your browser's pop-up settings.", variant: "destructive" });
+                setIsDownloading(false);
+                return;
+            }
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Preview</title>
+                        <style>
+                            @page { size: auto; margin: 0; }
+                            body { margin: 0; background-color: #eee; text-align: center; }
+                            img { max-width: 100%; max-height: 100vh; object-fit: contain; box-shadow: 0 0 10px rgba(0,0,0,0.2); background-color: white; page-break-after: always; }
+                            img:last-child { page-break-after: auto; }
+                            .loading-indicator { font-family: sans-serif; font-size: 20px; color: #555; padding-top: 2rem; }
+                        </style>
+                    </head>
+                    <body><div class="loading-indicator">Loading pages for printing...</div></body>
+                </html>
+            `);
+            printWindow.document.close();
+            
+            const imagePromises = pagesToPrint.map(async (pageMeta) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error("Canvas context creation failed");
+
+                if (pageMeta.src) {
+                    const img = new Image();
+                    img.src = pageMeta.src;
+                    await new Promise((resolve) => { img.onload = resolve; });
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                } else {
+                    const doc = pdfDocs.find(d => d.id === pageMeta.docId)!.doc;
+                    const page = await doc.getPage(pageMeta.pageNumber);
+                    const viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: context, viewport }).promise;
+                }
+                return canvas.toDataURL('image/png', 1.0);
+            });
+            
+            const dataUrls = await Promise.all(imagePromises);
+            
+            const body = printWindow.document.body;
+            body.innerHTML = '';
+            dataUrls.forEach(url => {
+                const img = printWindow.document.createElement('img');
+                img.src = url;
+                body.appendChild(img);
+            });
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+
+        } catch (error) {
+            console.error("Failed to prepare for print:", error);
+            toast({ title: "Print Error", description: "There was a problem preparing pages for printing.", variant: "destructive" });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
 
     return (
@@ -1399,6 +1485,9 @@ export function PdfPageSelectorDialog({
                                         <SelectItem value="extreme">Extreme</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <Button onClick={handlePrintSelected} disabled={selectedPageKeys.length === 0 || isDownloading} size="icon" variant="outline">
+                                    <Printer />
+                                </Button>
                                 <Button onClick={handleDownloadSelected} disabled={selectedPageKeys.length === 0 || isDownloading} size="sm" className="min-w-[150px]">
                                     {isDownloading ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
