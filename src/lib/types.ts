@@ -172,7 +172,7 @@ export interface OptimizedResult {
         size: number;
         filename: string;
     },
-    pdf: {
+    pdf?: {
         dataUrl: string;
         size: number;
         filename: string;

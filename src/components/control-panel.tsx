@@ -42,7 +42,7 @@ interface ControlPanelProps {
   tabListRef: React.RefObject<HTMLDivElement>;
   onGeneratePassportPhotos: (image: File, count: number, backgroundColor: string) => void;
   onClearPassport: () => void;
-  onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB') => Promise<void>;
+  onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB', generatePdf: boolean) => Promise<void>;
   isCollageCropMode: boolean;
   setIsCollageCropMode: (isCropping: boolean) => void;
 }

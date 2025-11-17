@@ -1456,7 +1456,7 @@ const updateProcessedSize = React.useCallback(async () => {
     });
   }, [generateFinalCanvas, editorMode, settings, collageSettings]);
 
-  const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB') => {
+  const handleTargetSize = async (targetSize: number, targetUnit: 'KB' | 'MB', generatePdf: boolean) => {
     const numericSize = targetSize;
     if (!numericSize || numericSize <= 0 || !originalImage) return;
 
@@ -1491,34 +1491,36 @@ const updateProcessedSize = React.useCallback(async () => {
     if (finalBlob) {
         const imageExtension = finalSettings.format.split('/')[1];
 
-        const pdf = new jsPDF();
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = finalCanvas.width;
-        const imgHeight = finalCanvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const newImgWidth = imgWidth * ratio;
-        const newImgHeight = imgHeight * ratio;
-        const imgX = (pdfWidth - newImgWidth) / 2;
-        const imgY = (pdfHeight - newImgHeight) / 2;
-
-        pdf.addImage(finalCanvas.toDataURL(finalSettings.format, finalSettings.quality), finalSettings.format.split('/')[1].toUpperCase(), imgX, imgY, newImgWidth, newImgHeight);
-        const pdfBlob = pdf.output('blob');
-
-
-        const result = {
+        const result: any = {
             image: {
                 dataUrl: finalCanvas.toDataURL(finalSettings.format, finalSettings.quality),
                 size: finalBlob.size,
                 filename: `imgresizer-export.${imageExtension}`
             },
-            pdf: {
+            originalSize: originalImage.size,
+        };
+
+        if (generatePdf) {
+            const pdf = new jsPDF();
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = finalCanvas.width;
+            const imgHeight = finalCanvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const newImgWidth = imgWidth * ratio;
+            const newImgHeight = imgHeight * ratio;
+            const imgX = (pdfWidth - newImgWidth) / 2;
+            const imgY = (pdfHeight - newImgHeight) / 2;
+
+            pdf.addImage(finalCanvas.toDataURL(finalSettings.format, finalSettings.quality), finalSettings.format.split('/')[1].toUpperCase(), imgX, imgY, newImgWidth, newImgHeight);
+            const pdfBlob = pdf.output('blob');
+            result.pdf = {
                 dataUrl: URL.createObjectURL(pdfBlob),
                 size: pdfBlob.size,
                 filename: `imgresizer-export.pdf`
-            },
-            originalSize: originalImage.size,
-        };
+            };
+        }
+
         sessionStorage.setItem('optimizedResult', JSON.stringify(result));
         router.push('/result');
     }

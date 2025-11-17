@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ImageInfoPanel } from '../image-info-panel';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '../ui/checkbox';
 
 const CM_TO_INCH = 0.393701;
 
@@ -56,7 +58,7 @@ interface ResizeRotateTabProps {
     processedSize: number | null;
     isFromMultiPagePdf: boolean;
     onViewPages: () => void;
-    onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB') => Promise<void>;
+    onTargetSizeSubmit: (targetSize: number, targetUnit: 'KB' | 'MB', generatePdf: boolean) => Promise<void>;
 }
 
 export function ResizeRotateTab({ settings, updateSettings, originalImage, processedSize, isFromMultiPagePdf, onViewPages, onTargetSizeSubmit }: ResizeRotateTabProps) {
@@ -77,6 +79,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
     // Target size state
     const [targetSize, setTargetSize] = useState('');
     const [targetUnit, setTargetUnit] = useState<'KB' | 'MB'>('KB');
+    const [generatePdf, setGeneratePdf] = useState(true);
     const [isOptimizing, setIsOptimizing] = useState(false);
 
     useEffect(() => {
@@ -205,7 +208,7 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
         }
 
         setIsOptimizing(true);
-        await onTargetSizeSubmit(size, targetUnit);
+        await onTargetSizeSubmit(size, targetUnit, generatePdf);
         setIsOptimizing(false);
     };
 
@@ -371,6 +374,10 @@ export function ResizeRotateTab({ settings, updateSettings, originalImage, proce
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
+                                </div>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <Checkbox id="generate-pdf" checked={generatePdf} onCheckedChange={c => setGeneratePdf(c as boolean)} />
+                                    <Label htmlFor="generate-pdf" className="text-xs text-muted-foreground cursor-pointer">Also generate PDF</Label>
                                 </div>
                                 <p className="text-xs text-muted-foreground">Sets quality to meet size for JPEG/WEBP.</p>
                             </div>

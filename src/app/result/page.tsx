@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -34,9 +35,11 @@ export default function ResultPage() {
         if (type === 'image') {
             link.href = result.image.dataUrl;
             link.download = result.image.filename;
-        } else {
+        } else if (result.pdf) {
             link.href = result.pdf.dataUrl;
             link.download = result.pdf.filename;
+        } else {
+            return;
         }
         document.body.appendChild(link);
         link.click();
@@ -47,7 +50,7 @@ export default function ResultPage() {
     };
 
     const imageReduction = result ? Math.round(((result.originalSize - result.image.size) / result.originalSize) * 100) : 0;
-    const pdfReduction = result ? Math.round(((result.originalSize - result.pdf.size) / result.originalSize) * 100) : 0;
+    const pdfReduction = result && result.pdf ? Math.round(((result.originalSize - result.pdf.size) / result.originalSize) * 100) : 0;
 
 
     return (
@@ -61,7 +64,7 @@ export default function ResultPage() {
                             Optimization Result
                         </CardTitle>
                         <CardDescription>
-                            Your image has been optimized to your target file size and converted to PDF. Review and download your files.
+                            Your image has been optimized to your target file size. Review and download your file(s).
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -71,9 +74,9 @@ export default function ResultPage() {
                                 <p>Loading result...</p>
                             </div>
                         ) : result ? (
-                            <div className="grid md:grid-cols-2 gap-8 items-start">
+                            <div className={`grid ${result.pdf ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8 items-start`}>
                                 {/* Image Result */}
-                                <Card>
+                                <Card className={!result.pdf ? 'max-w-md mx-auto w-full' : ''}>
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
                                             <ImageIcon className="text-primary" />
@@ -106,6 +109,7 @@ export default function ResultPage() {
                                 </Card>
 
                                 {/* PDF Result */}
+                                {result.pdf && (
                                 <Card>
                                      <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
@@ -137,6 +141,7 @@ export default function ResultPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                )}
                             </div>
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
