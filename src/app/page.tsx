@@ -1647,7 +1647,7 @@ const updateProcessedSize = React.useCallback(async () => {
               onAddImageToCollage={addImageToCollage}
               selectedLayerIds={selectedLayerIds}
               setSelectedLayerIds={setSelectedLayerIds}
-              onAutoLayout={onAutoLayout}
+              onAutoLayout={handleAutoLayout}
               onAutoDetectBorder={handleAutoDetectBorder}
               onGeneratePassportPhotos={handleGeneratePassportPhotos}
               onClearPassport={handleClearPassport}
