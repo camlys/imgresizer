@@ -18,7 +18,6 @@ import { HeroSection } from '@/components/hero-section';
 import { PdfPageSelectorDialog } from '@/components/pdf-page-selector-dialog';
 import { TextEditor } from '@/components/text-editor';
 import { FeatureGrid } from '@/components/feature-grid';
-import { InstallPwaBanner } from '@/components/install-pwa-banner';
 import { AppGrid } from '@/components/app-grid';
 import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
@@ -1577,7 +1576,7 @@ const updateProcessedSize = React.useCallback(async () => {
           <FeatureGrid />
         </main>
         <SiteFooter />
-        <InstallPwaBanner />
+        
         <PdfPageSelectorDialog
           isOpen={isPdfSelectorOpen}
           onOpenChange={setIsPdfSelectorOpen}
