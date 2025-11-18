@@ -199,6 +199,14 @@ function PagePreview({
                 <TooltipProvider>
                      <Tooltip>
                         <TooltipTrigger asChild>
+                             <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onPrint(pageMeta)}>
+                                <Printer size={14} />
+                             </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Print page</p></TooltipContent>
+                    </Tooltip>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
                              <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => onDelete(pageMeta.docId, pageMeta.pageNumber)}>
                                 <Trash2 size={14} />
                              </Button>
@@ -235,14 +243,6 @@ function PagePreview({
                 </div>
                 <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onPrint(pageMeta)}>
-                                    <Printer size={16} />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Print page</p></TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onDownload(pageMeta)}>
