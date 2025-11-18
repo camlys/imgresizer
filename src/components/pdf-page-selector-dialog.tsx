@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText, Printer, Expand } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, List, Plus, GripVertical, Copy, Image as ImageIcon, FileText, Printer, Expand } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -31,7 +31,6 @@ import { Input } from './ui/input';
 import jsPDF from 'jspdf';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import type { PdfDocumentInfo, PageMetadata } from '@/lib/types';
-import { DialogFooter } from './ui/dialog';
 import { useRouter } from 'next/navigation';
 import { compressionCache } from '@/lib/compression-cache';
 
@@ -215,14 +214,6 @@ function PagePreview({
                         </TooltipTrigger>
                         <TooltipContent><p>Delete this page</p></TooltipContent>
                     </Tooltip>
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onQuickLook(pageMeta, canvasRef.current)}>
-                                <Expand size={14} />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Quick Look</p></TooltipContent>
-                    </Tooltip>
                 </TooltipProvider>
                 <Checkbox
                     id={`select-page-${pageMeta.docId}-${pageMeta.pageNumber}`}
@@ -268,6 +259,14 @@ function PagePreview({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent><p>Duplicate page</p></TooltipContent>
+                        </Tooltip>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-md bg-background/80" onClick={() => onQuickLook(pageMeta, canvasRef.current)}>
+                                    <Expand size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Quick Look</p></TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -539,7 +538,7 @@ function QuickLookDialog({ isOpen, onOpenChange, pageMeta, sourceDoc, lowResCanv
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isOpen && pageMeta && highResCanvasRef.current) {
+    if (isOpen && pageMeta) {
       setIsLoading(true);
       const renderHighRes = async () => {
         try {
@@ -571,7 +570,8 @@ function QuickLookDialog({ isOpen, onOpenChange, pageMeta, sourceDoc, lowResCanv
           setIsLoading(false);
         }
       };
-      renderHighRes();
+      // Add a small delay to allow the low-res to show first
+      setTimeout(renderHighRes, 50);
     }
   }, [isOpen, pageMeta, sourceDoc]);
 
@@ -590,7 +590,7 @@ function QuickLookDialog({ isOpen, onOpenChange, pageMeta, sourceDoc, lowResCanv
                 />
             )}
             <canvas ref={highResCanvasRef} className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`} />
-            {isLoading && !lowResCanvas && <Loader2 className="w-8 h-8 text-primary animate-spin absolute" />}
+            {isLoading && <Loader2 className="w-8 h-8 text-primary animate-spin absolute" />}
         </div>
       </DialogContent>
     </Dialog>
@@ -648,9 +648,6 @@ export function PdfPageSelectorDialog({
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
-
-    const dragPageItem = useRef<string | null>(null);
-    const dragOverPageItem = useRef<string | null>(null);
 
     const generatePageKey = (docId: string, pageNumber: number, copyIndex: number = 0) => `${docId}__${pageNumber}__${copyIndex}`;
 
@@ -1497,7 +1494,7 @@ export function PdfPageSelectorDialog({
                             <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 h-full flex items-center">
                                     {searchMode === 'text' ? 
-                                        <Search className="h-4 w-4 text-muted-foreground" /> :
+                                        <Edit className="h-4 w-4 text-muted-foreground" /> :
                                         <List className="h-4 w-4 text-muted-foreground" />
                                     }
                                 </div>
@@ -1519,7 +1516,7 @@ export function PdfPageSelectorDialog({
                                                 setSearchValue('');
                                             }}
                                         >
-                                            {searchMode === 'text' ? <List size={16}/> : <Search size={16}/>}
+                                            {searchMode === 'text' ? <List size={16}/> : <Edit size={16}/>}
                                         </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
