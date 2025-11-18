@@ -1,9 +1,7 @@
 
-
 "use client";
 
 import React, { useCallback, useRef } from 'react';
-import type { Metadata } from 'next';
 import { AppHeader } from '@/components/app-header';
 import { ControlPanel } from '@/components/control-panel';
 import { ImageCanvas } from '@/components/image-canvas';
@@ -23,7 +21,8 @@ import { SeoContent } from '@/components/seo-content';
 import { PasswordDialog } from '@/components/password-dialog';
 import { applyPerspectiveTransform, autoDetectBorders } from '@/lib/perspective';
 import { useRouter } from 'next/navigation';
-
+import { InstallPwaBanner } from '@/components/install-pwa-banner';
+import { ClientOnly } from '@/components/client-only';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -1576,7 +1575,9 @@ const updateProcessedSize = React.useCallback(async () => {
           <FeatureGrid />
         </main>
         <SiteFooter />
-        
+        <ClientOnly>
+          <InstallPwaBanner />
+        </ClientOnly>
         <PdfPageSelectorDialog
           isOpen={isPdfSelectorOpen}
           onOpenChange={setIsPdfSelectorOpen}
