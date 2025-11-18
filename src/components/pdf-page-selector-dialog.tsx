@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText, Printer } from 'lucide-react';
+import { Loader2, Download, RotateCcw, RotateCw, Trash2, Undo, Edit, PlusSquare, Search, List, Plus, Zap, GripVertical, Copy, Image as ImageIcon, FileText, Printer, Expand } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
@@ -49,6 +49,7 @@ interface PagePreviewProps {
   onAddAfter: (pageMeta: PageMetadata) => void;
   onDuplicate: (pageMeta: PageMetadata) => void;
   onPrint: (pageMeta: PageMetadata) => void;
+  onQuickLook: (pageMeta: PageMetadata, canvas: HTMLCanvasElement | null) => void;
 }
 
 
@@ -65,6 +66,7 @@ function PagePreview({
     onAddAfter,
     onDuplicate,
     onPrint,
+    onQuickLook,
 }: PagePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -212,6 +214,14 @@ function PagePreview({
                              </Button>
                         </TooltipTrigger>
                         <TooltipContent><p>Delete this page</p></TooltipContent>
+                    </Tooltip>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onQuickLook(pageMeta, canvasRef.current)}>
+                                <Search size={14} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Quick Look</p></TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
                 <Checkbox
@@ -516,6 +526,79 @@ function AddFileDialog({ isOpen, onOpenChange, onSelectType }: UploadTypeDialogP
 }
 
 
+interface QuickLookDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  pageMeta: PageMetadata | null;
+  sourceDoc: pdfjsLib.PDFDocumentProxy | null;
+  lowResCanvas: HTMLCanvasElement | null;
+}
+
+function QuickLookDialog({ isOpen, onOpenChange, pageMeta, sourceDoc, lowResCanvas }: QuickLookDialogProps) {
+  const highResCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen && pageMeta && highResCanvasRef.current) {
+      setIsLoading(true);
+      const renderHighRes = async () => {
+        try {
+          const highResCanvas = highResCanvasRef.current;
+          if (!highResCanvas) return;
+          const context = highResCanvas.getContext('2d');
+          if (!context) return;
+          
+          let viewport;
+          if (pageMeta.src) { // Image
+            const img = new Image();
+            img.src = pageMeta.src;
+            await new Promise(res => img.onload = res);
+            viewport = { width: img.width, height: img.height, scale: 1};
+            highResCanvas.width = viewport.width;
+            highResCanvas.height = viewport.height;
+            context.drawImage(img, 0, 0);
+
+          } else if (sourceDoc) { // PDF
+            const page = await sourceDoc.getPage(pageMeta.pageNumber);
+            viewport = page.getViewport({ scale: 4.0, rotation: pageMeta.rotation });
+            highResCanvas.width = viewport.width;
+            highResCanvas.height = viewport.height;
+            await page.render({ canvasContext: context, viewport }).promise;
+          }
+        } catch (e) {
+          console.error("Failed to render high-res preview", e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      renderHighRes();
+    }
+  }, [isOpen, pageMeta, sourceDoc]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col items-center justify-center p-2 sm:p-4 rounded-lg">
+        <DialogHeader className="w-full">
+          <DialogTitle className="truncate">{pageMeta?.name || 'Page Preview'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 w-full h-full relative flex items-center justify-center">
+            {lowResCanvas && (
+                <img
+                    src={lowResCanvas.toDataURL()}
+                    className="absolute inset-0 w-full h-full object-contain filter blur-md"
+                    style={{ opacity: isLoading ? 1 : 0, transition: 'opacity 0.3s ease-in' }}
+                    alt="Low resolution preview"
+                />
+            )}
+            <canvas ref={highResCanvasRef} className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`} />
+            {isLoading && !lowResCanvas && <Loader2 className="w-8 h-8 text-primary animate-spin absolute" />}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 interface PdfPageSelectorDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -558,6 +641,11 @@ export function PdfPageSelectorDialog({
     const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
     
     const [isAddFileDialogOpen, setIsAddFileDialogOpen] = useState(false);
+
+    const [isQuickLookOpen, setIsQuickLookOpen] = useState(false);
+    const [quickLookPage, setQuickLookPage] = useState<PageMetadata | null>(null);
+    const [quickLookLowResCanvas, setQuickLookLowResCanvas] = useState<HTMLCanvasElement | null>(null);
+
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -1359,6 +1447,12 @@ export function PdfPageSelectorDialog({
             setIsDownloading(false);
         }
     };
+    
+    const handleQuickLook = (pageMeta: PageMetadata, canvas: HTMLCanvasElement | null) => {
+        setQuickLookPage(pageMeta);
+        setQuickLookLowResCanvas(canvas);
+        setIsQuickLookOpen(true);
+    };
 
 
     return (
@@ -1547,6 +1641,7 @@ export function PdfPageSelectorDialog({
                                        onAddAfter={handleAddAfter}
                                        onDuplicate={handleDuplicatePage}
                                        onPrint={handlePrintPage}
+                                       onQuickLook={handleQuickLook}
                                    />
                                    </div>
                                )})}
@@ -1601,6 +1696,13 @@ export function PdfPageSelectorDialog({
                     onImport={handleImportPages}
                 />
             )}
+             <QuickLookDialog
+                isOpen={isQuickLookOpen}
+                onOpenChange={setIsQuickLookOpen}
+                pageMeta={quickLookPage}
+                sourceDoc={pdfDocs.find(d => d.id === quickLookPage?.docId)?.doc || null}
+                lowResCanvas={quickLookLowResCanvas}
+            />
         </>
     );
 }
