@@ -218,7 +218,7 @@ function PagePreview({
                      <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" className="h-7 w-7 bg-background/80" onClick={() => onQuickLook(pageMeta, canvasRef.current)}>
-                                <Search size={14} />
+                                <Expand size={14} />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent><p>Quick Look</p></TooltipContent>
@@ -582,11 +582,10 @@ function QuickLookDialog({ isOpen, onOpenChange, pageMeta, sourceDoc, lowResCanv
           <DialogTitle className="truncate">{pageMeta?.name || 'Page Preview'}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 w-full h-full relative flex items-center justify-center">
-            {lowResCanvas && (
+            {isLoading && lowResCanvas && (
                 <img
                     src={lowResCanvas.toDataURL()}
                     className="absolute inset-0 w-full h-full object-contain filter blur-md"
-                    style={{ opacity: isLoading ? 1 : 0, transition: 'opacity 0.3s ease-in' }}
                     alt="Low resolution preview"
                 />
             )}
@@ -649,6 +648,9 @@ export function PdfPageSelectorDialog({
 
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
+
+    const dragPageItem = useRef<string | null>(null);
+    const dragOverPageItem = useRef<string | null>(null);
 
     const generatePageKey = (docId: string, pageNumber: number, copyIndex: number = 0) => `${docId}__${pageNumber}__${copyIndex}`;
 
