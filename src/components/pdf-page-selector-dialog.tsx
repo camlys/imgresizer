@@ -1467,7 +1467,7 @@ export function PdfPageSelectorDialog({
             }}>
                 <DialogContent
                   onOpenAutoFocus={(e) => e.preventDefault()}
-                  className="max-w-6xl w-[95vw] h-[90vh] rounded-lg flex flex-col"
+                  className="max-w-screen-xl w-[95vw] h-[90vh] rounded-lg flex flex-col"
                 >
                     <DialogHeader>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -1613,7 +1613,7 @@ export function PdfPageSelectorDialog({
                         </div>
                     ) : (
                         <ScrollArea className="flex-1 -mx-6 px-6">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 py-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 py-4">
                                {filteredPages.map(pageMeta => {
                                 const sourceDoc = pageMeta.src ? null : pdfDocs.find(d => d.id === pageMeta.docId);
                                 if (!sourceDoc && !pageMeta.src) return null;
