@@ -57,7 +57,7 @@ export default function AboutPage() {
                 </p>
               </div>
               <div className="bg-primary/10 rounded-lg p-8">
-                <img src="/camlylogo.png" alt="ImgResizer Mission" className="w-full h-auto rounded-lg shadow-xl" />
+                <img src="/camly.png" alt="ImgResizer Mission" className="w-full h-auto rounded-lg shadow-xl" />
               </div>
             </div>
           </div>
