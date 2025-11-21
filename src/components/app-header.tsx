@@ -304,9 +304,9 @@ export function AppHeader({
 
 
   return (
-    <header className="flex items-center justify-between p-2 sm:p-2 sm:pl-4 border-b bg-card overflow-hidden">
+    <header className="flex items-center justify-between p-1 sm:p-1 sm:pl-4 border-b bg-card overflow-hidden">
       <Link href="https://imgresizer.xyz" className="flex items-center gap-3">
-        <LogoIcon className="w-24 object-contain" />
+        <LogoIcon className="w-20 object-contain" />
       </Link>
       <div className="flex items-center gap-2">
         <input
@@ -478,3 +478,4 @@ export function AppHeader({
     
 
     
+
