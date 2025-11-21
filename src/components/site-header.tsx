@@ -8,10 +8,10 @@ import { AppHubCard } from './app-hub-card';
 
 export function SiteHeader() {
   return (
-    <header className="py-3 px-6 bg-card border-b sticky top-0 z-10 overflow-hidden">
+    <header className="py-2 px-6 bg-card border-b sticky top-0 z-10 overflow-hidden">
       <div className="container mx-auto flex items-center justify-between">
         <Link href="https://imgresizer.xyz" className="flex items-center gap-3">
-          <LogoIcon className="w-28 object-contain" />
+          <LogoIcon className="w-24 object-contain" />
         </Link>
         <div className="flex items-center gap-2">
           <Popover>

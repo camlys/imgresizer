@@ -304,9 +304,9 @@ export function AppHeader({
 
 
   return (
-    <header className="flex items-center justify-between p-2 sm:p-4 sm:pl-6 border-b bg-card overflow-hidden">
+    <header className="flex items-center justify-between p-2 sm:p-2 sm:pl-4 border-b bg-card overflow-hidden">
       <Link href="https://imgresizer.xyz" className="flex items-center gap-3">
-        <LogoIcon className="w-28 object-contain" />
+        <LogoIcon className="w-24 object-contain" />
       </Link>
       <div className="flex items-center gap-2">
         <input
@@ -315,8 +315,8 @@ export function AppHeader({
           onChange={handleFileChange}
           className="hidden"
         />
-        <Button variant="outline" size="icon" onClick={handleUploadClick}>
-          <Upload />
+        <Button variant="outline" size="sm" onClick={handleUploadClick}>
+          <Upload className="h-4 w-4" />
         </Button>
          <UploadTypeDialog
           isOpen={isUploadTypeDialogOpen}
@@ -327,7 +327,7 @@ export function AppHeader({
         {isImageLoaded && editorMode === 'single' && (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" disabled={isProcessingQuickAction}>
+                    <Button variant="outline" size="sm" disabled={isProcessingQuickAction}>
                         {isProcessingQuickAction ? <Loader2 className="animate-spin" /> : <Zap />}
                         <span className="hidden sm:inline ml-2">Quick Actions</span>
                         <ChevronDown className="ml-1 h-4 w-4" />
@@ -345,7 +345,7 @@ export function AppHeader({
         {isImageLoaded && (
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button>
+              <Button size="sm">
                 <Download className="mr-2" />
                 Download
               </Button>
@@ -462,8 +462,8 @@ export function AppHeader({
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="hidden sm:inline-flex">
-              <LayoutGrid />
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+              <LayoutGrid className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 bg-background/80 backdrop-blur-md border-primary/20">
