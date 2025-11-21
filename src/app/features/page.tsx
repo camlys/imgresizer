@@ -219,7 +219,7 @@ export default function FeaturesPage() {
                     <div className="flex items-center gap-4">
                         <FileImage className="w-20 h-20 text-primary" />
                         <GitCompareArrows className="w-12 h-12 text-muted-foreground" />
-                        <img src="/camly.png" alt="Image format icon" className="w-20 h-20" />
+                        <img src="/camlylogo.png" alt="Image format icon" className="w-20 h-20" />
                     </div>
                     </div>
                 </div>
@@ -260,7 +260,3 @@ export default function FeaturesPage() {
     </div>
   );
 }
-
-    
-
-    
