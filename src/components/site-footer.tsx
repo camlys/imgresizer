@@ -3,60 +3,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Github, Twitter, Facebook, Download, Bell } from 'lucide-react';
+import { Github, Twitter, Facebook, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Define the event type for beforeinstallprompt
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: Array<string>;
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed',
-    platform: string,
-  }>;
-  prompt(): Promise<void>;
-}
-
 export function SiteFooter() {
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState('default');
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
     }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
-
-  const handleInstallClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    if (installPrompt) {
-        installPrompt.prompt();
-        installPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('User accepted the install prompt');
-            } else {
-                console.log('User dismissed the install prompt');
-            }
-            setInstallPrompt(null);
-        });
-    } else {
-        toast({
-            title: "How to Install",
-            description: "To install, use your browser's menu. In Chrome, look for 'Install ImgResizer...'. In Safari, use 'File > Add to Dock'.",
-        });
-    }
-  }, [installPrompt, toast]);
 
   const handleNotificationClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -122,15 +80,6 @@ export function SiteFooter() {
             <div>
               <h4 className="font-semibold text-foreground">Company</h4>
               <ul className="mt-4 space-y-2 text-sm">
-                <li>
-                  <a 
-                    href="#" 
-                    onClick={handleInstallClick} 
-                    className='flex items-center text-muted-foreground hover:text-foreground'
-                  >
-                    Install App <Download size={14} className="ml-2" />
-                  </a>
-                </li>
                 <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
               </ul>
